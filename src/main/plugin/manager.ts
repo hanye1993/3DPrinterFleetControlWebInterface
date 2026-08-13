@@ -76,6 +76,8 @@ export type PluginHostDeps = {
   dataRoot: string
   /** Optional bundled sample plugins directory (repo ./plugins) */
   bundledPluginsDir?: string
+  /** Optional examples root (repo ./assets/examples) — scanned for plugin-* */
+  examplePluginsDir?: string
   /** When set (MySQL mode), plugins-state.json is not used */
   statePersistence?: {
     load: () => unknown | null
@@ -1974,25 +1976,64 @@ export class PluginManager {
   }
 
   async installBundled(identifier: string): Promise<PluginRuntimeState> {
-    const bundled = this.deps.bundledPluginsDir
-    if (!bundled) throw new Error('无内置插件目录')
-    const src = join(bundled, identifier)
-    if (!existsSync(src)) throw new Error(`内置插件不存在: ${identifier}`)
+    const src = this.resolveBundledPluginDir(identifier)
+    if (!src) throw new Error(`内置/示例插件不存在: ${identifier}`)
     return this.installFromDirectory(src)
   }
 
-  listBundled(): Array<{ identifier: string; name: string; version: string }> {
+  private resolveBundledPluginDir(identifier: string): string | null {
+    const id = String(identifier || '').trim()
+    if (!id) return null
     const bundled = this.deps.bundledPluginsDir
-    if (!bundled || !existsSync(bundled)) return []
+    if (bundled) {
+      const direct = join(bundled, id)
+      if (existsSync(direct)) return direct
+    }
+    const examples = this.deps.examplePluginsDir
+    if (examples && existsSync(examples)) {
+      for (const name of readdirSync(examples)) {
+        if (!name.startsWith('plugin-')) continue
+        const dir = join(examples, name)
+        if (!statSync(dir).isDirectory()) continue
+        try {
+          const m = this.readManifest(dir, name)
+          if (m.identifier === id) return dir
+        } catch {
+          /* skip */
+        }
+      }
+    }
+    return null
+  }
+
+  listBundled(): Array<{ identifier: string; name: string; version: string }> {
     const out: Array<{ identifier: string; name: string; version: string }> = []
-    for (const name of readdirSync(bundled)) {
-      const dir = join(bundled, name)
-      if (!statSync(dir).isDirectory()) continue
+    const seen = new Set<string>()
+    const pushDir = (dir: string, fallbackId: string) => {
       try {
-        const m = this.readManifest(dir, name)
+        const m = this.readManifest(dir, fallbackId)
+        if (seen.has(m.identifier)) return
+        seen.add(m.identifier)
         out.push({ identifier: m.identifier, name: m.name, version: m.version })
       } catch {
         /* skip */
+      }
+    }
+    const bundled = this.deps.bundledPluginsDir
+    if (bundled && existsSync(bundled)) {
+      for (const name of readdirSync(bundled)) {
+        const dir = join(bundled, name)
+        if (!statSync(dir).isDirectory()) continue
+        pushDir(dir, name)
+      }
+    }
+    const examples = this.deps.examplePluginsDir
+    if (examples && existsSync(examples)) {
+      for (const name of readdirSync(examples)) {
+        if (!name.startsWith('plugin-')) continue
+        const dir = join(examples, name)
+        if (!statSync(dir).isDirectory()) continue
+        pushDir(dir, name)
       }
     }
     return out

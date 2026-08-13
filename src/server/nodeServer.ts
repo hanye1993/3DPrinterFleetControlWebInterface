@@ -39,7 +39,7 @@ import { setPluginJsonHooks } from '../main/plugin/kernel/jsonHooks'
 import { ThemeManager } from '../main/theme/manager'
 import { NavConfigStore } from '../main/nav/navConfigStore'
 import { DEFAULT_THEME_ID } from '../shared/themePack'
-import { bundledPluginsDir, bundledThemesDir } from '../shared/repoLayout'
+import { bundledPluginsDir, bundledThemesDir, cwdJoin, REPO } from '../shared/repoLayout'
 import { dispatchAlertNotify } from '../main/alert/dispatcher'
 import type { AlertEventKind } from '../shared/alertNotify'
 
@@ -268,6 +268,7 @@ async function bootstrap(): Promise<void> {
   pluginManager = new PluginManager({
     dataRoot: DATA_ROOT,
     bundledPluginsDir: bundledPluginsDir(__dirname),
+    examplePluginsDir: cwdJoin(REPO.assetsExamples),
     statePersistence: USE_MYSQL ? createMysqlSingletonPersistence('plugins_state') : undefined,
     pluginDataPersistence: USE_MYSQL ? createMysqlPluginDataPersistence() : undefined,
     getDbApi: USE_MYSQL
@@ -409,6 +410,7 @@ async function bootstrap(): Promise<void> {
   const themeManager = new ThemeManager({
     dataRoot: DATA_ROOT,
     bundledThemesDir: bundledThemesDir(__dirname),
+    exampleThemesDir: cwdJoin(REPO.assetsExamples),
     statePersistence: USE_MYSQL ? createMysqlSingletonPersistence('themes_state') : undefined,
     getDbApi: USE_MYSQL
       ? (identifier) =>

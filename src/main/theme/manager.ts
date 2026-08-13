@@ -43,6 +43,8 @@ export type ThemeServerApi = {
 export type ThemeHostDeps = {
   dataRoot: string
   bundledThemesDir?: string
+  /** Optional examples root (repo ./assets/examples) — scanned for theme-* */
+  exampleThemesDir?: string
   /** When set (MySQL mode), themes-state.json is not used */
   statePersistence?: {
     load: () => unknown | null
@@ -178,10 +180,28 @@ export class ThemeManager {
   }
 
   private bundledDir(identifier: string): string | null {
+    const id = String(identifier || '').trim()
+    if (!id) return null
     const root = this.deps.bundledThemesDir
-    if (!root) return null
-    const p = join(root, identifier)
-    return existsSync(p) ? p : null
+    if (root) {
+      const p = join(root, id)
+      if (existsSync(p)) return p
+    }
+    const examples = this.deps.exampleThemesDir
+    if (examples && existsSync(examples)) {
+      for (const name of readdirSync(examples)) {
+        if (!name.startsWith('theme-')) continue
+        const dir = join(examples, name)
+        if (!statSync(dir).isDirectory()) continue
+        try {
+          const m = this.readManifest(dir, name)
+          if (m.identifier === id) return dir
+        } catch {
+          /* skip */
+        }
+      }
+    }
+    return null
   }
 
   /** Parent → … → pack (parents first). */
@@ -305,17 +325,33 @@ export class ThemeManager {
   }
 
   listBundled(): Array<{ identifier: string; name: string; version: string }> {
-    const bundled = this.deps.bundledThemesDir
-    if (!bundled || !existsSync(bundled)) return []
     const out: Array<{ identifier: string; name: string; version: string }> = []
-    for (const name of readdirSync(bundled)) {
-      const dir = join(bundled, name)
-      if (!statSync(dir).isDirectory()) continue
+    const seen = new Set<string>()
+    const pushDir = (dir: string, fallbackId: string) => {
       try {
-        const m = this.readManifest(dir, name)
+        const m = this.readManifest(dir, fallbackId)
+        if (seen.has(m.identifier)) return
+        seen.add(m.identifier)
         out.push({ identifier: m.identifier, name: m.name, version: m.version })
       } catch {
         /* skip */
+      }
+    }
+    const bundled = this.deps.bundledThemesDir
+    if (bundled && existsSync(bundled)) {
+      for (const name of readdirSync(bundled)) {
+        const dir = join(bundled, name)
+        if (!statSync(dir).isDirectory()) continue
+        pushDir(dir, name)
+      }
+    }
+    const examples = this.deps.exampleThemesDir
+    if (examples && existsSync(examples)) {
+      for (const name of readdirSync(examples)) {
+        if (!name.startsWith('theme-')) continue
+        const dir = join(examples, name)
+        if (!statSync(dir).isDirectory()) continue
+        pushDir(dir, name)
       }
     }
     return out
@@ -492,7 +528,7 @@ export class ThemeManager {
 
   async installBundled(identifier: string): Promise<ThemePackRuntime> {
     const src = this.bundledDir(identifier)
-    if (!src) throw new Error(`内置主题不存在: ${identifier}`)
+    if (!src) throw new Error(`内置/示例主题不存在: ${identifier}`)
     return this.installFromDirectory(src)
   }
 

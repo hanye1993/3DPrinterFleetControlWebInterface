@@ -63,7 +63,7 @@ export async function fetchUpdateCheck(force = false): Promise<UpdateCheckPayloa
         res.status === 401
           ? '未登录或登录已失效，请重新登录后再检查更新'
           : j.message ||
-            '检查不到更新：服务器无法访问 GitHub API（api.github.com）。浏览器能打开网页不等于服务器能连通。'
+            '检查不到更新：服务器无法访问 github.com（git / 网页均可）。浏览器能打开不等于服务器能连通。'
     }
   }
   return {
@@ -107,7 +107,7 @@ export function usePeriodicUpdateCheck(enabled: boolean) {
           message.warning({
             content:
               r.message ||
-              '检查不到更新：请确认运行监控台的服务器能访问 api.github.com',
+              '检查不到更新：请确认运行监控台的服务器能访问 github.com',
             key: 'hanye-update-unreachable',
             duration: 8
           })
@@ -127,7 +127,7 @@ export function usePeriodicUpdateCheck(enabled: boolean) {
         if (!cancelled) {
           localStorage.setItem(LS_LAST, String(Date.now()))
           message.warning({
-            content: '检查不到更新：请确认运行监控台的服务器能访问 api.github.com',
+            content: '检查不到更新：请确认运行监控台的服务器能访问 github.com',
             key: 'hanye-update-unreachable',
             duration: 8
           })
@@ -181,11 +181,11 @@ export function SoftSettingsAbout() {
           latestTag: null,
           releaseUrl: REPO_URL,
           message:
-            '检查不到更新：服务器无法访问 GitHub API（api.github.com）。浏览器能打开网页不等于服务器能连通。'
+            '检查不到更新：服务器无法访问 github.com（git / 网页均可）。浏览器能打开不等于服务器能连通。'
         })
         message.warning(
           msg.includes('Failed') || msg.includes('fetch')
-            ? '检查不到更新：请确认运行监控台的那台机器能访问 api.github.com'
+            ? '检查不到更新：请确认运行监控台的那台机器能访问 github.com'
             : msg
         )
       } finally {
@@ -294,7 +294,7 @@ export function SoftSettingsAbout() {
                 message="检查不到更新"
                 description={
                   status.message ||
-                  '请确认运行监控台的服务器能否访问 api.github.com（浏览器能打开 GitHub 网页不等于服务器能连通）。网络恢复后可再点「检查更新」。'
+                  '请确认运行监控台的服务器能否访问 github.com（可用 git / 网页）。浏览器能打开不等于服务器能连通。网络恢复后可再点「检查更新」。'
                 }
               />
             ) : null}

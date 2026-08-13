@@ -173,7 +173,9 @@ docker compose up -d --build
 
 ## 4. 功能与品牌
 
-监控与控制、耗材、打印审核队列、用户权限 / 按设备授权、监控墙与区域摄像头、代打报价、模型 / AI 入口、告警、**主题包**（含整站 `siteMode: full`）、**插件**（钩子 / 槽位 / 微内核 v2）等。
+监控与控制、耗材、打印审核队列、用户权限 / 按设备授权、监控墙与区域摄像头、代打报价、模型 / AI 入口、告警、**主题包**（含整站 `siteMode: full`）、**插件**（钩子 / 槽位 / 微内核 v2）、**应用市场**一键安装等。
+
+**应用市场**源仓库：[hanye1993/ck3dckkzt11](https://github.com/hanye1993/ck3dckkzt11)（`plugins/`、`themes/` 分目录；每项含 `tu.png`、`js.txt`、同名 `.zip`）。管理员在「软件设置 → 应用市场」浏览并安装。
 
 常见品牌协议：Klipper/Moonraker、拓竹、创想、Elegoo、Anycubic、Snapmaker、闪铸等。  
 纯网页版由 **服务端** 连接打印机，请保证部署机与打印机网络可达。
@@ -221,6 +223,7 @@ docker compose up -d --build
 | [THEME.md](ops/docs/THEME.md) | 主题开发（skin / full 整站） |
 | [PLUGIN.md](ops/docs/PLUGIN.md) | 插件开发 |
 | [PLUGIN_KERNEL_V2.md](ops/docs/PLUGIN_KERNEL_V2.md) | 微内核 v2 |
+| 应用市场仓库 | [ck3dckkzt11](https://github.com/hanye1993/ck3dckkzt11) |
 | [NODE_DEPLOY.md](ops/docs/NODE_DEPLOY.md) | 无 Docker 的 Node 部署 |
 | [MYSQL.md](ops/docs/MYSQL.md) | MySQL |
 | [BAOTA.md](ops/docs/BAOTA.md) | 宝塔 |

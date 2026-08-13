@@ -243,7 +243,7 @@ module.exports = class {
 | `api.createLoginGrant(userId, { ttlSec? })` | 生成**一次性登录授权码**，供登录页插件换宿主 JWT |
 | `api.createUser({ username, ... })` | 创建宿主本地用户 |
 
-### 4.2.0 功能 → 原语矩阵（宿主 1.1+）
+### 4.2.0 功能 → 原语矩阵（宿主 1.2+）
 
 以下业务均可**只写插件**完成（协议细节由宿主桥接；用 `getDeviceCapabilities` 降级）：
 
