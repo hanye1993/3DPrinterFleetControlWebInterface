@@ -1,4 +1,4 @@
-/** 设备控制 action 白名单（含进料/退料/轴点动） */
+/** 设备控制 action 白名单（含进料/退料/轴点动及插件深控动作） */
 export const DEVICE_CONTROL_ACTIONS = [
   'pause',
   'resume',
@@ -9,6 +9,13 @@ export const DEVICE_CONTROL_ACTIONS = [
   'set_temp',
   'set_fan',
   'set_speed',
+  'set_flow',
+  'set_z_offset',
+  'set_chamber_temp',
+  'extrude',
+  'retract',
+  'restart',
+  'firmware_restart',
   'print_file',
   'load_filament',
   'unload_filament'
@@ -33,6 +40,20 @@ export function parseJogAxis(v: unknown): JogAxis | undefined {
 export function parseJogAmount(v: unknown): number | undefined {
   if (typeof v !== 'number' || !Number.isFinite(v) || v === 0) return undefined
   return Math.max(-100, Math.min(100, Math.round(v * 1000) / 1000))
+}
+
+/** Z 偏移相对量（mm），限制 ±2 */
+export function parseZOffsetAmount(v: unknown): number | undefined {
+  if (typeof v !== 'number' || !Number.isFinite(v) || v === 0) return undefined
+  return Math.max(-2, Math.min(2, Math.round(v * 1000) / 1000))
+}
+
+/** 挤出/回抽长度（mm），限制 0.1–50 */
+export function parseExtrudeAmount(v: unknown): number | undefined {
+  if (typeof v !== 'number' || !Number.isFinite(v) || v === 0) return undefined
+  const a = Math.abs(v)
+  if (a < 0.1 || a > 50) return undefined
+  return Math.round(a * 1000) / 1000
 }
 
 /** 相对点动 G-code：G91 → G1 → G90 */
@@ -85,5 +106,41 @@ export function parseControlExtras(body: Record<string, unknown>): {
   if (axis) out.axis = axis
   const amount = parseJogAmount(body.amount)
   if (amount != null) out.amount = amount
+  // z_offset / extrude may pass amount outside jog ±100; prefer raw when action needs it
+  if (
+    typeof body.amount === 'number' &&
+    Number.isFinite(body.amount) &&
+    out.amount == null
+  ) {
+    out.amount = body.amount
+  }
   return out
+}
+
+export type MoonrakerProxyMethod = 'GET' | 'POST' | 'DELETE'
+
+export type MoonrakerProxyRequest = {
+  method: MoonrakerProxyMethod
+  path: string
+  query?: Record<string, string | number | boolean | null | undefined>
+  body?: unknown
+}
+
+/** Validate Moonraker proxy path: absolute path on that printer only (no SSRF). */
+export function normalizeMoonrakerProxyPath(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null
+  let p = raw.trim()
+  if (!p) return null
+  if (!p.startsWith('/')) p = `/${p}`
+  if (p.includes('..') || p.includes('://') || p.includes('\\')) return null
+  if (p.length > 512) return null
+  return p
+}
+
+export function parseMoonrakerProxyMethod(v: unknown): MoonrakerProxyMethod | null {
+  const m = String(v || '')
+    .trim()
+    .toUpperCase()
+  if (m === 'GET' || m === 'POST' || m === 'DELETE') return m
+  return null
 }

@@ -121,6 +121,15 @@ export type PluginHostDeps = {
   }) => Promise<{ ok: boolean; message?: string; remotePath?: string }>
   getDeviceCapabilities?: (deviceId: string) => unknown
   sendGcode?: (deviceId: string, script: string) => Promise<{ ok: boolean; message?: string }>
+  moonrakerRequest?: (
+    deviceId: string,
+    req: {
+      method: string
+      path: string
+      query?: Record<string, string | number | boolean | null | undefined>
+      body?: unknown
+    }
+  ) => Promise<{ ok: boolean; status?: number; data?: unknown; message?: string }>
   snapshotCamera?: (opts: {
     deviceId?: string
     zoneId?: string
@@ -211,6 +220,15 @@ export type PluginApi = {
   ) => Promise<{ ok: boolean; message?: string; remotePath?: string }>
   getDeviceCapabilities: (deviceId: string) => unknown
   sendGcode: (deviceId: string, script: string) => Promise<{ ok: boolean; message?: string }>
+  moonrakerRequest: (
+    deviceId: string,
+    req: {
+      method: string
+      path: string
+      query?: Record<string, string | number | boolean | null | undefined>
+      body?: unknown
+    }
+  ) => Promise<{ ok: boolean; status?: number; data?: unknown; message?: string }>
   claimDevice: (
     deviceId: string,
     opts?: { ttlSec?: number; ownerLabel?: string; force?: boolean }
@@ -619,6 +637,12 @@ export class PluginManager {
         if (!self.deps.sendGcode) return { ok: false, message: 'gcode 不可用' }
         return self.deps.sendGcode(deviceId, script)
       },
+      moonrakerRequest: async (deviceId, req) => {
+        if (!self.deps.moonrakerRequest) {
+          return { ok: false, message: 'moonraker 透传不可用' }
+        }
+        return self.deps.moonrakerRequest(deviceId, req)
+      },
       claimDevice: async (deviceId, opts) => {
         const store = self.deps.deviceLocks
         if (!store) return { ok: false, message: 'lock 不可用' }
@@ -807,6 +831,9 @@ export class PluginManager {
         : undefined,
       sendGcode: this.deps.sendGcode
         ? (deviceId, script) => this.deps.sendGcode!(deviceId, script)
+        : undefined,
+      moonrakerRequest: this.deps.moonrakerRequest
+        ? (deviceId, req) => this.deps.moonrakerRequest!(deviceId, req)
         : undefined,
       claimDevice: (pluginId, deviceId, opts) => {
         const store = this.deps.deviceLocks

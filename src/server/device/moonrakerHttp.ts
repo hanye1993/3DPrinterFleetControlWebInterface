@@ -1,5 +1,15 @@
 import axios, { type AxiosInstance } from 'axios'
-import { buildJogGcode, isControlAction, parseControlExtras, type JogAxis } from '../../main/api/controlShared'
+import {
+  buildJogGcode,
+  isControlAction,
+  normalizeMoonrakerProxyPath,
+  parseControlExtras,
+  parseExtrudeAmount,
+  parseMoonrakerProxyMethod,
+  parseZOffsetAmount,
+  type JogAxis,
+  type MoonrakerProxyRequest
+} from '../../main/api/controlShared'
 
 function authHeaders(secret?: string): Record<string, string> {
   if (!secret) return {}
@@ -98,6 +108,10 @@ function controlToGcode(payload: Record<string, unknown>): string | null {
     case 'set_temp':
       if (payload.heater === 'bed') return `M140 S${payload.temperature ?? 0}`
       return `M104 S${payload.temperature ?? 0}`
+    case 'set_chamber_temp': {
+      const t = Math.round(Number(payload.temperature ?? 0))
+      return `M141 S${t}`
+    }
     case 'set_fan': {
       const pct = Math.max(0, Math.min(100, Math.round(Number(payload.percent ?? 0))))
       if (payload.fan === 'chamber') {
@@ -108,6 +122,23 @@ function controlToGcode(payload: Record<string, unknown>): string | null {
     }
     case 'set_speed':
       return `M220 S${payload.percent ?? 100}`
+    case 'set_flow':
+      return `M221 S${Math.max(1, Math.min(200, Math.round(Number(payload.percent ?? 100))))}`
+    case 'set_z_offset': {
+      const adj = parseZOffsetAmount(payload.amount)
+      if (adj == null) return null
+      return `SET_GCODE_OFFSET Z_ADJUST=${adj} MOVE=1`
+    }
+    case 'extrude':
+    case 'retract': {
+      const len = parseExtrudeAmount(payload.amount)
+      if (len == null) return null
+      const signed = action === 'retract' ? -len : len
+      const temp = Number(payload.temperature)
+      const heat =
+        Number.isFinite(temp) && temp > 0 ? `M109 S${Math.round(temp)}\n` : ''
+      return `${heat}G91\nG1 E${signed} F300\nG90`
+    }
     case 'load_filament': {
       const t = payload.temperature
       return t != null && Number(t) > 0 ? `LOAD_FILAMENT TEMP=${Math.round(Number(t))}` : 'LOAD_FILAMENT'
@@ -149,6 +180,14 @@ export async function moonrakerControl(
     await http.post('/printer/print/start', null, { params: { filename } })
     return
   }
+  if (payload.action === 'restart') {
+    await http.post('/printer/restart')
+    return
+  }
+  if (payload.action === 'firmware_restart') {
+    await http.post('/printer/firmware_restart')
+    return
+  }
   if (payload.action === 'jog') {
     const axis = payload.axis as JogAxis | undefined
     const amount = payload.amount
@@ -156,9 +195,50 @@ export async function moonrakerControl(
       throw new Error('点动需要 axis(X/Y/Z/E) 与非零 amount(mm)')
     }
   }
+  if (payload.action === 'set_z_offset' && parseZOffsetAmount(payload.amount) == null) {
+    throw new Error('set_z_offset 需要非零 amount(mm)，范围 ±2')
+  }
+  if (
+    (payload.action === 'extrude' || payload.action === 'retract') &&
+    parseExtrudeAmount(payload.amount) == null
+  ) {
+    throw new Error('extrude/retract 需要 amount(mm)，范围 0.1–50')
+  }
   const script = controlToGcode(payload)
   if (!script) throw new Error('不支持的控制指令')
   await http.post('/printer/gcode/script', null, { params: { script } })
+}
+
+export async function moonrakerProxyRequest(
+  http: AxiosInstance,
+  req: MoonrakerProxyRequest
+): Promise<{ ok: boolean; status: number; data?: unknown; message?: string }> {
+  const method = parseMoonrakerProxyMethod(req.method)
+  const path = normalizeMoonrakerProxyPath(req.path)
+  if (!method || !path) {
+    return { ok: false, status: 400, message: 'method/path 无效（仅 GET|POST|DELETE，path 须为 /…）' }
+  }
+  try {
+    const res = await http.request({
+      method,
+      url: path,
+      params: req.query || undefined,
+      data: method === 'GET' ? undefined : req.body,
+      timeout: 60_000,
+      validateStatus: () => true
+    })
+    return {
+      ok: res.status >= 200 && res.status < 300,
+      status: res.status,
+      data: res.data
+    }
+  } catch (e) {
+    return {
+      ok: false,
+      status: 502,
+      message: e instanceof Error ? e.message : String(e)
+    }
+  }
 }
 
 export async function moonrakerListFiles(

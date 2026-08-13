@@ -307,6 +307,13 @@ async function bootstrap(): Promise<void> {
     startPrint: (req) => deviceHostEngine.startPrint(req),
     getDeviceCapabilities: (deviceId) => deviceHostEngine.getCapabilities(deviceId),
     sendGcode: (deviceId, script) => deviceHostEngine.sendGcode(deviceId, script),
+    moonrakerRequest: (deviceId, req) =>
+      deviceHostEngine.moonrakerRequest(deviceId, {
+        method: req.method as 'GET' | 'POST' | 'DELETE',
+        path: req.path,
+        query: req.query,
+        body: req.body
+      }),
     deviceLocks: new DeviceLockStore(DATA_ROOT),
     getPublicBaseUrl: () =>
       resolvePublicBaseUrl(appSettings as unknown as Record<string, unknown>),
@@ -455,6 +462,13 @@ async function bootstrap(): Promise<void> {
     onControl: (deviceId, payload) => deviceHostEngine.control(deviceId, payload),
     onDeviceOp: (req) => deviceHostEngine.deviceOp(req),
     onGetDeviceCapabilities: (deviceId) => deviceHostEngine.getCapabilities(deviceId),
+    onMoonrakerRequest: (deviceId, req) =>
+      deviceHostEngine.moonrakerRequest(deviceId, {
+        method: req.method as 'GET' | 'POST' | 'DELETE',
+        path: req.path,
+        query: req.query,
+        body: req.body
+      }),
     onBatchPrint: (payload) => deviceHostEngine.batchPrint(payload),
     onDevicesChanged: () => {
       void deviceHostEngine.reconnectAll().catch((e) => console.error('[devices] reconnect failed', e))

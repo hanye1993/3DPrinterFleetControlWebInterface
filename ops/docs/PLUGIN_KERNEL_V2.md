@@ -65,7 +65,8 @@ Node 网页服务共用 PluginManager；JSON 存储可挂 db 风格钩子；`USE
   "capabilities": [
     "log", "config.vars", "hooks", "http.route", "http.callback", "http.fetch",
     "devices.read", "devices.control", "devices.files", "devices.print",
-    "devices.capabilities", "devices.lock", "camera.snapshot", "media.write",
+    "devices.capabilities", "devices.gcode", "devices.moonraker", "devices.lock",
+    "camera.snapshot", "media.write",
     "settings.publicUrl", "templates", "alert.dispatch", "users.read", "auth.login",
     "cache", "plugins.call", "i18n", "db.scoped"
   ],
@@ -135,7 +136,7 @@ v1 写法对照：导出 `devices_list(api, devices)` ≈ v2 `ctx.hooks.on('filt
 | `http.fetch` | `ctx.http.fetch` |
 | `http.callback` | `ctx.callbacks.register`（HMAC） |
 | `settings.*` | `ctx.settings.get/patch` |
-| `devices.*` | `ctx.devices.list/get/save/control` |
+| `devices.*` | `ctx.devices.list/control/files/print/getCapabilities/sendGcode/moonrakerRequest/lock` |
 | `alert.dispatch` | `ctx.alert.dispatch` |
 | `users.*` / `auth.login` | `ctx.users` / `ctx.auth`（grant / JWT） |
 | `plugins.call` | `ctx.plugins.call(id, method, args)` |

@@ -152,7 +152,7 @@ your_plugin/
   "capabilities": [
     "log", "config.vars", "hooks", "http.route", "http.callback", "http.fetch",
     "devices.read", "devices.control", "devices.files", "devices.print",
-    "devices.capabilities", "devices.gcode", "devices.lock",
+    "devices.capabilities", "devices.gcode", "devices.moonraker", "devices.lock",
     "camera.snapshot", "media.write", "settings.publicUrl", "users.pluginData",
     "templates", "alert.dispatch", "users.read", "auth.login",
     "cache", "plugins.call", "i18n", "db.scoped"
@@ -228,8 +228,9 @@ module.exports = class {
 | `api.controlDevice(id, payload)` | 下发控制 |
 | `api.listFiles(id)` / `uploadFile` / `downloadFile` | 机内文件（Moonraker + 拓竹 LAN FTPS） |
 | `api.startPrint(id, { filename, contentBase64? })` | 上传（可选）并开打 |
-| `api.getDeviceCapabilities(id)` | 控制/文件/摄像头/G-code 能力探测 |
+| `api.getDeviceCapabilities(id)` | 控制/文件/摄像头/G-code/Moonraker 透传能力探测 |
 | `api.sendGcode(id, script)` | Moonraker 任意脚本 |
+| `api.moonrakerRequest(id, { method, path, query?, body? })` | Moonraker HTTP 透传（宿主 ≥ 1.3.1） |
 | `api.claimDevice` / `releaseDevice` / `getDeviceLock` | 跨插件设备锁（排程） |
 | `api.snapshotCamera({ deviceId?, target?, cameraId? })` | 拉一帧 JPEG（base64） |
 | `api.writeMedia(rel, data)` | 写入插件 `dataDir/media`（延时摄影归档） |
@@ -257,10 +258,63 @@ module.exports = class {
 | 多租户/车间 | `users.pluginData` + `filter:devices.list` | 标签写在用户 pluginData |
 | 远程入口页 | `settings.publicUrl` | 读 `publicBaseUrl`；隧道仍用外部 frpc 等 |
 | Klipper 宏/深控 | `devices.gcode` | 仅 Moonraker 类 |
+| Moonraker 全量 API | `devices.moonraker` | `moonrakerRequest` / `POST …/moonraker`（宿主 ≥ 1.3.1） |
 | 光固化 / 品牌差异 UI | `devices.capabilities` | 按 caps 显隐按钮 |
 | HTTP 能力探测 | `GET /api/v1/devices/:id/capabilities` | 浏览器端同权 |
 
 示例：`assets/examples/plugin-capability-kit/`。
+
+### 4.2.0a 设备控制全量原语（宿主 ≥ 1.3.1 / 无 UI）
+
+主体**界面不展示**下列深控能力；插件用 `controlDevice` / `moonrakerRequest` 或 HTTP 自行决定 UI。
+
+#### 统一 `controlDevice` / `POST /api/v1/devices/:id/control`
+
+| action | extras | Moonraker | 拓竹 | 其它厂 |
+|--------|--------|-----------|------|--------|
+| `pause` / `resume` / `cancel` | — | ✓ | ✓ | 多数 ✓ |
+| `emergency_stop` | — | ✓ | ✓(=stop) | 视 caps |
+| `home` | — | ✓ | ✓ | 视 caps |
+| `jog` | `axis` X/Y/Z/E, `amount` mm | ✓ | ✓ | 视 caps |
+| `set_temp` | `temperature`, `heater` extruder/bed | ✓ | ✓ | 视 caps |
+| `set_fan` | `percent`, `fan` part/chamber, `fanName?` | ✓ | ✓ | 视 caps |
+| `set_speed` | `percent` | ✓ | ✓ | 视 caps |
+| `set_flow` | `percent` | ✓ | ✓ | ✗ |
+| `set_z_offset` | `amount` ±2mm | ✓ | ✗ | ✗ |
+| `set_chamber_temp` | `temperature` | ✓ | ✓ | ✗ |
+| `extrude` / `retract` | `amount` 0.1–50, `temperature?` | ✓ | ✓ | ✗ |
+| `restart` / `firmware_restart` | — | ✓ | ✗ | ✗ |
+| `print_file` | `filename` | ✓ | LAN ✓ | 视 caps |
+| `load_filament` / `unload_filament` | `temperature?`, `slot?` | ✓ | ✓ | 视 caps |
+
+调用前务必 `getDeviceCapabilities(id)`，看 `control.*` / `gcode` / `moonrakerProxy`。
+
+#### Moonraker 透传
+
+```js
+// v1
+await api.moonrakerRequest(deviceId, {
+  method: 'GET',
+  path: '/printer/objects/query',
+  query: { extruder: '', heater_bed: '' }
+})
+
+// v2
+await ctx.devices.moonrakerRequest(deviceId, {
+  method: 'POST',
+  path: '/printer/gcode/script',
+  query: { script: 'BED_MESH_CALIBRATE' }
+})
+```
+
+HTTP（需登录 + `device.action.moonraker`）：
+
+`POST /api/v1/devices/:id/moonraker`  
+body: `{ "method": "GET"|"POST"|"DELETE", "path": "/…", "query"?: {}, "body"?: any }`
+
+约束：仅 Moonraker 类设备（klipper / qidi / 创想局域网）；path 必须 `/` 开头、禁止 `..`；只转发到该设备已连接的 baseUrl。
+
+`sendGcode` 适合短脚本；完整 Moonraker REST（文件元数据、对象查询、电源等）用 `moonrakerRequest`。
 
 ### 4.2.1 `api.db`（MySQL，推荐）
 

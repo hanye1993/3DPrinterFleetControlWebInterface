@@ -284,6 +284,14 @@ export class DefaultContextFactory implements ContextFactory {
               return caps.sendGcode(deviceId, script)
             }
           : undefined,
+        moonrakerRequest: hasCap(manifest, 'devices.moonraker')
+          ? async (deviceId, req) => {
+              if (!caps.moonrakerRequest) {
+                return { ok: false, message: 'moonraker 透传不可用' }
+              }
+              return caps.moonrakerRequest(deviceId, req)
+            }
+          : undefined,
         claim: hasCap(manifest, 'devices.lock')
           ? async (deviceId, opts) => {
               if (!caps.claimDevice) return { ok: false, message: 'lock 不可用' }

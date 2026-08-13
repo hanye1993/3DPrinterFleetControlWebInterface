@@ -689,13 +689,7 @@
       '<button type="button" data-act="resume">恢复</button>' +
       '<button type="button" class="dc-danger-outline" data-act="cancel">取消打印</button>' +
       '<button type="button" class="dc-danger" data-act="estop">紧急停止</button>' +
-      '<div class="dc-temp-set">' +
-      '<input type="number" min="0" max="320" class="dc-temp-input" value="' +
-      sess.tempInput +
-      '" />' +
-      '<button type="button" data-act="set-ext">挤出机温度</button>' +
-      '<button type="button" data-act="set-bed">热床温度</button>' +
-      '</div></div>' +
+      '</div>' +
       '<div class="dc-ams">' +
       '<div class="dc-ams-tab" title="耗材绑定">🎞</div>' +
       amsBoardHtml +
@@ -799,9 +793,6 @@
         var lab = root.querySelector('[data-fan-val]')
         if (lab) lab.textContent = sess.fanPct + '%'
       }
-      if (t && t.classList.contains('dc-temp-input')) {
-        sess.tempInput = Number(t.value) || 0
-      }
       return
     }
 
@@ -828,7 +819,6 @@
         t &&
         (t.closest('.dc-ams-bind') ||
           t.closest('.dc-spool-select') ||
-          t.classList.contains('dc-temp-input') ||
           t.classList.contains('dc-range'))
       ) {
         touchUiLock(sess, 30000)
@@ -954,22 +944,6 @@
       runSafe(deviceId, function () {
         return control(deviceId, { action: 'emergency_stop' }).then(function () {
           toast('紧急停止已发送')
-        })
-      })
-      return
-    }
-
-    if (act === 'set-ext' || act === 'set-bed') {
-      var input = root.querySelector('.dc-temp-input')
-      var tv = Number(input && input.value) || sess.tempInput || defaultTemp
-      sess.tempInput = tv
-      runSafe(deviceId, function () {
-        return control(deviceId, {
-          action: 'set_temp',
-          heater: act === 'set-bed' ? 'bed' : 'extruder',
-          temperature: tv
-        }).then(function () {
-          toast((act === 'set-bed' ? '热床' : '挤出机') + ' → ' + tv + '°C')
         })
       })
       return

@@ -404,6 +404,40 @@ export function createBambuMqttBridge(
         })
         break
       }
+      case 'set_flow': {
+        const pct = Math.max(1, Math.min(200, Math.round(extra?.percent ?? 100)))
+        publishRaw(connectionId, {
+          print: { sequence_id: seq, command: 'gcode_line', param: `M221 S${pct}\n` }
+        })
+        break
+      }
+      case 'set_chamber_temp': {
+        const temp = Math.round(extra?.temperature ?? 0)
+        publishRaw(connectionId, {
+          print: { sequence_id: seq, command: 'gcode_line', param: `M141 S${temp}\n` }
+        })
+        break
+      }
+      case 'extrude':
+      case 'retract': {
+        const rawAmt = Number(extra?.amount)
+        if (!Number.isFinite(rawAmt) || rawAmt === 0) {
+          throw new Error('extrude/retract 需要非零 amount(mm)')
+        }
+        const len = Math.max(0.1, Math.min(50, Math.abs(rawAmt)))
+        const signed = action === 'retract' ? -len : len
+        const temp = Number(extra?.temperature)
+        const heat =
+          Number.isFinite(temp) && temp > 0 ? `M109 S${Math.round(temp)}\n` : ''
+        publishRaw(connectionId, {
+          print: {
+            sequence_id: seq,
+            command: 'gcode_line',
+            param: `${heat}G91\nG1 E${signed} F300\nG90\n`
+          }
+        })
+        break
+      }
       default:
         throw new Error(`不支持的指令: ${action}`)
     }

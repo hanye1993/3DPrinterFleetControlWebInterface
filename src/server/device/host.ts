@@ -15,11 +15,13 @@ import {
   moonrakerDownloadFile,
   moonrakerListFiles,
   moonrakerPollStatus,
+  moonrakerProxyRequest,
   moonrakerUploadFile,
   parseControlPayload
 } from './moonrakerHttp'
 import { bambuDownloadFile, bambuListFiles, bambuUploadFile } from '../../main/bambu/files'
 import { computeDeviceCapabilities, type DeviceCapabilities } from './capabilities'
+import type { MoonrakerProxyRequest } from '../../main/api/controlShared'
 
 type DeviceRow = Record<string, unknown>
 type StatusMap = Record<string, unknown>
@@ -446,6 +448,24 @@ export class DeviceHost {
       return { ok: true }
     } catch (e) {
       return { ok: false, message: e instanceof Error ? e.message : String(e) }
+    }
+  }
+
+  async moonrakerRequest(
+    deviceId: string,
+    req: MoonrakerProxyRequest
+  ): Promise<{ ok: boolean; status?: number; data?: unknown; message?: string }> {
+    try {
+      const d = this.findDevice(deviceId)
+      if (!d) return { ok: false, status: 404, message: '设备不存在' }
+      if (!isMoonrakerDevice(d)) {
+        return { ok: false, status: 400, message: '仅 Moonraker 类设备支持透传' }
+      }
+      const http = this.moonrakerHttp.get(deviceId)
+      if (!http) return { ok: false, status: 503, message: '设备未连接' }
+      return await moonrakerProxyRequest(http, req)
+    } catch (e) {
+      return { ok: false, status: 502, message: e instanceof Error ? e.message : String(e) }
     }
   }
 

@@ -361,24 +361,6 @@
   color: var(--dc-danger) !important;
 }
 
-.dc-temp-set {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-  margin-left: auto;
-}
-
-.dc-temp-input {
-  width: 72px;
-  height: 32px;
-  border-radius: 8px;
-  border: 1px solid var(--dc-line);
-  background: transparent;
-  color: inherit;
-  padding: 0 8px;
-}
-
 /* AMS board — filament spools (side view, like AMS shelf) */
 .dc-ams {
   position: relative;

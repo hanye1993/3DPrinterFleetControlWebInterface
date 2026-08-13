@@ -1241,9 +1241,18 @@ export function assertDeviceControlAllowed(
     set_temp: 'set_temp',
     set_fan: 'set_fan',
     set_speed: 'set_speed',
+    set_flow: 'set_flow',
+    set_z_offset: 'set_z_offset',
+    set_chamber_temp: 'set_chamber_temp',
+    extrude: 'extrude',
+    retract: 'retract',
+    restart: 'restart',
+    firmware_restart: 'firmware_restart',
     print_file: 'print',
     load_filament: 'filament_load',
-    unload_filament: 'filament_unload'
+    unload_filament: 'filament_unload',
+    moonraker: 'moonraker',
+    gcode: 'gcode'
   }
   const act = map[action]
   if (!act) return { ok: false, status: 400, message: '未知操作' }

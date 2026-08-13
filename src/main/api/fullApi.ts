@@ -7,12 +7,19 @@ import {
   SETTINGS_PATCH_KEYS,
   updateDevice
 } from './deviceMutations'
-import { DEVICE_CONTROL_ACTIONS, isControlAction, parseControlExtras } from './controlShared'
+import type { AuthContext } from '../auth/authApi'
+import { assertDeviceControlAllowed } from '../auth/authApi'
+import { effectivePermissions, hasPerm } from '../../shared/permissions'
+import {
+  DEVICE_CONTROL_ACTIONS,
+  isControlAction,
+  parseControlExtras,
+  parseMoonrakerProxyMethod,
+  normalizeMoonrakerProxyPath
+} from './controlShared'
 import { handleOnboardApi } from './onboardApi'
 import type { OperationLog } from '../../shared/operationLog'
 import { deviceNameFromPath, makeOperationLog } from '../operationLogs/helpers'
-import type { AuthContext } from '../auth/authApi'
-import { effectivePermissions, hasPerm } from '../../shared/permissions'
 
 export type DeviceOpHandler = (req: {
   deviceId: string
@@ -48,6 +55,15 @@ export type FullApiDeps = {
   deleteDeviceSecret: (secretKey: string) => void
   onDeviceOp: DeviceOpHandler
   onGetDeviceCapabilities?: (deviceId: string) => unknown
+  onMoonrakerRequest?: (
+    deviceId: string,
+    req: {
+      method: string
+      path: string
+      query?: Record<string, string | number | boolean | null | undefined>
+      body?: unknown
+    }
+  ) => Promise<{ ok: boolean; status?: number; data?: unknown; message?: string }>
   onBatchPrint: BatchPrintHandler
   startLanDiscover: (opts?: { brands?: string[] }) => Promise<{ ok: boolean; message?: string }>
   getLanDiscover: () => {
@@ -646,6 +662,55 @@ export async function handleFullApi(opts: {
     }
     const capabilities = deps.onGetDeviceCapabilities(id)
     sendJson(res, 200, { ok: true, capabilities })
+    return true
+  }
+
+  // —— Moonraker HTTP proxy (no UI; plugins / advanced clients) ——
+  const moonrakerMatch = path.match(/^\/api\/v1\/devices\/([^/]+)\/moonraker$/)
+  if (moonrakerMatch && method === 'POST') {
+    if (!requireControl(settings, res, sendJson, auth)) return true
+    const id = decodeURIComponent(moonrakerMatch[1])
+    if (!deps.onMoonrakerRequest) {
+      sendJson(res, 501, { ok: false, message: 'moonraker 透传未实现' })
+      return true
+    }
+    if (auth) {
+      const gate = assertDeviceControlAllowed(auth, id, 'moonraker')
+      if (!gate.ok) {
+        sendJson(res, gate.status, { ok: false, message: gate.message })
+        return true
+      }
+    }
+    const parsed = await parseJsonBody(req, readBody)
+    if (!parsed.ok) {
+      sendJson(res, 400, { ok: false, message: parsed.message })
+      return true
+    }
+    const m = parseMoonrakerProxyMethod(parsed.body.method)
+    const p = normalizeMoonrakerProxyPath(parsed.body.path)
+    if (!m || !p) {
+      sendJson(res, 400, {
+        ok: false,
+        message: '需要 method(GET|POST|DELETE) 与 path（以 / 开头）'
+      })
+      return true
+    }
+    const query =
+      parsed.body.query && typeof parsed.body.query === 'object' && !Array.isArray(parsed.body.query)
+        ? (parsed.body.query as Record<string, string | number | boolean | null | undefined>)
+        : undefined
+    const result = await deps.onMoonrakerRequest(id, {
+      method: m,
+      path: p,
+      query,
+      body: parsed.body.body
+    })
+    sendJson(res, result.ok ? 200 : result.status && result.status >= 400 ? result.status : 502, {
+      ok: result.ok,
+      status: result.status,
+      data: result.data,
+      message: result.message
+    })
     return true
   }
 

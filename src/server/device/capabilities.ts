@@ -1,5 +1,5 @@
 /**
- * Per-device capability probe for plugins (control / files / camera / gcode).
+ * Per-device capability probe for plugins (control / files / camera / gcode / moonraker).
  */
 export type DeviceControlCaps = {
   pause: boolean
@@ -11,6 +11,13 @@ export type DeviceControlCaps = {
   set_temp: boolean
   set_fan: boolean
   set_speed: boolean
+  set_flow: boolean
+  set_z_offset: boolean
+  set_chamber_temp: boolean
+  extrude: boolean
+  retract: boolean
+  restart: boolean
+  firmware_restart: boolean
   print_file: boolean
   load_filament: boolean
   unload_filament: boolean
@@ -26,6 +33,8 @@ export type DeviceCapabilities = {
   printRemote: boolean
   camera: boolean
   gcode: boolean
+  /** Full Moonraker HTTP proxy (GET/POST/DELETE on printer baseUrl) */
+  moonrakerProxy: boolean
   resin: boolean
   notes?: string[]
 }
@@ -46,14 +55,8 @@ function hasLanHost(d: DeviceRow): boolean {
   return Boolean(host)
 }
 
-export function computeDeviceCapabilities(d: DeviceRow | null | undefined): DeviceCapabilities {
-  const deviceId = String(d?.id || '')
-  const brand = String(d?.brand || '')
-  const tech = String(d?.tech || 'fdm')
-  const mode = String(d?.connectionMode || 'lan')
-  const notes: string[] = []
-
-  const none: DeviceControlCaps = {
+function noneControl(): DeviceControlCaps {
+  return {
     pause: false,
     resume: false,
     cancel: false,
@@ -63,10 +66,27 @@ export function computeDeviceCapabilities(d: DeviceRow | null | undefined): Devi
     set_temp: false,
     set_fan: false,
     set_speed: false,
+    set_flow: false,
+    set_z_offset: false,
+    set_chamber_temp: false,
+    extrude: false,
+    retract: false,
+    restart: false,
+    firmware_restart: false,
     print_file: false,
     load_filament: false,
     unload_filament: false
   }
+}
+
+export function computeDeviceCapabilities(d: DeviceRow | null | undefined): DeviceCapabilities {
+  const deviceId = String(d?.id || '')
+  const brand = String(d?.brand || '')
+  const tech = String(d?.tech || 'fdm')
+  const mode = String(d?.connectionMode || 'lan')
+  const notes: string[] = []
+
+  const none = noneControl()
 
   if (!d) {
     return {
@@ -79,6 +99,7 @@ export function computeDeviceCapabilities(d: DeviceRow | null | undefined): Devi
       printRemote: false,
       camera: false,
       gcode: false,
+      moonrakerProxy: false,
       resin: tech === 'resin',
       notes: ['设备不存在']
     }
@@ -89,6 +110,7 @@ export function computeDeviceCapabilities(d: DeviceRow | null | undefined): Devi
   let printRemote = false
   let camera = false
   let gcode = false
+  let moonrakerProxy = false
 
   if (moonrakerLike(brand, mode)) {
     control = {
@@ -101,6 +123,13 @@ export function computeDeviceCapabilities(d: DeviceRow | null | undefined): Devi
       set_temp: true,
       set_fan: true,
       set_speed: true,
+      set_flow: true,
+      set_z_offset: true,
+      set_chamber_temp: true,
+      extrude: true,
+      retract: true,
+      restart: true,
+      firmware_restart: true,
       print_file: true,
       load_filament: true,
       unload_filament: true
@@ -109,6 +138,7 @@ export function computeDeviceCapabilities(d: DeviceRow | null | undefined): Devi
     printRemote = true
     camera = true
     gcode = true
+    moonrakerProxy = true
   } else if (brand === 'bambu') {
     const lan = mode !== 'cloud' && hasLanHost(d)
     control = {
@@ -121,6 +151,13 @@ export function computeDeviceCapabilities(d: DeviceRow | null | undefined): Devi
       set_temp: true,
       set_fan: true,
       set_speed: true,
+      set_flow: true,
+      set_z_offset: false,
+      set_chamber_temp: true,
+      extrude: true,
+      retract: true,
+      restart: false,
+      firmware_restart: false,
       print_file: lan,
       load_filament: true,
       unload_filament: true
@@ -129,6 +166,7 @@ export function computeDeviceCapabilities(d: DeviceRow | null | undefined): Devi
     printRemote = lan
     camera = lan
     gcode = false
+    moonrakerProxy = false
     if (!lan) notes.push('拓竹云端模式不支持本机 FTPS 传文件/舱摄；请用局域网')
   } else if (brand === 'elegoo') {
     control = {
@@ -140,7 +178,7 @@ export function computeDeviceCapabilities(d: DeviceRow | null | undefined): Devi
       set_speed: true
     }
     camera = true
-    notes.push('爱乐高 SDCP：无 home/jog/传文件')
+    notes.push('爱乐高 SDCP：无 home/jog/传文件/深控')
   } else if (brand === 'anycubic') {
     if (mode === 'cloud') {
       control = { ...none, pause: true, resume: true, cancel: true }
@@ -155,7 +193,7 @@ export function computeDeviceCapabilities(d: DeviceRow | null | undefined): Devi
         set_fan: true
       }
       camera = true
-      notes.push('纵维 LAN：无 home/jog/传文件')
+      notes.push('纵维 LAN：无 home/jog/传文件/深控')
     }
   } else if (brand === 'flashforge') {
     control = { ...none, pause: true, resume: true, cancel: true }
@@ -180,6 +218,7 @@ export function computeDeviceCapabilities(d: DeviceRow | null | undefined): Devi
     printRemote,
     camera,
     gcode,
+    moonrakerProxy,
     resin: tech === 'resin',
     notes: notes.length ? notes : undefined
   }

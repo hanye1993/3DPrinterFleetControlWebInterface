@@ -27,6 +27,7 @@ export type PluginCapability =
   | 'devices.print'
   | 'devices.capabilities'
   | 'devices.gcode'
+  | 'devices.moonraker'
   | 'devices.lock'
   | 'camera.snapshot'
   | 'media.write'
@@ -59,6 +60,7 @@ export const LEGACY_CAPABILITIES: PluginCapability[] = [
   'devices.print',
   'devices.capabilities',
   'devices.gcode',
+  'devices.moonraker',
   'devices.lock',
   'camera.snapshot',
   'media.write',
@@ -258,6 +260,15 @@ export type PluginContext = {
     ) => Promise<{ ok: boolean; message?: string; remotePath?: string }>
     getCapabilities?: (deviceId: string) => unknown
     sendGcode?: (deviceId: string, script: string) => Promise<{ ok: boolean; message?: string }>
+    moonrakerRequest?: (
+      deviceId: string,
+      req: {
+        method: string
+        path: string
+        query?: Record<string, string | number | boolean | null | undefined>
+        body?: unknown
+      }
+    ) => Promise<{ ok: boolean; status?: number; data?: unknown; message?: string }>
     claim?: (
       deviceId: string,
       opts?: { ttlSec?: number; ownerLabel?: string; force?: boolean }
@@ -388,6 +399,15 @@ export type HostCapabilities = {
   }) => Promise<{ ok: boolean; message?: string; remotePath?: string }>
   getDeviceCapabilities?: (deviceId: string) => unknown
   sendGcode?: (deviceId: string, script: string) => Promise<{ ok: boolean; message?: string }>
+  moonrakerRequest?: (
+    deviceId: string,
+    req: {
+      method: string
+      path: string
+      query?: Record<string, string | number | boolean | null | undefined>
+      body?: unknown
+    }
+  ) => Promise<{ ok: boolean; status?: number; data?: unknown; message?: string }>
   claimDevice?: (
     pluginId: string,
     deviceId: string,
