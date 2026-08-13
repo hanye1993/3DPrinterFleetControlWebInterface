@@ -69,7 +69,7 @@ function MarketCover({ row }: { row: MarketRow }) {
         className="market-card-cover market-card-cover--empty"
         style={{ background: row.kind === 'theme' ? '#5b21b6' : '#1d4ed8' }}
       >
-        <AppstoreOutlined style={{ fontSize: 42, color: '#fff', opacity: 0.9 }} />
+        <AppstoreOutlined style={{ fontSize: 36, color: '#fff', opacity: 0.9 }} />
       </div>
     )
   }
@@ -86,6 +86,12 @@ function MarketCover({ row }: { row: MarketRow }) {
   )
 }
 
+function actionLabel(row: MarketRow): { text: string; kind: 'install' | 'update' | 'latest' } {
+  if (!row.installed) return { text: '安装', kind: 'install' }
+  if (row.updateAvailable) return { text: '更新', kind: 'update' }
+  return { text: '已是最新', kind: 'latest' }
+}
+
 function MarketAppCard({
   row,
   installing,
@@ -96,55 +102,92 @@ function MarketAppCard({
   onInstall: (row: MarketRow) => void
 }) {
   const key = `${row.kind}:${row.identifier}`
-  const label = !row.installed ? '安装' : row.updateAvailable ? '更新' : '重装'
+  const action = actionLabel(row)
   const desc = introLines(row.description)
 
   return (
-    <Card
-      className="market-app-card"
-      hoverable
-      cover={<MarketCover row={row} />}
-      actions={[
-        <Button
-          key="install"
-          type="primary"
-          block
-          icon={<CloudDownloadOutlined />}
-          loading={installing === key}
-          disabled={Boolean(installing) && installing !== key}
-          onClick={() => onInstall(row)}
-          style={{ margin: '0 12px 4px' }}
-        >
-          {label}
-        </Button>
-      ]}
-    >
+    <Card className="market-app-card" hoverable cover={<MarketCover row={row} />}>
       <div className="market-app-card-body">
         <div className="market-app-card-title-row">
           <Typography.Text strong ellipsis={{ tooltip: row.name }} className="market-app-card-title">
             {row.name}
           </Typography.Text>
-          <Typography.Text type="secondary" style={{ flexShrink: 0 }}>
-            v{row.version}
-          </Typography.Text>
+          {row.kind === 'theme' ? (
+            <Tag color="purple" style={{ margin: 0 }}>
+              主题
+            </Tag>
+          ) : (
+            <Tag color="blue" style={{ margin: 0 }}>
+              插件
+            </Tag>
+          )}
         </div>
-        <Space size={6} wrap style={{ margin: '6px 0 8px' }}>
-          {row.kind === 'theme' ? <Tag color="purple">主题</Tag> : <Tag color="blue">插件</Tag>}
+
+        <div className="market-app-card-ver">
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            市场 <Typography.Text style={{ fontSize: 12 }}>v{row.version}</Typography.Text>
+          </Typography.Text>
+          {row.installed ? (
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              本地{' '}
+              <Typography.Text
+                style={{ fontSize: 12 }}
+                type={row.updateAvailable ? 'warning' : undefined}
+              >
+                v{row.installedVersion}
+              </Typography.Text>
+            </Typography.Text>
+          ) : (
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              未安装
+            </Typography.Text>
+          )}
+        </div>
+
+        <Space size={4} wrap style={{ margin: '4px 0 8px' }}>
           {!row.installed ? (
             <Tag>未安装</Tag>
           ) : row.updateAvailable ? (
-            <Tag color="orange">可更新</Tag>
+            <Tag color="orange">有更新</Tag>
           ) : (
-            <Tag color="green">已安装</Tag>
+            <Tag color="green">已最新</Tag>
           )}
         </Space>
+
         <Typography.Paragraph
           type="secondary"
-          ellipsis={{ rows: 3, tooltip: desc }}
-          style={{ marginBottom: 0, minHeight: 66, whiteSpace: 'pre-wrap' }}
+          ellipsis={{ rows: 2, tooltip: desc }}
+          className="market-app-card-desc"
         >
           {desc || '暂无介绍'}
         </Typography.Paragraph>
+
+        <div className="market-app-card-footer">
+          <Button
+            type={action.kind === 'latest' ? 'default' : 'primary'}
+            size="small"
+            danger={action.kind === 'update'}
+            icon={<CloudDownloadOutlined />}
+            loading={installing === key}
+            disabled={(Boolean(installing) && installing !== key) || action.kind === 'latest'}
+            onClick={() => onInstall(row)}
+            className="market-app-card-btn"
+          >
+            {action.text}
+          </Button>
+          {action.kind === 'latest' ? (
+            <Button
+              size="small"
+              type="link"
+              disabled={Boolean(installing) && installing !== key}
+              loading={installing === key}
+              onClick={() => onInstall(row)}
+              style={{ paddingInline: 4 }}
+            >
+              重装
+            </Button>
+          ) : null}
+        </div>
       </div>
     </Card>
   )
@@ -152,6 +195,7 @@ function MarketAppCard({
 
 export function SoftSettingsMarketplace() {
   const [loading, setLoading] = useState(false)
+  const [checking, setChecking] = useState(false)
   const [installing, setInstalling] = useState<string | null>(null)
   const [payload, setPayload] = useState<MarketPayload | null>(null)
   const [q, setQ] = useState('')
@@ -170,6 +214,7 @@ export function SoftSettingsMarketplace() {
       if (r.ok === false || r.reachable === false) {
         message.warning(r.message || '无法读取应用市场，请确认服务器能访问 GitHub / jsDelivr')
       }
+      return r
     } catch (e) {
       setPayload({
         ok: false,
@@ -178,6 +223,7 @@ export function SoftSettingsMarketplace() {
         packages: []
       })
       message.error(e instanceof Error ? e.message : '加载应用市场失败')
+      return null
     } finally {
       setLoading(false)
     }
@@ -203,6 +249,24 @@ export function SoftSettingsMarketplace() {
     })
   }, [payload, q, kindFilter])
 
+  const updateCount = useMemo(
+    () => (payload?.packages || []).filter((p) => p.updateAvailable).length,
+    [payload]
+  )
+
+  const onCheckUpdates = async () => {
+    setChecking(true)
+    try {
+      const r = await refresh(true)
+      if (!r?.reachable) return
+      const n = (r.packages || []).filter((p) => p.updateAvailable).length
+      if (n > 0) message.info(`发现 ${n} 个可更新的插件/主题`)
+      else message.success('全部已是最新版本')
+    } finally {
+      setChecking(false)
+    }
+  }
+
   const onInstall = async (row: MarketRow) => {
     const key = `${row.kind}:${row.identifier}`
     setInstalling(key)
@@ -212,7 +276,7 @@ export function SoftSettingsMarketplace() {
         identifier: row.identifier
       })) as { ok?: boolean; message?: string }
       if (!r.ok) throw new Error(r.message || '安装失败')
-      message.success(r.message || '安装成功')
+      message.success(r.message || (row.updateAvailable ? '已更新' : '安装成功'))
       await refresh(true)
     } catch (e) {
       message.error(e instanceof Error ? e.message : '安装失败')
@@ -231,23 +295,31 @@ export function SoftSettingsMarketplace() {
         title={
           <span>
             <ShopOutlined /> 应用市场
+            {updateCount > 0 ? (
+              <Tag color="orange" style={{ marginLeft: 8 }}>
+                {updateCount} 个可更新
+              </Tag>
+            ) : null}
           </span>
         }
         extra={
-          <Space>
-            <Button icon={<ReloadOutlined />} loading={loading} onClick={() => void refresh(true)}>
-              刷新
+          <Space wrap size={8}>
+            <Button
+              icon={<ReloadOutlined />}
+              loading={checking || loading}
+              onClick={() => void onCheckUpdates()}
+            >
+              检查更新
+            </Button>
+            <Button loading={loading && !checking} onClick={() => void refresh(true)}>
+              刷新列表
             </Button>
             <Button onClick={() => openExternal(repo)}>打开仓库</Button>
           </Space>
         }
       >
         <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
-          市场仓库按 <Typography.Text code>plugins/</Typography.Text>、
-          <Typography.Text code>themes/</Typography.Text> 分目录；每个应用含{' '}
-          <Typography.Text code>tu.png</Typography.Text>（图标）、
-          <Typography.Text code>js.txt</Typography.Text>（介绍）、同名{' '}
-          <Typography.Text code>.zip</Typography.Text> 本体。源：
+          对比本地已装版本与市场版本；有新版本时卡片显示「更新」。源：
           <Typography.Link onClick={() => openExternal(repo)}>{repo}</Typography.Link>
         </Typography.Paragraph>
 
@@ -296,14 +368,14 @@ export function SoftSettingsMarketplace() {
           {rows.length === 0 ? (
             <Empty description={loading ? '加载中…' : '暂无应用'} />
           ) : (
-            <Row gutter={[16, 16]}>
+            <Row gutter={[12, 12]}>
               {rows.map((row) => (
                 <Col
                   key={`${row.kind}:${row.identifier}`}
                   xs={24}
                   sm={12}
                   md={8}
-                  lg={8}
+                  lg={6}
                   xl={6}
                 >
                   <MarketAppCard row={row} installing={installing} onInstall={onInstall} />
@@ -323,16 +395,18 @@ export function SoftSettingsMarketplace() {
         }
         .market-app-card .ant-card-body {
           flex: 1;
-          padding: 12px 14px 8px;
+          display: flex;
+          flex-direction: column;
+          padding: 10px 12px 12px;
         }
-        .market-app-card .ant-card-actions {
-          background: transparent;
-        }
-        .market-app-card .ant-card-actions > li {
-          margin: 8px 0;
+        .market-app-card-body {
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          min-width: 0;
         }
         .market-card-cover {
-          height: 140px;
+          height: 120px;
           background: rgba(0,0,0,.04);
           display: flex;
           align-items: center;
@@ -350,12 +424,40 @@ export function SoftSettingsMarketplace() {
         }
         .market-app-card-title-row {
           display: flex;
-          align-items: baseline;
+          align-items: center;
           justify-content: space-between;
           gap: 8px;
+          min-width: 0;
         }
         .market-app-card-title {
-          font-size: 15px;
+          font-size: 14px;
+          min-width: 0;
+        }
+        .market-app-card-ver {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px 12px;
+          margin-top: 4px;
+        }
+        .market-app-card-desc {
+          margin-bottom: 10px !important;
+          flex: 1;
+          min-height: 40px;
+          white-space: pre-wrap;
+          font-size: 12px;
+        }
+        .market-app-card-footer {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          margin-top: auto;
+        }
+        .market-app-card-btn {
+          max-width: 100%;
+        }
+        @media (max-width: 576px) {
+          .market-card-cover { height: 100px; }
+          .market-app-card-btn { flex: 1; }
         }
       `}</style>
     </Space>

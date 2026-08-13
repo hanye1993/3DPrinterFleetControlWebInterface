@@ -217,14 +217,16 @@ export async function loadMarketCatalog(force = false): Promise<{
 
 function compareVersions(a: string, b: string): number {
   const pa = String(a || '')
+    .trim()
     .replace(/^v/i, '')
     .split(/[.+-]/)
     .map((x) => parseInt(x, 10))
   const pb = String(b || '')
+    .trim()
     .replace(/^v/i, '')
     .split(/[.+-]/)
     .map((x) => parseInt(x, 10))
-  const n = Math.max(pa.length, pb.length)
+  const n = Math.max(pa.length, pb.length, 1)
   for (let i = 0; i < n; i++) {
     const x = Number.isFinite(pa[i]!) ? pa[i]! : 0
     const y = Number.isFinite(pb[i]!) ? pb[i]! : 0
@@ -240,8 +242,23 @@ export function enrichPackages(
 ): MarketPackageView[] {
   return catalog.packages.map((p) => {
     const map = p.kind === 'plugin' ? installed.plugins : installed.themes
-    const installedVersion = map.get(p.identifier) || null
+    // match identifier case-insensitively
+    let installedVersion: string | null = map.get(p.identifier) || null
+    if (!installedVersion) {
+      for (const [k, v] of map.entries()) {
+        if (k.toLowerCase() === p.identifier.toLowerCase()) {
+          installedVersion = v
+          break
+        }
+      }
+    }
     const installedOk = Boolean(installedVersion)
+    const marketVer = String(p.version || '').trim()
+    const localVer = String(installedVersion || '').trim()
+    const updateAvailable =
+      installedOk && marketVer
+        ? compareVersions(marketVer, localVer || '0') > 0
+        : false
     const iconPath =
       p.icon ||
       (p.path.includes('/')
@@ -249,12 +266,11 @@ export function enrichPackages(
         : undefined)
     return {
       ...p,
+      version: marketVer || p.version,
       icon: iconPath,
       installed: installedOk,
-      installedVersion,
-      updateAvailable: installedOk
-        ? compareVersions(p.version, installedVersion || '0') > 0
-        : false,
+      installedVersion: localVer || null,
+      updateAvailable,
       downloadUrls: packageDownloadUrls(p.path),
       iconUrls: iconPath ? packageDownloadUrls(iconPath) : []
     }

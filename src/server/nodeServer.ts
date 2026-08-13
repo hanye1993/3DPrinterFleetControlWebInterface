@@ -67,7 +67,7 @@ function readPackageVersion(): string {
   } catch {
     /* ignore */
   }
-  return '1.2.0'
+  return '1.2.1'
 }
 
 const APP_VERSION = process.env.APP_VERSION || readPackageVersion()
