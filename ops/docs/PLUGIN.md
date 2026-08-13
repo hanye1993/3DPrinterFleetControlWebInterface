@@ -9,7 +9,7 @@
 | [PLUGIN_KERNEL_V2.md](./PLUGIN_KERNEL_V2.md) | **推荐**：`apiVersion: "2"` + `activate(ctx)` 微内核 |
 | [THEME.md](./THEME.md) | 主题 skin / full、`.htm`、挂载点 |
 
-> **推荐新插件走微内核 v2.2**（`apiVersion: "2"`，宿主 ≥ **1.1.0**）。旧版 `main.js` 导出同名钩子（v1）经 CompatAdapter 仍可用。  
+> **推荐新插件走微内核 v2.2**（`apiVersion: "2"`，宿主 ≥ **1.2.0**）。旧版 `main.js` 导出同名钩子（v1）经 CompatAdapter 仍可用。  
 > 领域事件、HMAC 回调、cron、SQL migrations、设备文件/锁机/快照原语 → 见下文与内核文档。
 
 > **安全**：插件在服务端与浏览器双端运行，权限极高。只安装可信来源。
