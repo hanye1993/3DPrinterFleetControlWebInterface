@@ -1,0 +1,34 @@
+{
+  "identifier": "card_progress_vivid",
+  "name": "设备进度条醒目",
+  "version": "1.2.0",
+  "description": "加粗进度条；用持续爬行的虫子标记当前进度（不显示%）。",
+  "copyright": "hanye",
+  "available": true,
+  "hooks": [],
+  "vars": [
+    {
+      "key": "show_percent",
+      "title": "显示爬行虫子（跟在进度前端）",
+      "type": "boolean",
+      "value": "1"
+    },
+    {
+      "key": "animate",
+      "title": "虫子持续爬行 + 进度光带",
+      "type": "boolean",
+      "value": "1"
+    },
+    {
+      "key": "thick",
+      "title": "进度条加粗",
+      "type": "boolean",
+      "value": "1"
+    }
+  ],
+  "clientJs": ["client.js"],
+  "themeCss": "theme.css",
+  "mainFile": "main.js",
+  "installFile": "install.js",
+  "uninstallFile": "uninstall.js"
+}

@@ -1,0 +1,49 @@
+{
+  "name": "printer-monitor",
+  "version": "1.2.0",
+  "description": "hanye 3D printer monitor — web only",
+  "author": "printer-monitor",
+  "license": "MIT",
+  "scripts": {
+    "dev": "npm run build && npm run start",
+    "dev:watch": "npm run build:node-server && concurrently -k -n server,web -c blue,magenta \"npm run start\" \"npm run dev:web-app\"",
+    "build": "npm run build:web-app && npm run build:node-server",
+    "build:web-app": "vite build --config config/vite.web.config.ts",
+    "dev:web-app": "vite build --config config/vite.web.config.ts --watch",
+    "build:node-server": "tsc -p config/tsconfig.server.json",
+    "start": "node dist/server/server/nodeServer.js",
+    "import:mysql": "node ops/scripts/import-mysql.mjs",
+    "setup:mysql": "node ops/scripts/setup-local-mysql.mjs",
+    "docker:up": "docker compose -f docker/docker-compose.yml --project-directory docker up -d --build",
+    "docker:down": "docker compose -f docker/docker-compose.yml --project-directory docker down",
+    "docker:logs": "docker compose -f docker/docker-compose.yml --project-directory docker logs -f app",
+    "docker:import": "docker compose -f docker/docker-compose.yml --project-directory docker exec -e IMPORT_FORCE=1 -e AUTO_IMPORT=1 app sh -c \"rm -f /app/data/.mysql-imported; node /app/ops/scripts/import-mysql.mjs; touch /app/data/.mysql-imported\"",
+    "typecheck": "tsc --noEmit -p config/tsconfig.web.json && tsc --noEmit -p config/tsconfig.node.json && tsc --noEmit -p config/tsconfig.server.json"
+  },
+  "dependencies": {
+    "@ant-design/icons": "^5.6.1",
+    "antd": "^5.24.2",
+    "axios": "^1.8.2",
+    "basic-ftp": "^6.2.0",
+    "dayjs": "^1.11.13",
+    "esbuild": "^0.28.2",
+    "fflate": "^0.8.3",
+    "mqtt": "^5.15.2",
+    "mysql2": "^3.23.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "ws": "^8.21.2",
+    "xlsx": "^0.18.5",
+    "zustand": "^5.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@types/ws": "^8.18.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.2.4",
+    "typescript": "^5.8.2",
+    "vite": "^6.2.0"
+  }
+}

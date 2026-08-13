@@ -1,0 +1,40 @@
+/* device_model_card — 卡片机型徽章 / 扩展行 */
+
+.device-model-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(148, 163, 184, 0.18);
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  color: inherit;
+  vertical-align: middle;
+  white-space: nowrap;
+  opacity: 0.92;
+}
+
+.device-model-badge.is-unknown {
+  opacity: 0.55;
+  font-weight: 500;
+}
+
+.device-model-extra {
+  margin-top: 6px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.device-model-extra-label {
+  opacity: 0.7;
+}
+
+.device-model-extra.is-unknown {
+  opacity: 0.55;
+}
+
+.device-model-extra strong {
+  font-weight: 600;
+}

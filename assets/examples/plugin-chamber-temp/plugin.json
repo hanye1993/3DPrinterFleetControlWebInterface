@@ -1,0 +1,61 @@
+{
+  "identifier": "chamber_temp",
+  "name": "仓内温度显示",
+  "version": "1.0.0",
+  "description": "在设备列表卡片与专用页显示各机仓内温度，支持高温阈值高亮。",
+  "copyright": "hanye",
+  "available": true,
+  "hooks": ["register", "common"],
+  "modules": [
+    {
+      "name": "page",
+      "menu": "仓内温度",
+      "type": "page",
+      "displayOrder": 25
+    },
+    {
+      "name": "admin",
+      "menu": "仓温插件设置",
+      "type": "admin",
+      "displayOrder": 0,
+      "adminOnly": true
+    }
+  ],
+  "vars": [
+    {
+      "key": "show_on_cards",
+      "title": "设备卡片显示仓温",
+      "type": "boolean",
+      "value": "1"
+    },
+    {
+      "key": "show_badge",
+      "title": "设备名称旁显示仓温徽章",
+      "type": "boolean",
+      "value": "1"
+    },
+    {
+      "key": "show_panel",
+      "title": "列表上方显示仓温总览条",
+      "type": "boolean",
+      "value": "0"
+    },
+    {
+      "key": "warn_celsius",
+      "title": "高温预警阈值（℃）",
+      "type": "number",
+      "value": "45"
+    },
+    {
+      "key": "poll_sec",
+      "title": "刷新间隔（秒）",
+      "type": "number",
+      "value": "3"
+    }
+  ],
+  "clientJs": ["client.js"],
+  "themeCss": "theme.css",
+  "installFile": "install.js",
+  "uninstallFile": "uninstall.js",
+  "mainFile": "main.js"
+}

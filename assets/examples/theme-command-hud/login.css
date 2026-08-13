@@ -1,0 +1,177 @@
+/* command_hud login — full page replace, center ring + dock */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Share+Tech+Mono&display=swap');
+
+[data-theme-pack='command_hud'] .login-page-root.login-layout-fullsite,
+[data-theme-pack='command_hud'] .theme-fullsite-login {
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  background: #06101c;
+  font-family: 'Share Tech Mono', 'Orbitron', ui-monospace, monospace;
+}
+
+[data-theme-pack='command_hud'] .hud-login {
+  display: grid;
+  grid-template-columns: 1.25fr 0.9fr;
+  min-height: 100vh;
+}
+
+[data-theme-pack='command_hud'] .hud-login-sky {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 50% 48%, rgba(255, 193, 7, 0.12) 0%, transparent 26%),
+    radial-gradient(circle at 50% 50%, rgba(0, 229, 255, 0.14) 0%, transparent 40%),
+    linear-gradient(rgba(0, 229, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 255, 0.045) 1px, transparent 1px),
+    #0b192e;
+  background-size: auto, auto, 28px 28px, 28px 28px, auto;
+  border-right: 1px solid rgba(0, 229, 255, 0.35);
+}
+
+[data-theme-pack='command_hud'] .hud-login-orbit,
+[data-theme-pack='command_hud'] .hud-login-orbit-2 {
+  position: absolute;
+  width: min(58vw, 440px);
+  height: min(58vw, 440px);
+  border-radius: 50%;
+  border: 1px solid rgba(0, 229, 255, 0.35);
+  box-shadow: 0 0 0 16px rgba(0, 229, 255, 0.04), 0 0 40px rgba(0, 229, 255, 0.16);
+  animation: hud-login-spin 16s linear infinite;
+}
+
+[data-theme-pack='command_hud'] .hud-login-orbit-2 {
+  width: min(38vw, 280px);
+  height: min(38vw, 280px);
+  border-style: dashed;
+  border-color: rgba(255, 193, 7, 0.5);
+  animation-direction: reverse;
+  animation-duration: 11s;
+}
+
+[data-theme-pack='command_hud'] .hud-login-core {
+  position: absolute;
+  width: min(26vw, 180px);
+  height: min(26vw, 180px);
+  border-radius: 50%;
+  border: 1px solid rgba(255, 193, 7, 0.45);
+  background: radial-gradient(circle at 50% 40%, rgba(255, 193, 7, 0.2), rgba(6, 16, 30, 0.9));
+  box-shadow: inset 0 0 30px rgba(255, 193, 7, 0.12);
+}
+
+[data-theme-pack='command_hud'] .hud-login-wave {
+  position: absolute;
+  inset: 16%;
+  border-radius: 50%;
+  background: repeating-radial-gradient(
+    circle,
+    transparent 0 5px,
+    rgba(255, 193, 7, 0.2) 5px 6px
+  );
+  animation: hud-login-spin 7s linear infinite;
+}
+
+@keyframes hud-login-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+[data-theme-pack='command_hud'] .hud-login-hero {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.35;
+}
+
+[data-theme-pack='command_hud'] .hud-login-copy {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  padding: 24px;
+  margin-top: min(42vw, 320px);
+}
+
+[data-theme-pack='command_hud'] .hud-login-kicker {
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  color: #00e5ff;
+  margin-bottom: 8px;
+}
+
+[data-theme-pack='command_hud'] .hud-login-copy h1 {
+  margin: 0;
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  letter-spacing: 0.14em;
+  color: #ffc107;
+  text-shadow: 0 0 18px rgba(255, 193, 7, 0.35);
+}
+
+[data-theme-pack='command_hud'] .hud-login-copy p {
+  margin: 10px 0 0;
+  color: rgba(200, 217, 236, 0.75);
+  letter-spacing: 0.08em;
+}
+
+[data-theme-pack='command_hud'] .hud-login-dock {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 32px 24px;
+  background:
+    radial-gradient(600px 360px at 70% 20%, rgba(0, 229, 255, 0.1), transparent 55%),
+    #06101c;
+}
+
+[data-theme-pack='command_hud'] .hud-login-panel-cap {
+  width: 100%;
+  max-width: 420px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  color: #00e5ff;
+}
+
+[data-theme-pack='command_hud'] .hud-login-form {
+  width: 100%;
+  max-width: 420px;
+}
+
+[data-theme-pack='command_hud'] .hud-login-form .login-card {
+  width: 100% !important;
+  border-radius: 2px !important;
+  border: 1px solid rgba(0, 229, 255, 0.4) !important;
+  background: rgba(8, 20, 38, 0.92) !important;
+  box-shadow: 0 0 28px rgba(0, 229, 255, 0.15) !important;
+}
+
+[data-theme-pack='command_hud'] .hud-login-form .ant-btn-primary {
+  border-radius: 2px !important;
+  height: 44px;
+  border-color: #00e5ff !important;
+  background: linear-gradient(180deg, rgba(0, 229, 255, 0.35), rgba(0, 80, 110, 0.9)) !important;
+  box-shadow: 0 0 16px rgba(0, 229, 255, 0.35) !important;
+  font-family: 'Orbitron', sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 900px) {
+  [data-theme-pack='command_hud'] .hud-login {
+    grid-template-columns: 1fr;
+  }
+
+  [data-theme-pack='command_hud'] .hud-login-sky {
+    min-height: 280px;
+    border-right: none;
+    border-bottom: 1px solid rgba(0, 229, 255, 0.35);
+  }
+
+  [data-theme-pack='command_hud'] .hud-login-copy {
+    margin-top: 180px;
+  }
+}

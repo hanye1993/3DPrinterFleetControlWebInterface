@@ -1,0 +1,94 @@
+/* fullsite_board login — owned by login.page.replace.htm */
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+
+[data-theme-pack='fullsite_board'] .login-page-root.login-layout-fullsite,
+[data-theme-pack='fullsite_board'] .theme-fullsite-login {
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  background: var(--app-shell-bg, #12151a);
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+}
+
+[data-theme-pack='fullsite_board'] .fs-login {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  min-height: 100vh;
+}
+
+[data-theme-pack='fullsite_board'] .fs-login-hero {
+  position: relative;
+  background:
+    linear-gradient(135deg, rgba(196, 122, 58, 0.22), transparent 55%),
+    linear-gradient(180deg, #1a1f27, #0e1116);
+  border-right: 2px solid var(--fs-line, rgba(196, 122, 58, 0.4));
+  overflow: hidden;
+}
+
+[data-theme-pack='fullsite_board'] .fs-login-hero .login-split-hero {
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  padding: 48px;
+  background: transparent !important;
+}
+
+[data-theme-pack='fullsite_board'] .fs-login-hero .login-split-hero-text {
+  font-family: 'Barlow Condensed', sans-serif !important;
+  font-size: clamp(42px, 8vw, 72px);
+  font-weight: 700;
+  line-height: 0.95;
+  letter-spacing: 0.06em;
+  color: #f3e6d8;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+[data-theme-pack='fullsite_board'] .fs-login-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 32px 24px;
+  background:
+    radial-gradient(700px 400px at 80% 10%, rgba(196, 122, 58, 0.12), transparent 60%),
+    var(--app-shell-bg, #12151a);
+}
+
+[data-theme-pack='fullsite_board'] .fs-login-kicker {
+  width: 100%;
+  max-width: 440px;
+  margin-bottom: 12px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px;
+  letter-spacing: 0.2em;
+  color: var(--fs-accent, #c47a3a);
+}
+
+[data-theme-pack='fullsite_board'] .fs-login-form {
+  width: 100%;
+  max-width: 440px;
+}
+
+[data-theme-pack='fullsite_board'] .fs-login-form .login-card {
+  width: 100% !important;
+  border: 1px solid var(--fs-line, rgba(196, 122, 58, 0.4)) !important;
+  border-radius: 4px !important;
+  background: var(--app-card-bg, rgba(28, 33, 42, 0.92)) !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 860px) {
+  [data-theme-pack='fullsite_board'] .fs-login {
+    grid-template-columns: 1fr;
+  }
+
+  [data-theme-pack='fullsite_board'] .fs-login-hero {
+    min-height: 180px;
+    border-right: none;
+    border-bottom: 2px solid var(--fs-line, rgba(196, 122, 58, 0.4));
+  }
+
+  [data-theme-pack='fullsite_board'] .fs-login-hero .login-split-hero {
+    padding: 28px 24px;
+  }
+}

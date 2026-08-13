@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 1
+names: ['Spaghetti']
+
+roboflow:
+  workspace: spaghettidetect
+  project: 3d-printing-flaws
+  version: 10
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/spaghettidetect/3d-printing-flaws/dataset/10

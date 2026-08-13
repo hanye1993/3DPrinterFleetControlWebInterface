@@ -1,0 +1,89 @@
+{
+  "identifier": "qq_wechat_login",
+  "name": "QQ / 微信登录",
+  "version": "1.0.0",
+  "description": "对接 QQ 互联与微信开放平台网站应用登录；支持绑定/解绑、强制绑定、仅第三方登录或密码+QQ+微信均可登录。",
+  "copyright": "hanye",
+  "available": true,
+  "hooks": ["register", "login_before", "login_after", "auth_me", "users_list"],
+  "vars": [
+    {
+      "key": "login_mode",
+      "title": "登录方式（all=密码+QQ+微信 / oauth_only=仅QQ微信 / password_only=仅密码）",
+      "type": "text",
+      "value": "all"
+    },
+    {
+      "key": "force_bind",
+      "title": "强制绑定：密码登录后必须绑定 QQ 或微信",
+      "type": "boolean",
+      "value": "0"
+    },
+    {
+      "key": "auto_create",
+      "title": "首次 QQ/微信登录自动创建本地用户",
+      "type": "boolean",
+      "value": "1"
+    },
+    {
+      "key": "default_level",
+      "title": "自动创建用户等级（viewer / operator / admin）",
+      "type": "text",
+      "value": "viewer"
+    },
+    {
+      "key": "qq_enabled",
+      "title": "启用 QQ 互联登录",
+      "type": "boolean",
+      "value": "1"
+    },
+    {
+      "key": "qq_app_id",
+      "title": "QQ 互联 AppID",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "key": "qq_app_key",
+      "title": "QQ 互联 AppKey",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "key": "qq_redirect_uri",
+      "title": "QQ 回调地址（须与互联平台一致，默认本站 /api/v1/qq-wx/callback/qq）",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "key": "wx_enabled",
+      "title": "启用微信开放平台网站应用登录",
+      "type": "boolean",
+      "value": "1"
+    },
+    {
+      "key": "wx_app_id",
+      "title": "微信网站应用 AppID",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "key": "wx_app_secret",
+      "title": "微信网站应用 AppSecret",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "key": "wx_redirect_uri",
+      "title": "微信回调地址（须与开放平台一致，默认本站 /api/v1/qq-wx/callback/wechat）",
+      "type": "text",
+      "value": ""
+    }
+  ],
+  "clientJs": ["client.js"],
+  "publicClientJs": ["login.js"],
+  "themeCss": "theme.css",
+  "mainFile": "main.js",
+  "installFile": "install.js",
+  "uninstallFile": "uninstall.js"
+}

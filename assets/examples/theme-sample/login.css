@@ -1,0 +1,40 @@
+/* sample_topnav login — split layout */
+
+[data-theme-pack='sample_topnav'] .login-layout-split.login-page-root {
+  background: var(--app-shell-bg, #e8e4d9);
+}
+
+[data-theme-pack='sample_topnav'] .login-split-hero {
+  background: linear-gradient(160deg, #0b1f3a 0%, #132a45 55%, #0b1f3a 100%);
+  color: #f3f0e8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+}
+
+[data-theme-pack='sample_topnav'] .login-split-hero-text {
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1.15;
+}
+
+[data-theme-pack='sample_topnav'] .login-layout-split .login-card.ant-card {
+  border-radius: 0;
+  border: 2px solid var(--sample-signal, #e85d04);
+  box-shadow: none;
+}
+
+[data-theme-pack='sample_topnav'] .login-layout-split .login-card .ant-btn-primary {
+  border-radius: 0;
+  background: #0b1f3a;
+  border-color: #0b1f3a;
+}
+
+@media (max-width: 800px) {
+  [data-theme-pack='sample_topnav'] .login-split-hero {
+    min-height: 160px;
+    padding: 28px;
+  }
+}

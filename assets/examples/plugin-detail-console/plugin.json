@@ -1,0 +1,35 @@
+{
+  "identifier": "detail_console",
+  "name": "详情控制台",
+  "version": "1.2.8",
+  "description": "替换设备详情：顶部摄像头 + 控制台（XY/Z 点动已接通宿主 jog）+ AMS 料卷绑定 + G代码入队。",
+  "copyright": "hanye",
+  "author": "hanye",
+  "available": true,
+  "hooks": ["register"],
+  "vars": [
+    {
+      "key": "replace_detail",
+      "title": "替换整页详情控制区",
+      "type": "boolean",
+      "value": "1"
+    },
+    {
+      "key": "poll_ms",
+      "title": "状态刷新间隔(ms)",
+      "type": "number",
+      "value": "2000"
+    },
+    {
+      "key": "default_temp",
+      "title": "进退料默认温度",
+      "type": "number",
+      "value": "220"
+    }
+  ],
+  "clientJs": ["client.js"],
+  "themeCss": "theme.css",
+  "mainFile": "main.js",
+  "installFile": "install.js",
+  "uninstallFile": "uninstall.js"
+}

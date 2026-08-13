@@ -1,0 +1,81 @@
+{
+  "identifier": "command_hud",
+  "name": "指挥舱 HUD",
+  "version": "2.0.0",
+  "description": "siteMode=full 整站指挥舱：顶栏航电条 + 左遥测/右波形侧翼 + 中央环心舞台；设备为密表行，非经典侧栏卡片墙。",
+  "copyright": "hanye",
+  "author": "hanye",
+  "builtin": false,
+  "siteMode": "full",
+  "layout": "custom",
+  "deviceView": "table",
+  "loginLayout": "custom",
+  "layoutJs": ["layout.js"],
+  "defaultStyle": "ops_cyan",
+  "cssFiles": ["style.css"],
+  "loginCssFiles": ["login.css"],
+  "styles": [
+    {
+      "id": "ops_cyan",
+      "name": "青金指挥",
+      "desc": "深蓝底 + 电光青 + 琥珀金 · 整站 HUD 骨架",
+      "swatch": ["#0b192e", "#00e5ff", "#ffc107"],
+      "antd": {
+        "colorPrimary": "#00b8d4",
+        "colorBgBase": "#0b192e",
+        "algorithm": "dark",
+        "borderRadius": 2
+      },
+      "css": {
+        "--app-color-scheme": "dark",
+        "--app-text": "#c8d9ec",
+        "--app-header-bg": "rgba(6, 14, 28, 0.92)",
+        "--app-header-border": "rgba(0, 229, 255, 0.35)",
+        "--app-header-title": "#00e5ff",
+        "--app-shell-bg": "#0b192e",
+        "--app-sidebar-bg": "rgba(5, 12, 24, 0.96)",
+        "--app-footer-bg": "rgba(6, 14, 28, 0.92)",
+        "--app-card-bg": "rgba(10, 24, 44, 0.72)",
+        "--app-control-color": "rgba(200, 217, 236, 0.72)",
+        "--hud-navy": "#0b192e",
+        "--hud-navy-deep": "#06101c",
+        "--hud-cyan": "#00e5ff",
+        "--hud-gold": "#ffc107",
+        "--hud-line": "rgba(0, 229, 255, 0.22)",
+        "--hud-panel": "rgba(8, 20, 38, 0.82)",
+        "--hud-glow": "0 0 18px rgba(0, 229, 255, 0.28)"
+      }
+    },
+    {
+      "id": "ops_amber",
+      "name": "琥珀警戒",
+      "desc": "更深底 + 琥珀主强调 · 整站 HUD",
+      "swatch": ["#070f1a", "#26c6da", "#ffb300"],
+      "antd": {
+        "colorPrimary": "#ffb300",
+        "colorBgBase": "#070f1a",
+        "algorithm": "dark",
+        "borderRadius": 2
+      },
+      "css": {
+        "--app-color-scheme": "dark",
+        "--app-text": "#d5e4f5",
+        "--app-header-bg": "rgba(4, 10, 20, 0.94)",
+        "--app-header-border": "rgba(255, 179, 0, 0.4)",
+        "--app-header-title": "#ffb300",
+        "--app-shell-bg": "#070f1a",
+        "--app-sidebar-bg": "rgba(3, 8, 16, 0.98)",
+        "--app-footer-bg": "rgba(4, 10, 20, 0.94)",
+        "--app-card-bg": "rgba(8, 16, 30, 0.8)",
+        "--app-control-color": "rgba(213, 228, 245, 0.72)",
+        "--hud-navy": "#070f1a",
+        "--hud-navy-deep": "#040810",
+        "--hud-cyan": "#26c6da",
+        "--hud-gold": "#ffb300",
+        "--hud-line": "rgba(255, 179, 0, 0.22)",
+        "--hud-panel": "rgba(6, 14, 26, 0.86)",
+        "--hud-glow": "0 0 18px rgba(255, 179, 0, 0.22)"
+      }
+    }
+  ]
+}

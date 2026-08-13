@@ -1,0 +1,290 @@
+/* card_progress_vivid — 进度条上持续爬行的虫子 */
+
+body.cpv-thick .device-card .card-progress.cpv-progress {
+  height: 16px !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  overflow: visible !important;
+  position: relative !important;
+}
+
+body.cpv-thin .device-card .card-progress.cpv-progress {
+  height: 12px !important;
+  border-radius: 999px !important;
+  position: relative !important;
+  overflow: visible !important;
+}
+
+.device-card .card-progress.cpv-progress {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+.device-card .card-progress-bar.cpv-bar {
+  border-radius: 999px !important;
+  background: linear-gradient(90deg, #22c55e, #4ade80 55%, #a3e635) !important;
+  box-shadow: 0 0 12px rgba(74, 222, 128, 0.45);
+  transition: width 0.35s ease !important;
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.device-card .card-progress.resin .card-progress-bar.cpv-bar {
+  background: linear-gradient(90deg, #06b6d4, #22d3ee 50%, #67e8f9) !important;
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.45);
+}
+
+.device-card .card-progress.err .card-progress-bar.cpv-bar,
+.device-card[data-cpv-tone='err'] .card-progress-bar.cpv-bar {
+  background: linear-gradient(90deg, #ef4444, #fb7185) !important;
+  box-shadow: 0 0 14px rgba(248, 113, 113, 0.55);
+}
+
+.device-card[data-cpv-tone='done'] .card-progress-bar.cpv-bar {
+  background: linear-gradient(90deg, #8b5cf6, #a78bfa 50%, #c4b5fd) !important;
+  box-shadow: 0 0 12px rgba(167, 139, 250, 0.45);
+}
+
+.device-card[data-cpv-tone='off'] .card-progress-bar.cpv-bar {
+  background: linear-gradient(90deg, #64748b, #94a3b8) !important;
+  box-shadow: none;
+}
+
+.device-card[data-cpv-tone='idle'] .card-progress-bar.cpv-bar {
+  box-shadow: none;
+  opacity: 0.55;
+}
+
+/* —— 虫子宿主：贴在填充前端 —— */
+.cpv-worm-host {
+  position: absolute;
+  top: 50%;
+  z-index: 3;
+  transform: translate(-70%, -50%);
+  pointer-events: none;
+  transition: left 0.35s ease;
+  display: block;
+  width: 34px;
+  height: 14px;
+}
+
+body.cpv-hide-worm .cpv-worm-host {
+  display: none !important;
+}
+
+.cpv-worm {
+  position: relative;
+  display: block;
+  width: 34px;
+  height: 14px;
+  transform-origin: center center;
+}
+
+.cpv-worm-seg,
+.cpv-worm-head {
+  position: absolute;
+  top: 50%;
+  border-radius: 50%;
+  display: block;
+  transform: translateY(-50%);
+}
+
+.cpv-worm-seg {
+  width: 7px;
+  height: 7px;
+  background: radial-gradient(circle at 30% 30%, #86efac, #16a34a 70%);
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+}
+
+.cpv-worm-seg.s1 {
+  left: 0;
+}
+.cpv-worm-seg.s2 {
+  left: 5px;
+}
+.cpv-worm-seg.s3 {
+  left: 10px;
+}
+.cpv-worm-seg.s4 {
+  left: 15px;
+}
+.cpv-worm-seg.s5 {
+  left: 20px;
+}
+
+.cpv-worm-head {
+  left: 24px;
+  width: 9px;
+  height: 9px;
+  background: radial-gradient(circle at 35% 30%, #bbf7d0, #15803d 72%);
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+}
+
+.cpv-worm-head::before,
+.cpv-worm-head::after {
+  content: '';
+  position: absolute;
+  width: 2px;
+  height: 5px;
+  background: #14532d;
+  border-radius: 1px;
+  top: -3px;
+}
+
+.cpv-worm-head::before {
+  left: 2px;
+  transform: rotate(-18deg);
+}
+.cpv-worm-head::after {
+  right: 2px;
+  transform: rotate(18deg);
+}
+
+/* 状态色 */
+.cpv-worm-host.cpv-t-run .cpv-worm-seg {
+  background: radial-gradient(circle at 30% 30%, #7dd3fc, #0284c7 70%);
+}
+.cpv-worm-host.cpv-t-run .cpv-worm-head {
+  background: radial-gradient(circle at 35% 30%, #e0f2fe, #0369a1 72%);
+}
+.cpv-worm-host.cpv-t-run .cpv-worm-head::before,
+.cpv-worm-host.cpv-t-run .cpv-worm-head::after {
+  background: #0c4a6e;
+}
+
+.cpv-worm-host.cpv-t-done .cpv-worm-seg {
+  background: radial-gradient(circle at 30% 30%, #ddd6fe, #7c3aed 70%);
+}
+.cpv-worm-host.cpv-t-done .cpv-worm-head {
+  background: radial-gradient(circle at 35% 30%, #ede9fe, #6d28d9 72%);
+}
+.cpv-worm-host.cpv-t-done .cpv-worm-head::before,
+.cpv-worm-host.cpv-t-done .cpv-worm-head::after {
+  background: #4c1d95;
+}
+
+.cpv-worm-host.cpv-t-err .cpv-worm-seg {
+  background: radial-gradient(circle at 30% 30%, #fecaca, #dc2626 70%);
+}
+.cpv-worm-host.cpv-t-err .cpv-worm-head {
+  background: radial-gradient(circle at 35% 30%, #fee2e2, #b91c1c 72%);
+}
+.cpv-worm-host.cpv-t-err .cpv-worm-head::before,
+.cpv-worm-host.cpv-t-err .cpv-worm-head::after {
+  background: #7f1d1d;
+}
+
+.cpv-worm-host.cpv-t-off .cpv-worm-seg,
+.cpv-worm-host.cpv-t-idle .cpv-worm-seg {
+  background: radial-gradient(circle at 30% 30%, #cbd5e1, #64748b 70%);
+}
+.cpv-worm-host.cpv-t-off .cpv-worm-head,
+.cpv-worm-host.cpv-t-idle .cpv-worm-head {
+  background: radial-gradient(circle at 35% 30%, #e2e8f0, #475569 72%);
+}
+.cpv-worm-host.cpv-t-off .cpv-worm-head::before,
+.cpv-worm-host.cpv-t-off .cpv-worm-head::after,
+.cpv-worm-host.cpv-t-idle .cpv-worm-head::before,
+.cpv-worm-host.cpv-t-idle .cpv-worm-head::after {
+  background: #334155;
+}
+
+/* —— 一直爬行：体节波浪 + 整体轻微拱动 —— */
+@keyframes cpv-crawl-body {
+  0%,
+  100% {
+    transform: translateY(-50%) scaleY(1) scaleX(1);
+  }
+  25% {
+    transform: translateY(calc(-50% - 1.5px)) scaleY(0.88) scaleX(1.08);
+  }
+  50% {
+    transform: translateY(-50%) scaleY(1.05) scaleX(0.95);
+  }
+  75% {
+    transform: translateY(calc(-50% - 1px)) scaleY(0.9) scaleX(1.06);
+  }
+}
+
+@keyframes cpv-crawl-hop {
+  0%,
+  100% {
+    transform: translate(-70%, -50%) rotate(0deg);
+  }
+  25% {
+    transform: translate(-70%, calc(-50% - 1px)) rotate(-4deg);
+  }
+  50% {
+    transform: translate(-70%, -50%) rotate(0deg);
+  }
+  75% {
+    transform: translate(-70%, calc(-50% - 1.5px)) rotate(3deg);
+  }
+}
+
+@keyframes cpv-crawl-antenna {
+  0%,
+  100% {
+    transform: rotate(-18deg);
+  }
+  50% {
+    transform: rotate(-32deg);
+  }
+}
+@keyframes cpv-crawl-antenna2 {
+  0%,
+  100% {
+    transform: rotate(18deg);
+  }
+  50% {
+    transform: rotate(32deg);
+  }
+}
+
+body:not(.cpv-no-anim) .cpv-worm-host.is-crawling {
+  animation: cpv-crawl-hop 0.55s ease-in-out infinite;
+}
+
+body:not(.cpv-no-anim) .cpv-worm-host.is-crawling .cpv-worm-seg {
+  animation: cpv-crawl-body 0.55s ease-in-out infinite;
+}
+body:not(.cpv-no-anim) .cpv-worm-host.is-crawling .cpv-worm-seg.s2 {
+  animation-delay: 0.05s;
+}
+body:not(.cpv-no-anim) .cpv-worm-host.is-crawling .cpv-worm-seg.s3 {
+  animation-delay: 0.1s;
+}
+body:not(.cpv-no-anim) .cpv-worm-host.is-crawling .cpv-worm-seg.s4 {
+  animation-delay: 0.15s;
+}
+body:not(.cpv-no-anim) .cpv-worm-host.is-crawling .cpv-worm-seg.s5 {
+  animation-delay: 0.2s;
+}
+body:not(.cpv-no-anim) .cpv-worm-host.is-crawling .cpv-worm-head {
+  animation: cpv-crawl-body 0.55s ease-in-out infinite;
+  animation-delay: 0.25s;
+}
+body:not(.cpv-no-anim) .cpv-worm-host.is-crawling .cpv-worm-head::before {
+  animation: cpv-crawl-antenna 0.55s ease-in-out infinite;
+}
+body:not(.cpv-no-anim) .cpv-worm-host.is-crawling .cpv-worm-head::after {
+  animation: cpv-crawl-antenna2 0.55s ease-in-out infinite;
+}
+
+/* 进度条光带 */
+@keyframes cpv-shine {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+body:not(.cpv-no-anim) .device-card[data-cpv-tone='run'] .card-progress-bar.cpv-bar {
+  background-size: 200% 100%;
+  background-image: linear-gradient(90deg, #0284c7, #38bdf8, #e0f2fe, #38bdf8, #0284c7) !important;
+  animation: cpv-shine 1.8s linear infinite;
+}

@@ -1,0 +1,260 @@
+/* card_status_vivid — 醒目状态 */
+
+.csv-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  vertical-align: middle;
+  border: 1px solid transparent;
+  text-transform: none;
+}
+
+.csv-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 2px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font-size: 13px;
+}
+
+.csv-banner-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: currentColor;
+}
+
+.csv-banner-main {
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.csv-banner-sub {
+  margin-left: auto;
+  font-size: 11px;
+  opacity: 0.85;
+  font-weight: 600;
+}
+
+/* health colors */
+.csv-h-online,
+.csv-badge.csv-h-online {
+  color: #052e16;
+  background: linear-gradient(180deg, #86efac, #4ade80);
+  border-color: #22c55e;
+}
+.csv-banner.csv-h-online {
+  color: #dcfce7;
+  background: rgba(34, 197, 94, 0.22);
+  border-color: rgba(34, 197, 94, 0.65);
+}
+
+.csv-h-warning,
+.csv-badge.csv-h-warning {
+  color: #451a03;
+  background: linear-gradient(180deg, #fde68a, #fbbf24);
+  border-color: #f59e0b;
+}
+.csv-banner.csv-h-warning {
+  color: #fef3c7;
+  background: rgba(245, 158, 11, 0.24);
+  border-color: rgba(245, 158, 11, 0.7);
+}
+
+.csv-h-error,
+.csv-badge.csv-h-error {
+  color: #450a0a;
+  background: linear-gradient(180deg, #fecaca, #f87171);
+  border-color: #ef4444;
+}
+.csv-banner.csv-h-error {
+  color: #fee2e2;
+  background: rgba(239, 68, 68, 0.28);
+  border-color: rgba(239, 68, 68, 0.75);
+}
+
+.csv-h-offline,
+.csv-h-connecting,
+.csv-badge.csv-h-offline,
+.csv-badge.csv-h-connecting {
+  color: #0f172a;
+  background: linear-gradient(180deg, #cbd5e1, #94a3b8);
+  border-color: #64748b;
+}
+.csv-banner.csv-h-offline,
+.csv-banner.csv-h-connecting {
+  color: #e2e8f0;
+  background: rgba(100, 116, 139, 0.28);
+  border-color: rgba(148, 163, 184, 0.55);
+}
+
+/* state accents on banner */
+.csv-banner.csv-s-printing {
+  box-shadow: inset 3px 0 0 #38bdf8;
+}
+.csv-banner.csv-s-paused {
+  box-shadow: inset 3px 0 0 #fbbf24;
+}
+.csv-banner.csv-s-finished {
+  box-shadow: inset 3px 0 0 #a78bfa;
+}
+.csv-banner.csv-s-error {
+  box-shadow: inset 3px 0 0 #f87171;
+}
+
+/* amplify host status text */
+.device-card .csv-host-msg {
+  margin-top: 10px !important;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #f8fafc !important;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.device-card[data-csv-health='online'] .csv-host-msg {
+  background: rgba(34, 197, 94, 0.16);
+  border-color: rgba(34, 197, 94, 0.45);
+  color: #bbf7d0 !important;
+}
+.device-card[data-csv-health='warning'] .csv-host-msg {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #fde68a !important;
+}
+.device-card[data-csv-health='error'] .csv-host-msg {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.55);
+  color: #fecaca !important;
+}
+.device-card[data-csv-health='offline'] .csv-host-msg,
+.device-card[data-csv-health='connecting'] .csv-host-msg {
+  background: rgba(100, 116, 139, 0.2);
+  border-color: rgba(148, 163, 184, 0.4);
+  color: #cbd5e1 !important;
+}
+
+/* bigger health dots */
+.device-card .health-dot.csv-host-dot {
+  width: 11px !important;
+  height: 11px !important;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.12);
+}
+
+.device-card .health-dot.health-online.csv-host-dot {
+  background: #22c55e !important;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.35), 0 0 10px rgba(34, 197, 94, 0.65);
+}
+.device-card .health-dot.health-warning.csv-host-dot {
+  background: #f59e0b !important;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.35), 0 0 10px rgba(245, 158, 11, 0.65);
+}
+.device-card .health-dot.health-error.csv-host-dot {
+  background: #ef4444 !important;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.35), 0 0 12px rgba(239, 68, 68, 0.7);
+}
+.device-card .health-dot.health-offline.csv-host-dot,
+.device-card .health-dot.health-connecting.csv-host-dot {
+  background: #94a3b8 !important;
+}
+
+/* footer louder — 这是卡片唯一主状态条 */
+.device-card .csv-host-footer {
+  margin-top: 8px;
+  padding: 10px 12px !important;
+  border-radius: 10px;
+  font-weight: 800;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  min-height: 36px;
+}
+.device-card .csv-host-footer .device-card-footer-status {
+  font-size: 14px !important;
+  letter-spacing: 0.02em;
+}
+.device-card .csv-host-footer .device-card-footer-dot {
+  width: 10px !important;
+  height: 10px !important;
+}
+
+.device-card .csv-host-footer.state-printing {
+  background: rgba(14, 165, 233, 0.18) !important;
+  border-color: rgba(56, 189, 248, 0.55) !important;
+  color: #bae6fd !important;
+}
+.device-card .csv-host-footer.state-idle {
+  background: rgba(34, 197, 94, 0.14) !important;
+  border-color: rgba(74, 222, 128, 0.45) !important;
+  color: #bbf7d0 !important;
+}
+.device-card .csv-host-footer.state-finished {
+  background: rgba(167, 139, 250, 0.16) !important;
+  border-color: rgba(167, 139, 250, 0.5) !important;
+  color: #ddd6fe !important;
+}
+.device-card .csv-host-footer.state-error,
+.device-card.error .csv-host-footer {
+  background: rgba(239, 68, 68, 0.18) !important;
+  border-color: rgba(248, 113, 113, 0.55) !important;
+  color: #fecaca !important;
+}
+
+/* card edge tint */
+.device-card.csv-card[data-csv-health='online'] {
+  box-shadow: inset 3px 0 0 #22c55e;
+}
+.device-card.csv-card[data-csv-health='warning'] {
+  box-shadow: inset 3px 0 0 #f59e0b;
+}
+.device-card.csv-card[data-csv-health='error'] {
+  box-shadow: inset 3px 0 0 #ef4444;
+}
+.device-card.csv-card[data-csv-health='offline'],
+.device-card.csv-card[data-csv-health='connecting'] {
+  box-shadow: inset 3px 0 0 #64748b;
+}
+
+/* animations */
+@keyframes csv-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.75;
+  }
+}
+@keyframes csv-glow {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.18);
+  }
+}
+
+body:not(.csv-no-anim) .device-card.csv-anim[data-csv-state='printing'] .csv-banner,
+body:not(.csv-no-anim) .device-card.csv-anim[data-csv-state='printing'] .csv-host-footer.state-printing {
+  animation: csv-glow 1.6s ease-in-out infinite;
+}
+body:not(.csv-no-anim) .device-card.csv-anim[data-csv-health='error'] .csv-host-dot,
+body:not(.csv-no-anim) .device-card.csv-anim[data-csv-health='warning'] .csv-host-dot,
+body:not(.csv-no-anim) .device-card.csv-anim[data-csv-state='printing'] .csv-banner-dot {
+  animation: csv-pulse 1.2s ease-in-out infinite;
+}

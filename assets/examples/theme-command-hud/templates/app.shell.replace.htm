@@ -1,0 +1,103 @@
+<!--{include common/header}-->
+<div class="hud-ops">
+  <header class="hud-avionics">
+    <div class="hud-avionics-brand" data-hanye-mount="header-brand"></div>
+    <nav class="hud-avionics-nav" data-hanye-mount="nav"></nav>
+    <div class="hud-avionics-actions" data-hanye-mount="header-actions"></div>
+  </header>
+
+  <div class="hud-mobile" data-hanye-mount="mobile-toolbar"></div>
+
+  <div class="hud-deck">
+    <aside class="hud-wing hud-wing-left">
+      <section class="hud-panel">
+        <div class="hud-panel-h">TELEMETRY · L</div>
+        <div class="hud-bars" aria-hidden="true">
+          <i style="--h:72%"></i><i style="--h:48%"></i><i style="--h:86%"></i>
+          <i style="--h:34%"></i><i style="--h:61%"></i><i style="--h:79%"></i>
+          <i style="--h:42%"></i><i style="--h:68%"></i>
+        </div>
+      </section>
+      <section class="hud-panel hud-panel-grow">
+        <div class="hud-panel-h">RADAR · SWEEP</div>
+        <div class="hud-radar" aria-hidden="true">
+          <span class="hud-radar-ring"></span>
+          <span class="hud-radar-ring hud-radar-ring-2"></span>
+          <span class="hud-radar-beam"></span>
+          <span class="hud-radar-dot"></span>
+        </div>
+        <ul class="hud-kv">
+          <li><span>LINK</span><strong>OK</strong></li>
+          <li><span>NODES</span><strong data-hud-nodes>—</strong></li>
+          <li><span>SCAN</span><strong class="hud-gold">LIVE</strong></li>
+        </ul>
+      </section>
+      <section class="hud-panel">
+        <div class="hud-panel-h">WAVEFORM · A</div>
+        <svg class="hud-wave" viewBox="0 0 200 48" preserveAspectRatio="none" aria-hidden="true">
+          <polyline
+            points="0,28 12,22 24,30 36,10 48,32 60,18 72,26 84,8 96,34 108,16 120,28 132,12 144,30 156,20 168,26 180,14 200,24"
+          />
+        </svg>
+      </section>
+    </aside>
+
+    <section class="hud-core">
+      <div class="hud-core-ring" aria-hidden="true">
+        <div class="hud-core-orbit"></div>
+        <div class="hud-core-orbit hud-core-orbit-2"></div>
+        <div class="hud-core-disc">
+          <div class="hud-core-wave"></div>
+          <div class="hud-core-readout">
+            <span class="hud-core-label">FLEET</span>
+            <strong class="hud-core-num" data-hud-core-num>00</strong>
+            <span class="hud-core-label">ACTIVE CHANNEL</span>
+          </div>
+        </div>
+      </div>
+      <div class="hud-stage-wrap">
+        <div class="hud-stage-cap">
+          <span>CENTER STAGE · DEVICE TABLE</span>
+          <span class="hud-gold" data-hud-clock>—:—:—</span>
+        </div>
+        <main class="hud-stage" data-hanye-mount="main"></main>
+      </div>
+    </section>
+
+    <aside class="hud-wing hud-wing-right">
+      <section class="hud-panel">
+        <div class="hud-panel-h">GAUGES · R</div>
+        <div class="hud-gauges" aria-hidden="true">
+          <div class="hud-gauge"><b style="--p:78"></b><span>CPU</span></div>
+          <div class="hud-gauge"><b style="--p:54"></b><span>NET</span></div>
+          <div class="hud-gauge hud-gauge-gold"><b style="--p:91"></b><span>OPS</span></div>
+        </div>
+      </section>
+      <section class="hud-panel hud-panel-grow">
+        <div class="hud-panel-h">SPECTRUM</div>
+        <div class="hud-spectrum" aria-hidden="true">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        </div>
+        <div class="hud-big-num">
+          <span>SIGNAL</span>
+          <strong>36</strong>
+        </div>
+      </section>
+      <section class="hud-panel">
+        <div class="hud-panel-h">SLIDERS</div>
+        <div class="hud-sliders" aria-hidden="true">
+          <div><span>CH-1</span><em style="--w:70%"></em></div>
+          <div><span>CH-2</span><em style="--w:45%"></em></div>
+          <div><span>CH-3</span><em style="--w:88%"></em></div>
+          <div><span>CH-4</span><em style="--w:32%"></em></div>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <footer class="hud-bottom">
+    <div class="hud-bottom-mount" data-hanye-mount="footer"></div>
+    <!--{include common/footer}-->
+  </footer>
+</div>

@@ -1,0 +1,4 @@
+/* default theme — structural hooks; color tokens come from theme.json styles via JS */
+[data-theme-pack="default"] {
+  /* reserved for pack-level overrides */
+}

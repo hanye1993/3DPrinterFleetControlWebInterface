@@ -1,0 +1,10 @@
+/* Kernel v2 demo theme */
+:root {
+  --hanye-kernel-v2-accent: #0ea5e9;
+}
+.hanye-kernel-v2-banner {
+  padding: 8px 12px;
+  background: linear-gradient(90deg, #0c4a6e, #0369a1);
+  color: #e0f2fe;
+  font-size: 13px;
+}

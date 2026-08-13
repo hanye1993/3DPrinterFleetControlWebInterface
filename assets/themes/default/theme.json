@@ -1,0 +1,114 @@
+{
+  "identifier": "default",
+  "name": "经典监控台",
+  "version": "1.0.0",
+  "description": "系统默认界面（当前 UI）。含 5 套配色样式，可作开发主题的参考基准。",
+  "copyright": "hanye",
+  "author": "hanye",
+  "builtin": true,
+  "layout": "classic",
+  "deviceView": "grid",
+  "loginLayout": "classic",
+  "layoutJs": [],
+  "templates": {},
+  "defaultStyle": "midnight",
+  "cssFiles": ["style.css"],
+  "loginCssFiles": [],
+  "styles": [
+    {
+      "id": "midnight",
+      "name": "午夜蓝",
+      "desc": "默认深色，蓝灰径向氛围",
+      "swatch": ["#0f1115", "#1a2332", "#3d8bfd"],
+      "antd": { "colorPrimary": "#3d8bfd", "colorBgBase": "#141414", "algorithm": "dark", "borderRadius": 8 },
+      "css": {
+        "--app-color-scheme": "dark",
+        "--app-text": "#e8eaed",
+        "--app-header-bg": "#101218",
+        "--app-header-border": "rgba(255, 255, 255, 0.08)",
+        "--app-header-title": "#f0f3f8",
+        "--app-shell-bg": "radial-gradient(1200px 600px at 10% -10%, #1a2332 0%, transparent 55%), radial-gradient(900px 500px at 100% 0%, #1b1828 0%, transparent 50%), #0f1115",
+        "--app-sidebar-bg": "transparent",
+        "--app-footer-bg": "rgba(16, 18, 24, 0.92)",
+        "--app-card-bg": "rgba(22, 24, 30, 0.88)",
+        "--app-control-color": "rgba(232, 234, 237, 0.75)"
+      }
+    },
+    {
+      "id": "ocean",
+      "name": "深海青",
+      "desc": "冷青主色，偏监控台科技感",
+      "swatch": ["#07151c", "#0d3a45", "#14b8a6"],
+      "antd": { "colorPrimary": "#14b8a6", "colorBgBase": "#0a1a20", "algorithm": "dark", "borderRadius": 8 },
+      "css": {
+        "--app-color-scheme": "dark",
+        "--app-text": "#e6f4f3",
+        "--app-header-bg": "#0a171c",
+        "--app-header-border": "rgba(20, 184, 166, 0.18)",
+        "--app-header-title": "#ecfeff",
+        "--app-shell-bg": "radial-gradient(1100px 560px at 0% -5%, #0f3d4a 0%, transparent 55%), radial-gradient(800px 480px at 100% 10%, #102a3a 0%, transparent 50%), #07151c",
+        "--app-sidebar-bg": "transparent",
+        "--app-footer-bg": "rgba(10, 23, 28, 0.92)",
+        "--app-card-bg": "rgba(12, 28, 34, 0.9)",
+        "--app-control-color": "rgba(230, 244, 243, 0.78)"
+      }
+    },
+    {
+      "id": "forest",
+      "name": "松烟绿",
+      "desc": "墨绿底色，护眼偏稳重",
+      "swatch": ["#0d1410", "#1a3324", "#52c41a"],
+      "antd": { "colorPrimary": "#52c41a", "colorBgBase": "#121a14", "algorithm": "dark", "borderRadius": 8 },
+      "css": {
+        "--app-color-scheme": "dark",
+        "--app-text": "#e8f0e9",
+        "--app-header-bg": "#101812",
+        "--app-header-border": "rgba(82, 196, 26, 0.16)",
+        "--app-header-title": "#f3faf4",
+        "--app-shell-bg": "radial-gradient(1000px 520px at 15% -8%, #1e3a28 0%, transparent 55%), radial-gradient(820px 460px at 95% 0%, #1a2a1c 0%, transparent 48%), #0d1410",
+        "--app-sidebar-bg": "transparent",
+        "--app-footer-bg": "rgba(16, 24, 18, 0.92)",
+        "--app-card-bg": "rgba(18, 28, 20, 0.9)",
+        "--app-control-color": "rgba(232, 240, 233, 0.75)"
+      }
+    },
+    {
+      "id": "amber",
+      "name": "琥珀暖",
+      "desc": "暖色强调，车间夜班氛围",
+      "swatch": ["#14110e", "#3a2614", "#fa8c16"],
+      "antd": { "colorPrimary": "#fa8c16", "colorBgBase": "#1a1510", "algorithm": "dark", "borderRadius": 8 },
+      "css": {
+        "--app-color-scheme": "dark",
+        "--app-text": "#f3ebe3",
+        "--app-header-bg": "#16120e",
+        "--app-header-border": "rgba(250, 140, 22, 0.18)",
+        "--app-header-title": "#fff7ed",
+        "--app-shell-bg": "radial-gradient(1000px 540px at 8% -10%, #3b2412 0%, transparent 55%), radial-gradient(780px 440px at 100% 5%, #2a1a12 0%, transparent 50%), #14110e",
+        "--app-sidebar-bg": "transparent",
+        "--app-footer-bg": "rgba(22, 18, 14, 0.92)",
+        "--app-card-bg": "rgba(28, 22, 16, 0.9)",
+        "--app-control-color": "rgba(243, 235, 227, 0.78)"
+      }
+    },
+    {
+      "id": "slate",
+      "name": "浅灰日间",
+      "desc": "浅色界面，适合亮环境",
+      "swatch": ["#f4f6f8", "#dce3ea", "#1677ff"],
+      "antd": { "colorPrimary": "#1677ff", "colorBgBase": "#f5f7fa", "algorithm": "default", "borderRadius": 8 },
+      "css": {
+        "--app-color-scheme": "light",
+        "--app-text": "#1f2329",
+        "--app-header-bg": "#ffffff",
+        "--app-header-border": "rgba(15, 23, 42, 0.1)",
+        "--app-header-title": "#111827",
+        "--app-shell-bg": "radial-gradient(1100px 560px at 10% -10%, #e8eef6 0%, transparent 55%), radial-gradient(900px 500px at 100% 0%, #ebe4f5 0%, transparent 50%), #f4f6f8",
+        "--app-sidebar-bg": "transparent",
+        "--app-footer-bg": "rgba(255, 255, 255, 0.92)",
+        "--app-card-bg": "rgba(255, 255, 255, 0.92)",
+        "--app-control-color": "rgba(31, 35, 41, 0.65)"
+      }
+    }
+  ]
+}

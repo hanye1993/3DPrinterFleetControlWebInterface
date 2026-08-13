@@ -1,0 +1,50 @@
+{
+  "identifier": "demo_hello",
+  "name": "全站改造示例",
+  "version": "2.0.0",
+  "description": "演示插件改登录页、导航、主题、权限与界面嵌入点（仿 DZ 全站可改）",
+  "copyright": "hanye",
+  "available": true,
+  "hooks": [
+    "common",
+    "devices_list",
+    "ui_assets",
+    "permissions_effective",
+    "permissions_catalog",
+    "theme_resolve",
+    "register",
+    "users_list",
+    "user_create",
+    "user_update",
+    "user_delete",
+    "monitor_camera_snapshot",
+    "print_request_list",
+    "print_request_create",
+    "print_approve",
+    "print_reject",
+    "print_start",
+    "print_cancel"
+  ],
+  "modules": [
+    { "name": "admin", "menu": "全站插件设置", "type": "admin", "displayOrder": 0, "adminOnly": true },
+    {
+      "name": "page",
+      "menu": "插件演示页",
+      "type": "page",
+      "displayOrder": 10,
+      "perm": "plugin.demo_hello.page"
+    }
+  ],
+  "vars": [
+    { "key": "greeting", "title": "问候语", "type": "text", "value": "你好" },
+    { "key": "prefix_devices", "title": "设备名前缀", "type": "boolean", "value": "0" },
+    { "key": "restyle_login", "title": "改造登录页", "type": "boolean", "value": "1" },
+    { "key": "hide_models_nav", "title": "隐藏「模型网站」导航", "type": "boolean", "value": "0" }
+  ],
+  "clientJs": ["client.js"],
+  "publicClientJs": ["login.js"],
+  "themeCss": "theme.css",
+  "installFile": "install.js",
+  "uninstallFile": "uninstall.js",
+  "mainFile": "main.js"
+}

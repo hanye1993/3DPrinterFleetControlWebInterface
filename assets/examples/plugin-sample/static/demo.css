@@ -1,0 +1,13 @@
+.demo-hello {
+  font-family: system-ui, sans-serif;
+  padding: 16px 20px;
+  color: #1a1a1a;
+  background: linear-gradient(160deg, #f7fafc, #eef2ff);
+  min-height: 100%;
+}
+.demo-hello h2 { margin-top: 0; }
+.demo-hello code {
+  background: #fff;
+  padding: 2px 6px;
+  border-radius: 4px;
+}

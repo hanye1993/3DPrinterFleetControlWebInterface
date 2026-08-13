@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+
+# Build
+dist/
+out/
+out-server/
+*.tsbuildinfo
+
+# Local packaged plugin/theme zips (do not publish)
+dist-plugins-cn/
+dist-plugins/
+*.zip
+
+# Logs & env
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.env
+.env.*
+!.env.example
+*.local
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+Desktop.ini
+
+# Local runtime data (devices, users, installed plugins/themes, secrets)
+/data/*
+!/data/.gitkeep
+/userdata/
+/downloads/
+/secrets.bin
+*.bin
+
+# Never ship local secrets under assets/plugins
+/assets/plugins/*
+!/assets/plugins/.gitkeep
+!/assets/plugins/.env.example
+
+# Local-only (可删：本机临时 Node/npm)
+.tools/
+.transcript-extract/
+.cursor/

@@ -1,0 +1,74 @@
+{
+  "identifier": "company_chat",
+  "name": "公司聊天",
+  "version": "1.1.0",
+  "description": "登录后侧栏公司聊天：在线成员、全员/私聊、发文件；消息可查询；可配置保留天数自动清理。",
+  "copyright": "hanye",
+  "available": true,
+  "hooks": ["register"],
+  "modules": [
+    {
+      "name": "cleanup",
+      "menu": "聊天清理",
+      "type": "cron",
+      "schedule": "every:1h",
+      "displayOrder": 0,
+      "adminOnly": true
+    }
+  ],
+  "vars": [
+    {
+      "key": "dm_policy",
+      "title": "私聊权限（all=全员可私聊 / admin_only=仅管理员可发起私聊）",
+      "type": "text",
+      "value": "all"
+    },
+    {
+      "key": "retain_days",
+      "title": "聊天记录保留天数（超时自动清理）",
+      "type": "number",
+      "value": "30"
+    },
+    {
+      "key": "cleanup_enabled",
+      "title": "启用自动清理",
+      "type": "boolean",
+      "value": "1"
+    },
+    {
+      "key": "panel_default_open",
+      "title": "登录后默认展开聊天侧栏",
+      "type": "boolean",
+      "value": "0"
+    },
+    {
+      "key": "poll_sec",
+      "title": "消息轮询间隔（秒）",
+      "type": "number",
+      "value": "3"
+    },
+    {
+      "key": "max_len",
+      "title": "单条消息最大字数",
+      "type": "number",
+      "value": "2000"
+    },
+    {
+      "key": "allow_file",
+      "title": "允许发送文件",
+      "type": "boolean",
+      "value": "1"
+    },
+    {
+      "key": "max_file_mb",
+      "title": "单个文件最大 MB",
+      "type": "number",
+      "value": "10"
+    }
+  ],
+  "clientJs": ["client.js"],
+  "themeCss": "theme.css",
+  "mainFile": "main.js",
+  "installFile": "install.js",
+  "uninstallFile": "uninstall.js"
+}

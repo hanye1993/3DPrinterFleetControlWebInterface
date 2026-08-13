@@ -1,0 +1,26 @@
+/* Plugin theme — overrides CSS variables / login atmosphere */
+:root {
+  --demo-hello-accent: #38bdf8;
+}
+
+.app-shell {
+  /* subtle tint to prove theme.css loaded */
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--demo-hello-accent) 35%, transparent);
+}
+
+.login-page-root {
+  background: radial-gradient(1000px 500px at 80% 10%, #0c4a6e, #0f1115 50%) !important;
+}
+
+.login-card {
+  border: 1px solid #38bdf8 !important;
+  box-shadow: 0 12px 40px rgba(14, 165, 233, 0.25) !important;
+}
+
+.demo-hello {
+  font-family: system-ui, sans-serif;
+  padding: 16px 20px;
+  color: #1a1a1a;
+  background: linear-gradient(160deg, #f0f9ff, #e0f2fe);
+  min-height: 100%;
+}

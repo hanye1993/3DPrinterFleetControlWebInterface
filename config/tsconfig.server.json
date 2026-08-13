@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "rootDir": "../src",
+    "outDir": "../dist/server",
+    "types": ["node"],
+    "lib": ["ES2022", "DOM"]
+  },
+  "include": [
+    "../src/server/**/*",
+    "../src/main/api/**/*",
+    "../src/main/auth/**/*",
+    "../src/main/quote/**/*",
+    "../src/main/discover/**/*",
+    "../src/main/camera/**/*",
+    "../src/main/bambu/**/*",
+    "../src/main/moonraker/**/*",
+    "../src/main/elegoo/**/*",
+    "../src/main/anycubic/**/*",
+    "../src/main/flashforge/**/*",
+    "../src/main/snapmaker/**/*",
+    "../src/main/creality/**/*",
+    "../src/main/operationLogs/**/*",
+    "../src/main/ai/**/*",
+    "../src/main/alert/**/*",
+    "../src/main/plugin/**/*",
+    "../src/main/theme/**/*",
+    "../src/main/storage/**/*",
+    "../src/main/nav/**/*",
+    "../src/main/pollInterval.ts",
+    "../src/shared/**/*"
+  ]
+}
