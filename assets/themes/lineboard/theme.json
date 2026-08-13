@@ -1,0 +1,80 @@
+{
+  "identifier": "lineboard",
+  "name": "航线看板",
+  "version": "1.0.0",
+  "description": "与经典监控台完全不同：左侧功能轨 + 密表行列表 + 分栏登录；浅色制图纸风格，锐角卡片与行式设备条。",
+  "copyright": "hanye",
+  "author": "hanye",
+  "builtin": true,
+  "layout": "workspace",
+  "deviceView": "table",
+  "loginLayout": "split",
+  "layoutJs": ["layout.js"],
+  "defaultStyle": "blueprint",
+  "cssFiles": ["style.css"],
+  "loginCssFiles": ["login.css"],
+  "styles": [
+    {
+      "id": "blueprint",
+      "name": "蓝图纸",
+      "desc": "浅底制图网格 + 墨线 + 信号绿",
+      "swatch": ["#eef2ef", "#1a2e28", "#00c853"],
+      "antd": {
+        "colorPrimary": "#00875a",
+        "colorBgBase": "#eef2ef",
+        "algorithm": "default",
+        "borderRadius": 2
+      },
+      "css": {
+        "--app-color-scheme": "light",
+        "--app-text": "#14201c",
+        "--app-header-bg": "#f7faf8",
+        "--app-header-border": "#1a2e28",
+        "--app-header-title": "#0d1a16",
+        "--app-shell-bg": "#e6ebe8",
+        "--app-sidebar-bg": "#1a2e28",
+        "--app-footer-bg": "#f7faf8",
+        "--app-card-bg": "#fbfcfb",
+        "--app-control-color": "rgba(20, 32, 28, 0.62)",
+        "--lb-ink": "#1a2e28",
+        "--lb-paper": "#f7faf8",
+        "--lb-grid": "rgba(26, 46, 40, 0.07)",
+        "--lb-signal": "#00c853",
+        "--lb-signal-deep": "#00875a",
+        "--lb-warn": "#e65100",
+        "--lb-line": "rgba(26, 46, 40, 0.22)"
+      }
+    },
+    {
+      "id": "hangar",
+      "name": "机库夜",
+      "desc": "深墨底 + 信号绿描边（仍非经典蓝灰卡）",
+      "swatch": ["#0c1210", "#1a2e28", "#69f0ae"],
+      "antd": {
+        "colorPrimary": "#69f0ae",
+        "colorBgBase": "#0c1210",
+        "algorithm": "dark",
+        "borderRadius": 2
+      },
+      "css": {
+        "--app-color-scheme": "dark",
+        "--app-text": "#dce8e2",
+        "--app-header-bg": "#101816",
+        "--app-header-border": "#69f0ae",
+        "--app-header-title": "#b9f6ca",
+        "--app-shell-bg": "#0c1210",
+        "--app-sidebar-bg": "#060a08",
+        "--app-footer-bg": "#101816",
+        "--app-card-bg": "#121a17",
+        "--app-control-color": "rgba(220, 232, 226, 0.7)",
+        "--lb-ink": "#b9f6ca",
+        "--lb-paper": "#121a17",
+        "--lb-grid": "rgba(105, 240, 174, 0.06)",
+        "--lb-signal": "#69f0ae",
+        "--lb-signal-deep": "#00e676",
+        "--lb-warn": "#ffab40",
+        "--lb-line": "rgba(105, 240, 174, 0.28)"
+      }
+    }
+  ]
+}

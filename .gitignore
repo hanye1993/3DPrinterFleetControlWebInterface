@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+
+# Build
+dist/
+out/
+out-server/
+*.tsbuildinfo
+
+# Logs & env
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.env
+.env.*
+!.env.example
+*.local
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+Desktop.ini
+
+# Local runtime data
+/data/
+!/data/.gitkeep
+/userdata/
+/downloads/
+/secrets.bin
+*.bin
+
+# Local-only (可删：本机临时 Node/npm)
+.tools/
+.transcript-extract/
+.cursor/

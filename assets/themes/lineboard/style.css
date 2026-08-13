@@ -1,0 +1,384 @@
+/* lineboard — full chrome restyle (workspace rail + table rows) */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Syne:wght@600;700;800&display=swap');
+
+[data-theme-pack='lineboard'] {
+  font-family: 'Syne', 'IBM Plex Mono', sans-serif;
+  --lb-ink: #1a2e28;
+  --lb-paper: #f7faf8;
+  --lb-signal: #00c853;
+  --lb-signal-deep: #00875a;
+  --lb-line: rgba(26, 46, 40, 0.22);
+  --lb-grid: rgba(26, 46, 40, 0.07);
+  --lb-muted: rgba(20, 32, 28, 0.55);
+}
+
+[data-theme-pack='lineboard'] body,
+[data-theme-pack='lineboard'] .app-shell,
+[data-theme-pack='lineboard'] .ant-typography {
+  font-family: 'Syne', 'IBM Plex Mono', sans-serif !important;
+}
+
+/* Drafting grid */
+[data-theme-pack='lineboard'] .app-shell-layout-workspace {
+  background-color: var(--app-shell-bg, #e6ebe8) !important;
+  background-image:
+    linear-gradient(var(--lb-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--lb-grid) 1px, transparent 1px) !important;
+  background-size: 28px 28px !important;
+}
+
+/* —— Left rail —— */
+[data-theme-pack='lineboard'] .app-shell-layout-workspace .app-rail {
+  background: var(--lb-ink) !important;
+  border-right: 3px solid var(--lb-signal) !important;
+  width: 72px !important;
+  padding: 10px 0 !important;
+  z-index: 2;
+}
+
+[data-theme-pack='lineboard'] .app-shell-layout-workspace .app-rail .ant-menu {
+  background: transparent !important;
+  color: #c8e6c9 !important;
+  border: none !important;
+}
+
+[data-theme-pack='lineboard'] .app-shell-layout-workspace .app-rail .ant-menu-item {
+  border-radius: 0 !important;
+  margin: 4px 8px !important;
+  width: auto !important;
+  height: 44px !important;
+  line-height: 44px !important;
+  border-left: 2px solid transparent !important;
+  color: #a5d6a7 !important;
+}
+
+[data-theme-pack='lineboard'] .app-shell-layout-workspace .app-rail .ant-menu-item .anticon {
+  font-size: 18px !important;
+  color: inherit !important;
+}
+
+[data-theme-pack='lineboard'] .app-shell-layout-workspace .app-rail .ant-menu-item-selected {
+  background: color-mix(in srgb, var(--lb-signal) 22%, transparent) !important;
+  border-left-color: var(--lb-signal) !important;
+  color: var(--lb-signal) !important;
+}
+
+[data-theme-pack='lineboard'] .app-shell-layout-workspace .app-workspace {
+  background: transparent !important;
+}
+
+[data-theme-pack='lineboard'] .app-shell-layout-workspace .app-main {
+  padding: 16px 18px 28px !important;
+}
+
+/* —— Compact theme strip (not a second header) —— */
+[data-theme-pack='lineboard'] .lineboard-ticker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  padding: 4px 14px;
+  min-height: 26px;
+  border: none;
+  border-bottom: 2px solid var(--lb-signal);
+  background: var(--lb-ink);
+  color: var(--lb-signal);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  box-shadow: none;
+}
+
+[data-theme-pack='lineboard'] .lineboard-ticker__meta {
+  color: #c8e6c9;
+  opacity: 0.9;
+  letter-spacing: 0.06em;
+}
+
+/* —— Main header: ink slab, not white default —— */
+[data-theme-pack='lineboard'] .app-header.ant-layout-header {
+  background: var(--lb-paper) !important;
+  border-bottom: 3px solid var(--lb-ink) !important;
+  box-shadow: none !important;
+  height: auto !important;
+  min-height: 58px;
+  line-height: normal !important;
+  padding: 8px 16px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+[data-theme-pack='lineboard'] .app-header-brand {
+  gap: 10px;
+}
+
+[data-theme-pack='lineboard'] .app-header-logo {
+  border-radius: 0 !important;
+  border: 2px solid var(--lb-ink);
+  width: 36px !important;
+  height: 36px !important;
+  box-shadow: 3px 3px 0 var(--lb-signal);
+}
+
+[data-theme-pack='lineboard'] .app-header-title {
+  font-family: 'Syne', sans-serif !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  font-size: 14px !important;
+  color: var(--lb-ink) !important;
+  margin: 0 !important;
+}
+
+[data-theme-pack='lineboard'] .app-header-search {
+  min-width: 220px;
+}
+
+[data-theme-pack='lineboard'] .app-header-search .ant-input-affix-wrapper,
+[data-theme-pack='lineboard'] .app-header-actions .ant-btn {
+  border-radius: 0 !important;
+  border: 2px solid var(--lb-ink) !important;
+  background: #fff !important;
+  color: var(--lb-ink) !important;
+  box-shadow: 2px 2px 0 color-mix(in srgb, var(--lb-ink) 35%, transparent) !important;
+  height: 34px !important;
+}
+
+[data-theme-pack='lineboard'] .app-header-actions .ant-btn-primary {
+  background: var(--lb-signal-deep) !important;
+  border-color: var(--lb-ink) !important;
+  color: #fff !important;
+  box-shadow: 3px 3px 0 var(--lb-ink) !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+[data-theme-pack='lineboard'] .app-header-actions .ant-btn-primary:hover {
+  background: var(--lb-signal) !important;
+  color: #04210f !important;
+}
+
+/* —— Brand filter: sharp strip, not dark pill bar —— */
+[data-theme-pack='lineboard'] .brand-filter-bar {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 8px 10px !important;
+  margin: 0 0 14px !important;
+  padding: 10px 12px !important;
+  border-radius: 0 !important;
+  border: 2px solid var(--lb-ink) !important;
+  background: var(--lb-paper) !important;
+  box-shadow: 4px 4px 0 var(--lb-ink) !important;
+}
+
+[data-theme-pack='lineboard'] .brand-filter-label {
+  font-family: 'IBM Plex Mono', monospace !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  color: var(--lb-ink) !important;
+  opacity: 1 !important;
+  margin-right: 4px !important;
+}
+
+[data-theme-pack='lineboard'] .brand-filter-tags {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+}
+
+[data-theme-pack='lineboard'] .brand-filter-tag {
+  border-radius: 0 !important;
+  border: 1.5px solid var(--lb-ink) !important;
+  background: #fff !important;
+  color: var(--lb-ink) !important;
+  font-family: 'IBM Plex Mono', monospace !important;
+  font-size: 11px !important;
+  letter-spacing: 0.02em;
+  padding: 4px 10px !important;
+  height: auto !important;
+  line-height: 1.4 !important;
+  box-shadow: none !important;
+}
+
+[data-theme-pack='lineboard'] .brand-filter-tag:hover {
+  border-color: var(--lb-signal-deep) !important;
+  color: var(--lb-signal-deep) !important;
+  background: color-mix(in srgb, var(--lb-signal) 10%, #fff) !important;
+}
+
+[data-theme-pack='lineboard'] .brand-filter-tag.active {
+  background: var(--lb-ink) !important;
+  border-color: var(--lb-ink) !important;
+  color: var(--lb-signal) !important;
+  box-shadow: 2px 2px 0 var(--lb-signal) !important;
+}
+
+[data-theme-pack='lineboard'] .brand-filter-count {
+  margin-left: 6px;
+  opacity: 0.75;
+  font-weight: 600;
+}
+
+[data-theme-pack='lineboard'] .brand-filter-tag.active .brand-filter-count {
+  color: var(--lb-signal);
+  opacity: 1;
+}
+
+/* —— Device page bar —— */
+[data-theme-pack='lineboard'] .device-page-bar {
+  border-radius: 0 !important;
+  border: 2px solid var(--lb-ink) !important;
+  background: var(--lb-paper) !important;
+  box-shadow: 4px 4px 0 var(--lb-ink) !important;
+  margin-bottom: 12px;
+}
+
+[data-theme-pack='lineboard'] .device-status-filters .ant-checkbox-wrapper {
+  color: var(--lb-ink) !important;
+  font-family: 'IBM Plex Mono', monospace !important;
+  font-size: 11px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* —— Table rows —— */
+[data-theme-pack='lineboard'] .device-grid.device-grid-table,
+[data-theme-pack='lineboard'] .device-view-table .device-grid {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+  border: 2px solid var(--lb-ink) !important;
+  background: var(--lb-paper) !important;
+  box-shadow: 6px 6px 0 color-mix(in srgb, var(--lb-ink) 50%, transparent);
+}
+
+[data-theme-pack='lineboard'] .device-view-table .device-card,
+[data-theme-pack='lineboard'] .device-card.device-card-compact {
+  border-radius: 0 !important;
+  border: none !important;
+  border-bottom: 1px solid var(--lb-line) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  min-height: 52px !important;
+  padding: 8px 14px !important;
+  background-image: none !important;
+}
+
+[data-theme-pack='lineboard'] .device-card.device-card-compact:nth-child(even) {
+  background: color-mix(in srgb, var(--lb-signal) 7%, transparent) !important;
+}
+
+[data-theme-pack='lineboard'] .device-card.device-card-compact:hover {
+  background: color-mix(in srgb, var(--lb-signal) 14%, transparent) !important;
+  border-bottom-color: var(--lb-signal) !important;
+}
+
+[data-theme-pack='lineboard'] .device-card.device-card-compact.selected,
+[data-theme-pack='lineboard'] .device-card.checked {
+  outline: 2px solid var(--lb-signal-deep);
+  outline-offset: -2px;
+  background: color-mix(in srgb, var(--lb-signal) 18%, transparent) !important;
+}
+
+[data-theme-pack='lineboard'] .device-card-name {
+  font-family: 'IBM Plex Mono', monospace !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  color: var(--lb-ink) !important;
+}
+
+[data-theme-pack='lineboard'] .device-card-msg,
+[data-theme-pack='lineboard'] .device-card-eta {
+  font-family: 'IBM Plex Mono', monospace !important;
+  font-size: 12px !important;
+  color: var(--lb-muted) !important;
+}
+
+[data-theme-pack='lineboard'] .device-card-footer-dot {
+  border-radius: 0 !important;
+  width: 8px !important;
+  height: 8px !important;
+}
+
+[data-theme-pack='lineboard'] .lineboard-card-mark {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--lb-signal-deep);
+  padding-top: 2px;
+}
+
+[data-theme-pack='lineboard'] .lineboard-nav-badge {
+  margin: 10px 8px 0;
+  padding: 8px 4px;
+  text-align: center;
+  font-size: 9px;
+  line-height: 1.35;
+  letter-spacing: 0.12em;
+  color: var(--lb-signal);
+  border-top: 1px solid color-mix(in srgb, var(--lb-signal) 35%, transparent);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* Ant surfaces */
+[data-theme-pack='lineboard'] .ant-btn {
+  border-radius: 0 !important;
+  font-family: 'Syne', sans-serif !important;
+  font-weight: 700 !important;
+}
+
+[data-theme-pack='lineboard'] .ant-card,
+[data-theme-pack='lineboard'] .ant-modal-content,
+[data-theme-pack='lineboard'] .ant-drawer-content {
+  border-radius: 0 !important;
+  border: 2px solid var(--lb-ink) !important;
+  box-shadow: 5px 5px 0 color-mix(in srgb, var(--lb-ink) 35%, transparent) !important;
+}
+
+[data-theme-pack='lineboard'] .ant-input,
+[data-theme-pack='lineboard'] .ant-input-affix-wrapper,
+[data-theme-pack='lineboard'] .ant-select-selector {
+  border-radius: 0 !important;
+}
+
+[data-theme-pack='lineboard'] .ant-empty-description {
+  font-family: 'IBM Plex Mono', monospace !important;
+  color: var(--lb-muted) !important;
+  letter-spacing: 0.04em;
+}
+
+/* hangar (dark) overrides */
+[data-theme-pack='lineboard'][data-theme='hangar'] .app-header.ant-layout-header {
+  background: #121a17 !important;
+}
+
+[data-theme-pack='lineboard'][data-theme='hangar'] .app-header-title {
+  color: #b9f6ca !important;
+}
+
+[data-theme-pack='lineboard'][data-theme='hangar'] .brand-filter-bar,
+[data-theme-pack='lineboard'][data-theme='hangar'] .device-page-bar {
+  background: #121a17 !important;
+  border-color: #69f0ae !important;
+  box-shadow: 4px 4px 0 #69f0ae !important;
+}
+
+[data-theme-pack='lineboard'][data-theme='hangar'] .brand-filter-label,
+[data-theme-pack='lineboard'][data-theme='hangar'] .brand-filter-tag {
+  color: #dce8e2 !important;
+  border-color: #69f0ae !important;
+  background: #0c1210 !important;
+}
+
+[data-theme-pack='lineboard'][data-theme='hangar'] .brand-filter-tag.active {
+  background: #69f0ae !important;
+  color: #0c1210 !important;
+}

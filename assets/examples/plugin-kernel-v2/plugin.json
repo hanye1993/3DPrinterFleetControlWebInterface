@@ -1,0 +1,33 @@
+{
+  "identifier": "demo_kernel_v2",
+  "name": "微内核 v2 示例",
+  "version": "1.1.0",
+  "apiVersion": "2",
+  "description": "activate(ctx) + 领域事件 + 签名回调 + cache 演示",
+  "copyright": "hanye",
+  "available": true,
+  "requires": { "kernel": ">=2.1.0" },
+  "dbSchemaVersion": 1,
+  "capabilities": [
+    "log",
+    "config.vars",
+    "hooks",
+    "http.route",
+    "http.callback",
+    "http.fetch",
+    "devices.read",
+    "templates",
+    "settings.read",
+    "cache",
+    "alert.dispatch"
+  ],
+  "hooks": ["filter:devices.list", "filter:ui.nav"],
+  "templates": { "provides": ["kernel.v2.banner"] },
+  "vars": [
+    { "key": "banner", "title": "横幅文案", "type": "text", "value": "Kernel v2 已激活" },
+    { "key": "callback_secret", "title": "回调 HMAC 密钥（空则不校验）", "type": "text", "value": "" }
+  ],
+  "mainFile": "main.js",
+  "clientJs": ["client.js"],
+  "themeCss": "theme.css"
+}

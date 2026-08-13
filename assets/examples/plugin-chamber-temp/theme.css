@@ -1,0 +1,88 @@
+/* chamber_temp — card pills / badges (injected via device.card.* slots) */
+
+.chamber-temp-pill {
+  /* inherits .temp-pill from app */
+}
+
+.chamber-temp-pill .chamber-temp-label {
+  opacity: 0.75;
+}
+
+.chamber-temp-pill.is-warn strong {
+  color: #f87171;
+}
+
+.chamber-temp-pill.is-na {
+  opacity: 0.55;
+}
+
+.chamber-temp-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  background: rgba(14, 165, 233, 0.2);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  color: #7dd3fc;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.chamber-temp-badge.is-warn {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: rgba(248, 113, 113, 0.65);
+  color: #fecaca;
+}
+
+.chamber-temp-badge.is-na {
+  opacity: 0.5;
+  color: inherit;
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.chamber-temp-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 10px;
+  background: rgba(14, 165, 233, 0.08);
+}
+
+.chamber-temp-panel-title {
+  width: 100%;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.chamber-temp-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 12px;
+}
+
+.chamber-temp-chip strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.chamber-temp-chip.is-warn {
+  border-color: rgba(248, 113, 113, 0.7);
+  background: rgba(239, 68, 68, 0.18);
+  color: #fecaca;
+}
+
+.chamber-temp-chip.is-na {
+  opacity: 0.55;
+}

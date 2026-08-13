@@ -1,0 +1,70 @@
+{
+  "identifier": "sample_topnav",
+  "name": "示例·顶栏工单台",
+  "version": "1.1.0",
+  "description": "Discuz 式 .htm 模板 + topnav 顶栏导航 + list 设备行 + split 登录分栏。templates/ 自动发现，支持 extends/block/include。",
+  "copyright": "hanye",
+  "author": "hanye",
+  "builtin": false,
+  "layout": "topnav",
+  "deviceView": "list",
+  "loginLayout": "split",
+  "layoutJs": ["layout.js"],
+  "defaultStyle": "day",
+  "cssFiles": ["style.css"],
+  "loginCssFiles": ["login.css"],
+  "styles": [
+    {
+      "id": "day",
+      "name": "昼间",
+      "desc": "浅底 + 海军顶栏 + 橙色强调",
+      "swatch": ["#f3f0e8", "#0b1f3a", "#e85d04"],
+      "antd": {
+        "colorPrimary": "#0b1f3a",
+        "colorBgBase": "#f3f0e8",
+        "algorithm": "default",
+        "borderRadius": 0
+      },
+      "css": {
+        "--app-color-scheme": "light",
+        "--app-text": "#0b1f3a",
+        "--app-header-bg": "#0b1f3a",
+        "--app-header-border": "#e85d04",
+        "--app-header-title": "#f3f0e8",
+        "--app-shell-bg": "#e8e4d9",
+        "--app-sidebar-bg": "#0b1f3a",
+        "--app-footer-bg": "#0b1f3a",
+        "--app-card-bg": "#faf8f2",
+        "--app-control-color": "rgba(243, 240, 232, 0.75)",
+        "--sample-ink": "#0b1f3a",
+        "--sample-signal": "#e85d04"
+      }
+    },
+    {
+      "id": "night",
+      "name": "夜间",
+      "desc": "深底 + 琥珀强调",
+      "swatch": ["#07111f", "#132a45", "#ff9f1c"],
+      "antd": {
+        "colorPrimary": "#ff9f1c",
+        "colorBgBase": "#07111f",
+        "algorithm": "dark",
+        "borderRadius": 0
+      },
+      "css": {
+        "--app-color-scheme": "dark",
+        "--app-text": "#e8eef6",
+        "--app-header-bg": "#040a12",
+        "--app-header-border": "#ff9f1c",
+        "--app-header-title": "#ff9f1c",
+        "--app-shell-bg": "#07111f",
+        "--app-sidebar-bg": "#040a12",
+        "--app-footer-bg": "#040a12",
+        "--app-card-bg": "#0d1826",
+        "--app-control-color": "rgba(232, 238, 246, 0.7)",
+        "--sample-ink": "#e8eef6",
+        "--sample-signal": "#ff9f1c"
+      }
+    }
+  ]
+}

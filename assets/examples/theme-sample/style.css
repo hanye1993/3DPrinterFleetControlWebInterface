@@ -1,0 +1,49 @@
+/* sample_topnav — global skin for topnav + list device view */
+
+[data-theme-pack='sample_topnav'] .app-shell-layout-topnav {
+  --sample-line: color-mix(in srgb, var(--sample-signal, #e85d04) 35%, transparent);
+}
+
+[data-theme-pack='sample_topnav'] .app-header.ant-layout-header {
+  border-bottom-width: 3px !important;
+}
+
+[data-theme-pack='sample_topnav'] .app-header-title {
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+
+[data-theme-pack='sample_topnav'] .app-topnav .ant-menu-item-selected {
+  color: var(--sample-signal, #e85d04) !important;
+}
+
+[data-theme-pack='sample_topnav'] .app-topnav .ant-menu-item-selected::after {
+  border-bottom-color: var(--sample-signal, #e85d04) !important;
+}
+
+[data-theme-pack='sample_topnav'] .device-view-list .device-card,
+[data-theme-pack='sample_topnav'] .device-view-table .device-card {
+  border-radius: 0 !important;
+  border: 1px solid color-mix(in srgb, var(--sample-ink, #0b1f3a) 18%, transparent);
+}
+
+[data-theme-pack='sample_topnav'] .device-view-list .device-card:hover {
+  border-color: var(--sample-signal, #e85d04);
+}
+
+[data-theme-pack='sample_topnav'] .ant-btn-primary {
+  border-radius: 0 !important;
+}
+
+[data-theme-pack='sample_topnav'] .sample-theme-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  margin: 0 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--sample-signal, #e85d04);
+  border-left: 3px solid var(--sample-signal, #e85d04);
+}

@@ -1,0 +1,77 @@
+{
+  "identifier": "fullsite_board",
+  "name": "整站看板",
+  "version": "1.0.0",
+  "description": "siteMode=full：主题 .htm 提供整站 HTML 骨架，React 仅挂载到 data-hanye-mount 交互岛。示范「主题即整站」。",
+  "copyright": "hanye",
+  "author": "hanye",
+  "builtin": true,
+  "siteMode": "full",
+  "layout": "classic",
+  "deviceView": "grid",
+  "loginLayout": "classic",
+  "layoutJs": ["layout.js"],
+  "defaultStyle": "dockyard",
+  "cssFiles": ["style.css"],
+  "loginCssFiles": ["login.css"],
+  "styles": [
+    {
+      "id": "dockyard",
+      "name": "船坞钢",
+      "desc": "石墨底 + 锈铜强调，整站骨架由 .htm 控制",
+      "swatch": ["#12151a", "#2a313c", "#c47a3a"],
+      "antd": {
+        "colorPrimary": "#c47a3a",
+        "colorBgBase": "#161a20",
+        "algorithm": "dark",
+        "borderRadius": 4
+      },
+      "css": {
+        "--app-color-scheme": "dark",
+        "--app-text": "#e6e9ee",
+        "--app-header-bg": "#1a1f27",
+        "--app-header-border": "rgba(196, 122, 58, 0.35)",
+        "--app-header-title": "#f3e6d8",
+        "--app-shell-bg": "#12151a",
+        "--app-sidebar-bg": "#0e1116",
+        "--app-footer-bg": "#1a1f27",
+        "--app-card-bg": "rgba(28, 33, 42, 0.92)",
+        "--app-control-color": "rgba(230, 233, 238, 0.72)",
+        "--fs-ink": "#0e1116",
+        "--fs-panel": "#1a1f27",
+        "--fs-line": "rgba(196, 122, 58, 0.4)",
+        "--fs-accent": "#c47a3a",
+        "--fs-muted": "rgba(230, 233, 238, 0.55)"
+      }
+    },
+    {
+      "id": "drydock",
+      "name": "干船坞",
+      "desc": "浅灰甲板 + 锈铜描边（日间整站）",
+      "swatch": ["#e8eaee", "#c5cad3", "#a85a22"],
+      "antd": {
+        "colorPrimary": "#a85a22",
+        "colorBgBase": "#eef0f3",
+        "algorithm": "default",
+        "borderRadius": 4
+      },
+      "css": {
+        "--app-color-scheme": "light",
+        "--app-text": "#1c2128",
+        "--app-header-bg": "#f4f5f7",
+        "--app-header-border": "rgba(168, 90, 34, 0.35)",
+        "--app-header-title": "#1c2128",
+        "--app-shell-bg": "#e8eaee",
+        "--app-sidebar-bg": "#2a313c",
+        "--app-footer-bg": "#f4f5f7",
+        "--app-card-bg": "#ffffff",
+        "--app-control-color": "rgba(28, 33, 40, 0.65)",
+        "--fs-ink": "#2a313c",
+        "--fs-panel": "#f4f5f7",
+        "--fs-line": "rgba(168, 90, 34, 0.45)",
+        "--fs-accent": "#a85a22",
+        "--fs-muted": "rgba(28, 33, 40, 0.5)"
+      }
+    }
+  ]
+}

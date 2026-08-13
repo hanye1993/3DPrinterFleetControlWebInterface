@@ -1,0 +1,78 @@
+# 在 docker/ 目录执行：docker compose up -d --build
+# 或直接运行 ./install.sh
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: hanye-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-hanye_root_change_me}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-hanye_printer}
+      MYSQL_USER: ${MYSQL_USER:-hanye}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-hanye_pass_change_me}
+    volumes:
+      - hanye_mysql_data:/var/lib/mysql
+      - ../ops/sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "127.0.0.1",
+          "-uroot",
+          "-p${MYSQL_ROOT_PASSWORD:-hanye_root_change_me}"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_general_ci
+      - --default-authentication-plugin=mysql_native_password
+
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: hanye-printer-monitor:latest
+    container_name: hanye-app
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "${PORT:-17890}:17890"
+    environment:
+      USE_MYSQL: "1"
+      PORT: "17890"
+      DATA_ROOT: /app/data
+      MYSQL_HOST: mysql
+      MYSQL_PORT: "3306"
+      MYSQL_USER: ${MYSQL_USER:-hanye}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-hanye_pass_change_me}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-hanye_printer}
+      SECRETS_MASTER_KEY: ${SECRETS_MASTER_KEY:-change-me-to-a-long-random-string}
+      AUTO_IMPORT: ${AUTO_IMPORT:-1}
+      IMPORT_FORCE: ${IMPORT_FORCE:-0}
+      WAIT_MYSQL_SECONDS: ${WAIT_MYSQL_SECONDS:-120}
+      LAN_SCAN_SUBNETS: ${LAN_SCAN_SUBNETS:-}
+    volumes:
+      - ../data:/app/data
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "curl",
+          "-fsS",
+          "http://127.0.0.1:17890/api/health"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+volumes:
+  hanye_mysql_data:
