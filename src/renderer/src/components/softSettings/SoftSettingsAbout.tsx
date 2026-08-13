@@ -3,7 +3,7 @@ import { InfoCircleOutlined } from '@ant-design/icons'
 import { openExternal } from '../../utils/openExternal'
 import { PluginSlot } from '../../plugins/PluginSlot'
 
-const APP_VERSION = '0.3.0'
+const APP_VERSION = '1.0.0'
 
 export function SoftSettingsAbout() {
   return (

@@ -919,7 +919,7 @@ export class ApiServer {
     if (path === '/api/health') {
       sendJson(res, 200, {
         ok: true,
-        version: this.deps.version || '0.3.0',
+        version: this.deps.version || '1.0.0',
         mode: settings.apiMode,
         time: new Date().toISOString(),
         web: webClientAvailable()

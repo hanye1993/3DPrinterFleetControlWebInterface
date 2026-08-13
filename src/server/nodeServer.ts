@@ -312,7 +312,7 @@ async function bootstrap(): Promise<void> {
     },
     getUserStore: () => userStore,
     touchPresence: (user) => presenceStore.touch(user),
-    version: process.env.APP_VERSION || '0.3.0-node'
+    version: process.env.APP_VERSION || '1.0.0-node'
   })
   pluginManager.init()
   setPluginDbHooks({
@@ -551,7 +551,7 @@ async function bootstrap(): Promise<void> {
     getPluginManager: () => pluginManager,
     getThemeManager: () => themeManager,
     getNavConfigStore: () => navConfigStore,
-    version: process.env.APP_VERSION || '0.3.0-node'
+    version: process.env.APP_VERSION || '1.0.0-node'
   })
 
   const listWallForAi = async () => {

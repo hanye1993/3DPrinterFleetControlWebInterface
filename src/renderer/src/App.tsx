@@ -881,7 +881,7 @@ export default function App() {
                                 : isAiModels
                                   ? 'AI 建模网'
                                   : '软件设置'}
-                {' · v0.3.0'}
+                {' · v1.0.0'}
               </span>
               <span>
                 {siteFooter?.trim()
