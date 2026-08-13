@@ -1,5 +1,5 @@
 /**
- * chamber_temp — server hooks
+ * chamber_temp — server API only (no nav modules).
  */
 module.exports = {
   async register(api) {
@@ -33,7 +33,7 @@ module.exports = {
         vars: {
           show_badge: api.getVar('show_badge', '1')
         },
-        pollSec: Math.max(1, Math.min(60, Number(api.getVar('poll_sec', '3')) || 3)),
+        pollSec: Math.max(2, Math.min(60, Number(api.getVar('poll_sec', '5')) || 5)),
         rows,
         at: new Date().toISOString()
       }

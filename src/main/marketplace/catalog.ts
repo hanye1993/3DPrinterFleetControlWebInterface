@@ -46,15 +46,48 @@ export type MarketPackageView = MarketPackage & {
 
 const CACHE_MS = 10 * 60 * 1000
 let cache: { at: number; catalog: MarketCatalog } | null = null
+/** Latest market-repo commit from git ls-remote; pins jsDelivr (avoids stale @main). */
+let marketSha: { at: number; sha: string } | null = null
 
-function catalogUrls(): string[] {
+async function resolveMarketSha(force = false): Promise<string | null> {
+  if (!force && marketSha && Date.now() - marketSha.at < CACHE_MS) return marketSha.sha
+  try {
+    const { execFile } = await import('child_process')
+    const { promisify } = await import('util')
+    const execFileAsync = promisify(execFile)
+    const { stdout } = await execFileAsync(
+      'git',
+      ['ls-remote', `${MARKET_REPO_URL}.git`, `refs/heads/${MARKET_BRANCH}`],
+      { timeout: 15_000, env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } }
+    )
+    const sha = String(stdout || '')
+      .trim()
+      .split(/\s+/)[0]
+    if (sha && /^[0-9a-f]{7,40}$/i.test(sha)) {
+      marketSha = { at: Date.now(), sha }
+      return sha
+    }
+  } catch {
+    /* ignore — fall back to branch / GitHub raw */
+  }
+  return marketSha?.sha || null
+}
+
+async function catalogUrls(force = false): Promise<string[]> {
   const file = 'catalog.json'
-  return [
-    `https://cdn.jsdelivr.net/gh/${MARKET_OWNER}/${MARKET_REPO}@${MARKET_BRANCH}/${file}`,
-    `https://github.com/${MARKET_OWNER}/${MARKET_REPO}/raw/${MARKET_BRANCH}/${file}`,
-    `https://raw.githubusercontent.com/${MARKET_OWNER}/${MARKET_REPO}/${MARKET_BRANCH}/${file}`,
-    `https://cdn.jsdelivr.net/gh/${MARKET_OWNER}/${MARKET_REPO}@${MARKET_BRANCH}/${file}?t=${Date.now()}`
-  ]
+  const bust = `t=${Date.now()}`
+  const sha = await resolveMarketSha(force)
+  const urls: string[] = []
+  // Commit-pinned jsDelivr is fresh even when @main CDN lag / GitHub DNS fails.
+  if (sha) {
+    urls.push(`https://cdn.jsdelivr.net/gh/${MARKET_OWNER}/${MARKET_REPO}@${sha}/${file}`)
+  }
+  urls.push(
+    `https://github.com/${MARKET_OWNER}/${MARKET_REPO}/raw/${MARKET_BRANCH}/${file}?${bust}`,
+    `https://raw.githubusercontent.com/${MARKET_OWNER}/${MARKET_REPO}/${MARKET_BRANCH}/${file}?${bust}`,
+    `https://cdn.jsdelivr.net/gh/${MARKET_OWNER}/${MARKET_REPO}@${MARKET_BRANCH}/${file}?${bust}`
+  )
+  return urls
 }
 
 export function packageDownloadUrls(relPath: string): string[] {
@@ -67,11 +100,18 @@ export function packageDownloadUrls(relPath: string): string[] {
     .split('/')
     .map((seg) => encodeURIComponent(seg))
     .join('/')
-  return [
-    `https://cdn.jsdelivr.net/gh/${MARKET_OWNER}/${MARKET_REPO}@${MARKET_BRANCH}/${enc}`,
-    `https://github.com/${MARKET_OWNER}/${MARKET_REPO}/raw/${MARKET_BRANCH}/${enc}`,
-    `https://raw.githubusercontent.com/${MARKET_OWNER}/${MARKET_REPO}/${MARKET_BRANCH}/${enc}`
-  ]
+  const bust = `t=${Date.now()}`
+  const sha = marketSha?.sha
+  const urls: string[] = []
+  if (sha) {
+    urls.push(`https://cdn.jsdelivr.net/gh/${MARKET_OWNER}/${MARKET_REPO}@${sha}/${enc}`)
+  }
+  urls.push(
+    `https://github.com/${MARKET_OWNER}/${MARKET_REPO}/raw/${MARKET_BRANCH}/${enc}?${bust}`,
+    `https://raw.githubusercontent.com/${MARKET_OWNER}/${MARKET_REPO}/${MARKET_BRANCH}/${enc}?${bust}`,
+    `https://cdn.jsdelivr.net/gh/${MARKET_OWNER}/${MARKET_REPO}@${MARKET_BRANCH}/${enc}?${bust}`
+  )
+  return urls
 }
 
 async function fetchText(url: string, timeoutMs = 12_000): Promise<{ ok: true; text: string } | { ok: false; message: string }> {
@@ -180,8 +220,9 @@ export async function loadMarketCatalog(force = false): Promise<{
       message: 'ok'
     }
   }
+  if (force) cache = null
   const notes: string[] = []
-  for (const url of catalogUrls()) {
+  for (const url of await catalogUrls(force)) {
     const r = await fetchText(url)
     if (!r.ok) {
       notes.push(r.message)

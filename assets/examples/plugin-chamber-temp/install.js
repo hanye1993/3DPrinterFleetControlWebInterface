@@ -1,4 +1,6 @@
+/**
+ * chamber_temp install — card overlay only, no nav modules.
+ */
 module.exports = async function install(api) {
-  api.writeJson('installed.json', { at: new Date().toISOString() })
-  api.log('chamber_temp installed')
+  api.log('[chamber_temp] installed (card-only, no nav)')
 }

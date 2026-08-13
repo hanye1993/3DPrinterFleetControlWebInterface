@@ -1,26 +1,13 @@
 {
   "identifier": "chamber_temp",
   "name": "仓内温度显示",
-  "version": "1.0.0",
-  "description": "在设备列表卡片与专用页显示各机仓内温度，支持高温阈值高亮。",
+  "version": "1.3.0",
+  "description": "在设备列表卡片显示仓内温度与高温高亮；不占用侧栏导航。设置见「软件设置 → 插件 → 变量」。",
   "copyright": "hanye",
   "available": true,
-  "hooks": ["register", "common"],
-  "modules": [
-    {
-      "name": "page",
-      "menu": "仓内温度",
-      "type": "page",
-      "displayOrder": 25
-    },
-    {
-      "name": "admin",
-      "menu": "仓温插件设置",
-      "type": "admin",
-      "displayOrder": 0,
-      "adminOnly": true
-    }
-  ],
+  "apiVersion": "2",
+  "hooks": ["register"],
+  "modules": [],
   "vars": [
     {
       "key": "show_on_cards",
@@ -48,9 +35,9 @@
     },
     {
       "key": "poll_sec",
-      "title": "刷新间隔（秒）",
+      "title": "总览条刷新间隔（秒）",
       "type": "number",
-      "value": "3"
+      "value": "5"
     }
   ],
   "clientJs": ["client.js"],

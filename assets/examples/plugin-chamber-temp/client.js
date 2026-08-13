@@ -1,6 +1,6 @@
 /**
- * chamber_temp — inject chamber temp into each device card via PluginSlot context.
- * Uses device.card.temps / device.card.after-name (framework card hooks).
+ * chamber_temp — card-only UI (no side-nav pages).
+ * Slots: device.card.temps / device.card.after-name / device.grid.before
  */
 ;(function () {
   var P = window.HanyePlugin
@@ -11,9 +11,9 @@
   var showOnCards = true
   var showBadge = true
   var showPanel = false
+  var pollSec = 5
   var panelHost = null
   var timer = null
-  var lastRows = null
 
   function authHeaders() {
     var token = localStorage.getItem(TOKEN_KEY) || ''
@@ -33,10 +33,12 @@
         if (payload.warnCelsius != null) warnC = Number(payload.warnCelsius) || 45
         if (typeof payload.showOnCards === 'boolean') showOnCards = payload.showOnCards
         if (typeof payload.showPanel === 'boolean') showPanel = payload.showPanel
+        if (payload.pollSec != null) {
+          pollSec = Math.max(2, Math.min(60, Number(payload.pollSec) || 5))
+        }
         if (payload.vars && payload.vars.show_badge != null) {
           showBadge = payload.vars.show_badge === '1' || payload.vars.show_badge === true
         }
-        lastRows = payload.rows || null
         return payload
       })
       .catch(function () {
@@ -73,7 +75,6 @@
     return '<span class="' + cls + '" title="仓内温度">' + val + '</span>'
   }
 
-  /** Primary: temperature row on each card */
   P.registerSlot(
     'device.card.temps',
     function (el, ctx) {
@@ -87,7 +88,6 @@
     { order: 0, plugin: 'chamber_temp' }
   )
 
-  /** Also next to device name */
   P.registerSlot(
     'device.card.after-name',
     function (el, ctx) {
@@ -142,12 +142,13 @@
       function tick() {
         loadConfig().then(function (payload) {
           if (payload) renderPanel(panelHost, payload.rows)
-          // slot:change not needed — React context updates cards live
+          P.emit('slot:change', { name: 'device.card.temps' })
+          P.emit('slot:change', { name: 'device.card.after-name' })
         })
       }
       tick()
       if (timer) clearInterval(timer)
-      timer = setInterval(tick, 5000)
+      timer = setInterval(tick, Math.max(2000, pollSec * 1000))
       return function () {
         if (timer) clearInterval(timer)
         timer = null
@@ -161,6 +162,4 @@
     P.emit('slot:change', { name: 'device.card.temps' })
     P.emit('slot:change', { name: 'device.card.after-name' })
   })
-
-  P.emit('chamber_temp:ready', { ok: true })
 })()
