@@ -1,6 +1,6 @@
 {
   "name": "printer-monitor",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "hanye 3D printer monitor — web only",
   "author": "printer-monitor",
   "license": "MIT",
@@ -18,7 +18,8 @@
     "docker:down": "docker compose -f docker/docker-compose.yml --project-directory docker down",
     "docker:logs": "docker compose -f docker/docker-compose.yml --project-directory docker logs -f app",
     "docker:import": "docker compose -f docker/docker-compose.yml --project-directory docker exec -e IMPORT_FORCE=1 -e AUTO_IMPORT=1 app sh -c \"rm -f /app/data/.mysql-imported; node /app/ops/scripts/import-mysql.mjs; touch /app/data/.mysql-imported\"",
-    "typecheck": "tsc --noEmit -p config/tsconfig.web.json && tsc --noEmit -p config/tsconfig.node.json && tsc --noEmit -p config/tsconfig.server.json"
+    "typecheck": "tsc --noEmit -p config/tsconfig.web.json && tsc --noEmit -p config/tsconfig.node.json && tsc --noEmit -p config/tsconfig.server.json",
+    "test:smoke": "node --test ops/scripts/permissions.smoke.test.mjs"
   },
   "dependencies": {
     "@ant-design/icons": "^5.6.1",

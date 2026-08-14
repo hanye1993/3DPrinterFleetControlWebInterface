@@ -146,6 +146,7 @@ export class UserStore {
       deviceAcl: {},
       ssoProvider: 'none',
       ssoExternalId: '',
+      mustChangePassword: true,
       passwordHash: hash,
       passwordSalt: salt,
       createdAt: now,
@@ -322,6 +323,7 @@ export class UserStore {
       groupIds: string[]
       deviceAcl: DeviceAcl
       password: string
+      mustChangePassword: boolean
       ssoProvider: SsoProviderId | 'none'
       ssoExternalId: string
       pluginData: Record<string, unknown>
@@ -360,6 +362,9 @@ export class UserStore {
       else delete u.groupIds
     }
     if (patch.deviceAcl && typeof patch.deviceAcl === 'object') u.deviceAcl = patch.deviceAcl
+    if (typeof (patch as { mustChangePassword?: boolean }).mustChangePassword === 'boolean') {
+      u.mustChangePassword = (patch as { mustChangePassword: boolean }).mustChangePassword
+    }
     if (patch.ssoProvider !== undefined || patch.ssoExternalId !== undefined) {
       const bind = normalizeUserSsoBinding({
         ssoProvider: patch.ssoProvider !== undefined ? patch.ssoProvider : u.ssoProvider,
@@ -375,9 +380,11 @@ export class UserStore {
     }
     if (typeof patch.password === 'string' && patch.password.length > 0) {
       if (patch.password.length < 4) throw new Error('密码至少 4 位')
+      if (patch.password === 'admin123') throw new Error('请勿使用默认密码 admin123')
       const { hash, salt } = hashPassword(patch.password)
       u.passwordHash = hash
       u.passwordSalt = salt
+      u.mustChangePassword = false
     }
     applyPluginExtras(u, patch)
     u.updatedAt = new Date().toISOString()

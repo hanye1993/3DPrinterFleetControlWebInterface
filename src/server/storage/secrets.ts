@@ -3,7 +3,19 @@ import type { RowDataPacket } from 'mysql2/promise'
 import { getPool } from '../db/pool'
 
 function masterKey(): Buffer {
-  const raw = process.env.SECRETS_MASTER_KEY || process.env.JWT_SECRET || 'change-me-in-production'
+  const raw = process.env.SECRETS_MASTER_KEY || process.env.JWT_SECRET || ''
+  if (!raw || raw === 'change-me-in-production') {
+    if (!(globalThis as { __hanyeSecretsKeyWarned?: boolean }).__hanyeSecretsKeyWarned) {
+      ;(globalThis as { __hanyeSecretsKeyWarned?: boolean }).__hanyeSecretsKeyWarned = true
+      console.warn(
+        '[secrets] 未设置 SECRETS_MASTER_KEY / JWT_SECRET，使用临时随机密钥（重启后已存密文可能无法解密）。生产环境请配置强密钥。'
+      )
+    }
+    // Ephemeral key per process when unset — avoids a shared public default.
+    const g = globalThis as { __hanyeSecretsEphemeralKey?: Buffer }
+    if (!g.__hanyeSecretsEphemeralKey) g.__hanyeSecretsEphemeralKey = randomBytes(32)
+    return g.__hanyeSecretsEphemeralKey
+  }
   return createHash('sha256').update(raw).digest()
 }
 

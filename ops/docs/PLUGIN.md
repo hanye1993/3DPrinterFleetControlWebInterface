@@ -264,9 +264,9 @@ module.exports = class {
 
 示例：`assets/examples/plugin-capability-kit/`。
 
-### 4.2.0a 设备控制全量原语（宿主 ≥ 1.3.5）
+### 4.2.0a 设备控制全量原语（宿主 ≥ 1.4.0）
 
-主体详情页已提供 jog / 仓温 / 挤出回抽 / 流量 / Z 偏移 / 重启 / 任意 G-code（按权限与 caps 显示）。插件仍可用同一套 `controlDevice` / HTTP。
+主体详情页已按**权限 + capabilities**提供 jog / 仓温 / 挤出回抽 / 流量 / Z 偏移 / 重启 / 任意 G-code。插件仍可用同一套 `controlDevice` / HTTP。
 
 #### 统一 `controlDevice` / `POST /api/v1/devices/:id/control`
 

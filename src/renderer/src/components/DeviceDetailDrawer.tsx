@@ -47,6 +47,7 @@ import {
 import {
   isClientMode,
   serverDownloadDeviceFile,
+  serverGet,
   serverListDeviceCameras,
   serverListDeviceFiles,
   serverSend,
@@ -137,6 +138,7 @@ export function DeviceDetailDrawer({
   const [loadingFiles, setLoadingFiles] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [temp, setTemp] = useState(200)
+  const [chamberTemp, setChamberTemp] = useState(45)
   const [fanPct, setFanPct] = useState(100)
   const [chamberFanPct, setChamberFanPct] = useState(0)
   const [speedPct, setSpeedPct] = useState(100)
@@ -145,6 +147,12 @@ export function DeviceDetailDrawer({
   const [zOffsetMm, setZOffsetMm] = useState(0.05)
   const [gcodeScript, setGcodeScript] = useState('')
   const [gcodeBusy, setGcodeBusy] = useState(false)
+  const [caps, setCaps] = useState<{
+    control: Record<string, boolean>
+    gcode?: boolean
+    files?: boolean
+    resin?: boolean
+  } | null>(null)
   const [filamentSlot, setFilamentSlot] = useState(0)
   const [busy, setBusy] = useState(false)
   const [fileBusy, setFileBusy] = useState<string | null>(null)
@@ -233,6 +241,45 @@ export function DeviceDetailDrawer({
     } finally {
       setCameraLoading(false)
     }
+  }
+
+  useEffect(() => {
+    if (!open || !deviceId) {
+      setCaps(null)
+      return
+    }
+    let cancelled = false
+    void serverGet<{
+      ok?: boolean
+      capabilities?: { control?: Record<string, boolean>; gcode?: boolean; files?: boolean; resin?: boolean }
+    }>(`/api/v1/devices/${encodeURIComponent(deviceId)}/capabilities`)
+      .then((r) => {
+        if (cancelled) return
+        const c = r?.capabilities
+        setCaps(
+          c
+            ? {
+                control: { ...(c.control || {}) },
+                gcode: Boolean(c.gcode),
+                files: Boolean(c.files),
+                resin: Boolean(c.resin)
+              }
+            : null
+        )
+      })
+      .catch(() => {
+        if (!cancelled) setCaps(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [open, deviceId])
+
+  /** Permission + capability gate for control actions */
+  const allowCtrl = (ctrlKey: string, perm: Parameters<typeof canDevice>[1]) => {
+    if (!deviceId || !canDevice(deviceId, perm)) return false
+    if (!caps) return false
+    return Boolean(caps.control[ctrlKey])
   }
 
   useEffect(() => {
@@ -826,17 +873,17 @@ export function DeviceDetailDrawer({
       <PluginSlot name="device.detail.control.before" context={deviceSlotCtx} />
       <PluginSlot name="device.detail.control" replace context={deviceSlotCtx}>
       <Space wrap style={{ marginBottom: 16 }}>
-        {canDevice(device.id, 'pause') ? (
+        {allowCtrl('pause', 'pause') ? (
           <Popconfirm title="确认暂停打印？" onConfirm={() => void run({ action: 'pause' }, '暂停')}>
             <Button disabled={busy}>暂停</Button>
           </Popconfirm>
         ) : null}
-        {canDevice(device.id, 'resume') ? (
+        {allowCtrl('resume', 'resume') ? (
           <Popconfirm title="确认恢复打印？" onConfirm={() => void run({ action: 'resume' }, '恢复')}>
             <Button disabled={busy}>恢复</Button>
           </Popconfirm>
         ) : null}
-        {canDevice(device.id, 'cancel') ? (
+        {allowCtrl('cancel', 'cancel') ? (
           <Popconfirm
             title="确认取消打印？此操作不可恢复"
             onConfirm={() => void run({ action: 'cancel' }, '取消')}
@@ -846,7 +893,7 @@ export function DeviceDetailDrawer({
             </Button>
           </Popconfirm>
         ) : null}
-        {!isResin && canDevice(device.id, 'emergency_stop') ? (
+        {allowCtrl('emergency_stop', 'emergency_stop') ? (
           <Button
             danger
             type="primary"
@@ -863,7 +910,7 @@ export function DeviceDetailDrawer({
             紧急停止
           </Button>
         ) : null}
-        {!isResin && canDevice(device.id, 'home') ? (
+        {allowCtrl('home', 'home') ? (
           <Popconfirm title="确认归零？" onConfirm={() => void run({ action: 'home' }, '归零')}>
             <Button disabled={busy}>归零</Button>
           </Popconfirm>
@@ -872,7 +919,7 @@ export function DeviceDetailDrawer({
       </PluginSlot>
       <PluginSlot name="device.detail.control.after" context={deviceSlotCtx} />
 
-      {!isResin && canDevice(device.id, 'jog') ? (
+      {allowCtrl('jog', 'jog') ? (
         <div style={{ marginBottom: 16 }}>
           <Typography.Title level={5}>轴点动</Typography.Title>
           <Space direction="vertical" size={8} style={{ width: '100%' }}>
@@ -900,7 +947,7 @@ export function DeviceDetailDrawer({
         </div>
       ) : null}
 
-      {!isResin && canDevice(device.id, 'set_temp') ? (
+      {allowCtrl('set_temp', 'set_temp') ? (
         <>
           <Space wrap style={{ marginBottom: 12 }}>
             <InputNumber value={temp} onChange={(v) => setTemp(Number(v || 0))} addonAfter="°C" />
@@ -923,33 +970,40 @@ export function DeviceDetailDrawer({
             >
               热床温度
             </Button>
-            {canDevice(device.id, 'set_chamber_temp') ? (
+          </Space>
+          {allowCtrl('set_chamber_temp', 'set_chamber_temp') ? (
+            <Space wrap style={{ marginBottom: 12 }}>
+              <InputNumber
+                value={chamberTemp}
+                onChange={(v) => setChamberTemp(Number(v || 0))}
+                addonAfter="仓温°C"
+              />
               <Button
                 disabled={busy}
                 onClick={() =>
                   void run(
-                    { action: 'set_chamber_temp', temperature: temp },
+                    { action: 'set_chamber_temp', temperature: chamberTemp },
                     '设置仓内温度'
                   )
                 }
               >
                 仓内温度
               </Button>
-            ) : null}
-          </Space>
+            </Space>
+          ) : null}
           <PluginSlot name="device.detail.temps.after" context={deviceSlotCtx} />
         </>
-      ) : !isResin ? null : (
+      ) : isResin && !allowCtrl('set_fan', 'set_fan') && !allowCtrl('set_speed', 'set_speed') ? (
         <Alert
           type="info"
           showIcon
           style={{ marginBottom: 12 }}
           message="光固化控制"
-          description="本机不提供挤出机/热床/风扇等 FDM 参数；切片上传与曝光参数后续接入。"
+          description="本机深控以机型能力为准；切片上传与曝光参数视品牌支持情况接入。"
         />
-      )}
+      ) : null}
 
-      {!isResin && (canDevice(device.id, 'extrude') || canDevice(device.id, 'retract')) ? (
+      {(allowCtrl('extrude', 'extrude') || allowCtrl('retract', 'retract')) ? (
         <div style={{ marginBottom: 16 }}>
           <Typography.Title level={5}>挤出 / 回抽</Typography.Title>
           <Space wrap>
@@ -961,7 +1015,7 @@ export function DeviceDetailDrawer({
               onChange={(v) => setExtrudeMm(Number(v || 5))}
               addonAfter="mm"
             />
-            {canDevice(device.id, 'extrude') ? (
+            {allowCtrl('extrude', 'extrude') ? (
               <Popconfirm
                 title="确认挤出？"
                 description="请确认喷嘴已加热到耗材温度"
@@ -972,7 +1026,7 @@ export function DeviceDetailDrawer({
                 <Button disabled={busy}>挤出</Button>
               </Popconfirm>
             ) : null}
-            {canDevice(device.id, 'retract') ? (
+            {allowCtrl('retract', 'retract') ? (
               <Popconfirm
                 title="确认回抽？"
                 onConfirm={() =>
@@ -986,7 +1040,8 @@ export function DeviceDetailDrawer({
         </div>
       ) : null}
 
-      {!isResin && (canDevice(device.id, 'filament_load') || canDevice(device.id, 'filament_unload')) ? (
+      {(allowCtrl('load_filament', 'filament_load') ||
+        allowCtrl('unload_filament', 'filament_unload')) ? (
         <div style={{ marginBottom: 24 }}>
           <PluginSlot name="device.detail.filament.load.before" context={deviceSlotCtx} />
           <Typography.Title level={5}>进料 / 退料</Typography.Title>
@@ -1054,10 +1109,12 @@ export function DeviceDetailDrawer({
         </div>
       ) : null}
 
-      {!isResin ? (
+      {allowCtrl('set_fan', 'set_fan') ||
+      allowCtrl('set_speed', 'set_speed') ||
+      allowCtrl('set_flow', 'set_flow') ? (
         <>
           <Space wrap style={{ marginBottom: 24 }}>
-            {st?.chamberFanSpeed != null ? (
+            {allowCtrl('set_fan', 'set_fan') && st?.chamberFanSpeed != null ? (
               <>
                 <InputNumber
                   min={0}
@@ -1084,35 +1141,43 @@ export function DeviceDetailDrawer({
                 </Button>
               </>
             ) : null}
-            <InputNumber
-              min={0}
-              max={100}
-              value={fanPct}
-              onChange={(v) => setFanPct(Number(v || 0))}
-              addonAfter="风扇%"
-            />
-            <Button
-              disabled={busy}
-              onClick={() =>
-                void run({ action: 'set_fan', fan: 'part', percent: fanPct }, '设置风扇')
-              }
-            >
-              应用风扇
-            </Button>
-            <InputNumber
-              min={1}
-              max={200}
-              value={speedPct}
-              onChange={(v) => setSpeedPct(Number(v || 100))}
-              addonAfter="速度%"
-            />
-            <Button
-              disabled={busy}
-              onClick={() => void run({ action: 'set_speed', percent: speedPct }, '设置速度')}
-            >
-              应用速度
-            </Button>
-            {canDevice(device.id, 'set_flow') ? (
+            {allowCtrl('set_fan', 'set_fan') ? (
+              <>
+                <InputNumber
+                  min={0}
+                  max={100}
+                  value={fanPct}
+                  onChange={(v) => setFanPct(Number(v || 0))}
+                  addonAfter="风扇%"
+                />
+                <Button
+                  disabled={busy}
+                  onClick={() =>
+                    void run({ action: 'set_fan', fan: 'part', percent: fanPct }, '设置风扇')
+                  }
+                >
+                  应用风扇
+                </Button>
+              </>
+            ) : null}
+            {allowCtrl('set_speed', 'set_speed') ? (
+              <>
+                <InputNumber
+                  min={1}
+                  max={200}
+                  value={speedPct}
+                  onChange={(v) => setSpeedPct(Number(v || 100))}
+                  addonAfter="速度%"
+                />
+                <Button
+                  disabled={busy}
+                  onClick={() => void run({ action: 'set_speed', percent: speedPct }, '设置速度')}
+                >
+                  应用速度
+                </Button>
+              </>
+            ) : null}
+            {allowCtrl('set_flow', 'set_flow') ? (
               <>
                 <InputNumber
                   min={1}
@@ -1134,14 +1199,13 @@ export function DeviceDetailDrawer({
         </>
       ) : null}
 
-      {!isResin &&
-      (canDevice(device.id, 'set_z_offset') ||
-        canDevice(device.id, 'restart') ||
-        canDevice(device.id, 'firmware_restart')) ? (
+      {allowCtrl('set_z_offset', 'set_z_offset') ||
+      allowCtrl('restart', 'restart') ||
+      allowCtrl('firmware_restart', 'firmware_restart') ? (
         <div style={{ marginBottom: 24 }}>
           <Typography.Title level={5}>调参 / 重启</Typography.Title>
           <Space wrap>
-            {canDevice(device.id, 'set_z_offset') ? (
+            {allowCtrl('set_z_offset', 'set_z_offset') ? (
               <>
                 <InputNumber
                   min={0.01}
@@ -1175,7 +1239,7 @@ export function DeviceDetailDrawer({
                 </Button>
               </>
             ) : null}
-            {canDevice(device.id, 'restart') ? (
+            {allowCtrl('restart', 'restart') ? (
               <Popconfirm
                 title="确认重启主机（Klipper/Moonraker）？"
                 onConfirm={() => void run({ action: 'restart' }, '重启主机')}
@@ -1183,7 +1247,7 @@ export function DeviceDetailDrawer({
                 <Button disabled={busy}>重启主机</Button>
               </Popconfirm>
             ) : null}
-            {canDevice(device.id, 'firmware_restart') ? (
+            {allowCtrl('firmware_restart', 'firmware_restart') ? (
               <Popconfirm
                 title="确认固件重启？"
                 onConfirm={() => void run({ action: 'firmware_restart' }, '固件重启')}
@@ -1197,7 +1261,7 @@ export function DeviceDetailDrawer({
         </div>
       ) : null}
 
-      {!isResin && canDevice(device.id, 'gcode') ? (
+      {canDevice(device.id, 'gcode') && caps?.gcode ? (
         <div style={{ marginBottom: 24 }}>
           <Typography.Title level={5}>任意 G-code</Typography.Title>
           <Typography.Paragraph type="secondary" style={{ marginBottom: 8 }}>

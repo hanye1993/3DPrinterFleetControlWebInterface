@@ -95,16 +95,8 @@ export function CameraPanel({
           }
           if (data?.message) setErrHint(data.message)
         } else {
-          const res = await window.electronAPI?.camera?.snapshot({ url: remote })
-          if (res?.ok && res.base64) {
-            failRef.current = 0
-            aliveRef.current = true
-            setPhase('live')
-            setErrHint('')
-            setImgSrc(`data:${res.contentType || 'image/jpeg'};base64,${res.base64}`)
-            return
-          }
-          if (res && 'message' in res && res.message) setErrHint(res.message)
+          // 纯网页版：无 Electron 摄像头通道
+          setErrHint('请通过网页服务访问摄像头')
         }
       } catch (e) {
         if (e instanceof Error && e.message) setErrHint(e.message)
@@ -120,11 +112,13 @@ export function CameraPanel({
 
     void pull()
     const intervalMs = cameras.some((c) => (c.snapshotUrl || '').startsWith('bambu-cam://'))
-      ? 2500
-      : 1000
-    timer.current = setInterval(() => {
+      ? 3000
+      : 2500
+    const tick = () => {
+      if (typeof document !== 'undefined' && document.hidden) return
       void pull()
-    }, intervalMs)
+    }
+    timer.current = setInterval(tick, intervalMs)
 
     return () => {
       if (timer.current) {

@@ -96,14 +96,32 @@ type SendJson = (res: ServerResponse, status: number, body: unknown) => void
 type ReadBody = (req: IncomingMessage) => Promise<string>
 
 function requireControl(
-  _settings: { apiMode?: string },
+  settings: { apiMode?: string },
   res: ServerResponse,
   sendJson: SendJson,
   auth?: AuthContext | null
 ): boolean {
+  if (settings.apiMode === 'readonly') {
+    sendJson(res, 403, { ok: false, message: 'API is in readonly mode' })
+    return false
+  }
   // Open API Key removed — only JWT users / local session may mutate
   if (auth?.kind === 'user' || auth?.kind === 'local') return true
   sendJson(res, 403, { ok: false, message: 'Unauthorized' })
+  return false
+}
+
+function requireAdminUser(
+  auth: AuthContext | null | undefined,
+  res: ServerResponse,
+  sendJson: SendJson
+): boolean {
+  if (!auth || auth.kind === 'local') return true
+  if (auth.kind === 'user') {
+    if (auth.user.level === 'admin') return true
+    if (hasPerm(effectivePermissions(auth.user), '*')) return true
+  }
+  sendJson(res, 403, { ok: false, message: '仅管理员可修改系统设置' })
   return false
 }
 
@@ -232,6 +250,7 @@ export async function handleFullApi(opts: {
 
   if (method === 'PATCH' && path === '/api/v1/settings') {
     if (!requireControl(settings, res, sendJson, auth)) return true
+    if (!requireAdminUser(auth, res, sendJson)) return true
     const parsed = await parseJsonBody(req, readBody)
     if (!parsed.ok) {
       sendJson(res, 400, { ok: false, message: parsed.message })
@@ -767,6 +786,13 @@ export async function handleFullApi(opts: {
   const filesList = path.match(/^\/api\/v1\/devices\/([^/]+)\/files$/)
   if (filesList && method === 'GET') {
     const id = decodeURIComponent(filesList[1])
+    if (auth) {
+      const gate = assertDeviceControlAllowed(auth, id, 'files.read')
+      if (!gate.ok) {
+        sendJson(res, gate.status, { ok: false, message: gate.message })
+        return true
+      }
+    }
     let result = await deps.onDeviceOp({ deviceId: id, op: 'listFiles' })
     const pm = deps.getPluginManager?.()
     if (pm) {
@@ -783,6 +809,13 @@ export async function handleFullApi(opts: {
   if (filesList && method === 'POST') {
     if (!requireControl(settings, res, sendJson, auth)) return true
     const id = decodeURIComponent(filesList[1])
+    if (auth) {
+      const gate = assertDeviceControlAllowed(auth, id, 'files.upload')
+      if (!gate.ok) {
+        sendJson(res, gate.status, { ok: false, message: gate.message })
+        return true
+      }
+    }
     const parsed = await parseJsonBody(req, readBody)
     if (!parsed.ok) {
       sendJson(res, 400, { ok: false, message: parsed.message })
@@ -837,6 +870,13 @@ export async function handleFullApi(opts: {
   const fileContent = path.match(/^\/api\/v1\/devices\/([^/]+)\/files\/content$/)
   if (fileContent && method === 'GET') {
     const id = decodeURIComponent(fileContent[1])
+    if (auth) {
+      const gate = assertDeviceControlAllowed(auth, id, 'files.read')
+      if (!gate.ok) {
+        sendJson(res, gate.status, { ok: false, message: gate.message })
+        return true
+      }
+    }
     let remote = safeRemotePath(String(url.searchParams.get('path') || ''))
     if (!remote) {
       sendJson(res, 400, { ok: false, message: 'Query path is required and must be relative' })

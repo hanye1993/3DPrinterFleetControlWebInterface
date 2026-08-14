@@ -448,6 +448,15 @@ export async function handleAuthApi(opts: {
         deps.users.getJwtSecret()
       )
       deps.presence?.touch(user)
+      // 仍使用默认密码时强制改密
+      if (password === 'admin123') {
+        try {
+          deps.users.update(user.id, { mustChangePassword: true } as never)
+          user = deps.users.getById(user.id) || user
+        } catch {
+          user.mustChangePassword = true
+        }
+      }
       let me = await mePayloadWithPlugins(user, deps.getPluginManager)
       if (pmLogin) {
         me = await pmLogin.runHook('login_after', { ...me, token }, {
@@ -471,6 +480,41 @@ export async function handleAuthApi(opts: {
       })
     } catch (e) {
       sendJson(res, 400, { ok: false, message: e instanceof Error ? e.message : '登录失败' })
+    }
+    return true
+  }
+
+  if (method === 'POST' && path === '/api/v1/auth/change-password') {
+    if (auth.kind !== 'user') {
+      sendJson(res, 401, { ok: false, message: '未登录' })
+      return true
+    }
+    try {
+      const body = await parseJson(req, readBody)
+      const currentPassword = String(body.currentPassword || body.oldPassword || '')
+      const newPassword = String(body.newPassword || body.password || '')
+      if (!currentPassword || !newPassword) {
+        sendJson(res, 400, { ok: false, message: '请填写当前密码与新密码' })
+        return true
+      }
+      if (newPassword.length < 6) {
+        sendJson(res, 400, { ok: false, message: '新密码至少 6 位' })
+        return true
+      }
+      if (newPassword === 'admin123') {
+        sendJson(res, 400, { ok: false, message: '请勿使用默认密码 admin123' })
+        return true
+      }
+      const okUser = deps.users.authenticate(auth.user.username, currentPassword)
+      if (!okUser || okUser.id !== auth.user.id) {
+        sendJson(res, 401, { ok: false, message: '当前密码不正确' })
+        return true
+      }
+      const updated = deps.users.update(auth.user.id, { password: newPassword, mustChangePassword: false })
+      const me = await mePayloadWithPlugins(updated, deps.getPluginManager)
+      sendJson(res, 200, { ...me, ok: true })
+    } catch (e) {
+      sendJson(res, 400, { ok: false, message: e instanceof Error ? e.message : '改密失败' })
     }
     return true
   }
@@ -1252,7 +1296,9 @@ export function assertDeviceControlAllowed(
     load_filament: 'filament_load',
     unload_filament: 'filament_unload',
     moonraker: 'moonraker',
-    gcode: 'gcode'
+    gcode: 'gcode',
+    'files.read': 'files.read',
+    'files.upload': 'files.upload'
   }
   const act = map[action]
   if (!act) return { ok: false, status: 400, message: '未知操作' }

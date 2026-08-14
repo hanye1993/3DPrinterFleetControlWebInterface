@@ -173,7 +173,8 @@ export class MysqlUserStore {
           now
         ]
       )
-      console.log('[mysql] Created default admin: admin / admin123')
+      console.log('[mysql] Created default admin: admin / admin123（首次登录须改密）')
+      // Flag in memory after reload — row may not have mustChangePassword column; login detects admin123
     }
     await this.reload()
   }

@@ -56,6 +56,68 @@ export type MonitorApiDeps = {
 
 type JsonSend = (res: ServerResponse, status: number, body: unknown) => void
 
+function normalizeSnapshotUrl(raw: string): string {
+  const s = String(raw || '').trim()
+  if (!s) return ''
+  if (s.startsWith('bambu-cam://') || s.startsWith('server-api:')) return s
+  try {
+    const u = new URL(s.includes('://') ? s : `http://${s}`)
+    u.hash = ''
+    u.username = ''
+    u.password = ''
+    return u.toString().replace(/\/$/, '')
+  } catch {
+    return s
+  }
+}
+
+function isBlockedSnapshotHost(hostname: string): boolean {
+  const h = hostname.toLowerCase()
+  if (!h) return true
+  if (h === 'localhost' || h === 'metadata.google.internal') return true
+  if (h === '169.254.169.254' || h === 'metadata') return true
+  // IPv4 private/link-local still allowed for LAN printers — only block cloud metadata.
+  return false
+}
+
+async function isAllowedSnapshotUrl(deps: MonitorApiDeps, target: string): Promise<boolean> {
+  const want = normalizeSnapshotUrl(target)
+  if (!want) return false
+  try {
+    if (/^https?:\/\//i.test(want)) {
+      const host = new URL(want).hostname
+      if (isBlockedSnapshotHost(host)) return false
+    }
+  } catch {
+    return false
+  }
+  const allowed = new Set<string>()
+  for (const z of readZones(deps.getMonitorZonesPath())) {
+    for (const c of z.cameras || []) {
+      if (c.url) allowed.add(normalizeSnapshotUrl(String(c.url)))
+      if (c.snapshotUrl) allowed.add(normalizeSnapshotUrl(String(c.snapshotUrl)))
+    }
+  }
+  try {
+    const wall = await deps.listWall()
+    for (const d of wall) {
+      for (const c of d.cameras || []) {
+        if (c.streamUrl) allowed.add(normalizeSnapshotUrl(String(c.streamUrl)))
+        if (c.snapshotUrl) allowed.add(normalizeSnapshotUrl(String(c.snapshotUrl)))
+      }
+    }
+  } catch {
+    /* ignore wall errors — zones alone may still allow */
+  }
+  if (allowed.has(want)) return true
+  // Prefix match for server-api paths / query variants
+  for (const a of allowed) {
+    if (!a) continue
+    if (want.startsWith(a) || a.startsWith(want)) return true
+  }
+  return false
+}
+
 /** Client JWT users only see cameras for devices they can view. */
 function canViewDeviceCameras(auth: AuthContext | null | undefined, deviceId: string): boolean {
   if (!auth || auth.kind === 'apiKey' || auth.kind === 'local') return true
@@ -715,6 +777,14 @@ export async function handleMonitorApi(opts: {
     const target = String(body.url || '').trim()
     if (!target) {
       sendJson(res, 400, { ok: false, message: 'url required' })
+      return true
+    }
+    const allowed = await isAllowedSnapshotUrl(deps, target)
+    if (!allowed) {
+      sendJson(res, 403, {
+        ok: false,
+        message: '摄像头地址不在白名单（仅允许已登记设备/区域摄像头）'
+      })
       return true
     }
     const apiKey = typeof body.apiKey === 'string' ? body.apiKey : undefined

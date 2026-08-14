@@ -105,6 +105,8 @@ export type AuthUserPublic = {
   ssoExternalId: string
   /** Free-form plugin payload (dept, employee no, …) */
   pluginData?: Record<string, unknown>
+  /** 须先改密（默认管理员密码等） */
+  mustChangePassword?: boolean
   createdAt: string
   updatedAt: string
 }
@@ -163,7 +165,10 @@ export function defaultPermissions(level: UserLevel): string[] {
         deviceActionPerm('files.upload'),
         deviceActionPerm('camera.view'),
         deviceActionPerm('gcode'),
-        ...FILAMENT_PERMS
+        deviceActionPerm('moonraker'),
+        ...FILAMENT_PERMS,
+        ...PRINT_APPROVE_PERMS,
+        'nav.printApprove'
       ]
     case 'viewer':
       return [
@@ -255,8 +260,12 @@ export function canDeviceAction(
     return hasPerm(perms, 'device.view')
   }
 
-  // Control actions: only from per-device ACL (global device.action.* is UI-hidden)
-  if (!restricted) return false
+  // Control actions
+  if (!restricted) {
+    // No per-device ACL: honor global device.action.* (+ device.view)
+    if (!hasPerm(perms, 'device.view')) return false
+    return hasPerm(perms, deviceActionPerm(action))
+  }
   if (!acl || acl.length === 0) return false
   if (!acl.includes('view') && !acl.includes('*')) return false
   return acl.includes(action) || acl.includes('*')

@@ -96,6 +96,8 @@ interface DeviceState {
   reconnectAll: () => Promise<void>
   /** Client: pull latest devices/statuses from server (no local printer IO) */
   refreshFromServer: (opts?: { silent?: boolean }) => Promise<void>
+  /** Merge status map from SSE without refetching device list */
+  applyStatusesFromServer: (incoming: Record<string, PrinterLiveStatus>) => void
   control: (deviceId: string, payload: ControlPayload) => Promise<void>
   /** pause / resume / cancel on many devices */
   batchControl: (
@@ -297,6 +299,29 @@ export const useDeviceStore = create<DeviceState>((set, get) => {
       if (!silent) set({ loading: false })
       throw e
     }
+  },
+
+  applyStatusesFromServer: (incoming) => {
+    if (!incoming || typeof incoming !== 'object') return
+    const prev = get()
+    const nextStatuses: Record<string, PrinterLiveStatus> = { ...prev.statuses }
+    let changed = false
+    for (const [id, st] of Object.entries(incoming)) {
+      if (!st || typeof st !== 'object') continue
+      const old = nextStatuses[id]
+      if (
+        !old ||
+        old.health !== st.health ||
+        old.state !== st.state ||
+        old.progress !== st.progress ||
+        old.updatedAt !== st.updatedAt ||
+        JSON.stringify(old) !== JSON.stringify(st)
+      ) {
+        nextStatuses[id] = st
+        changed = true
+      }
+    }
+    if (changed) set({ statuses: nextStatuses })
   },
 
   setSection: (section) => {

@@ -27,6 +27,7 @@ import { BatchPrintBar } from './components/BatchPrintBar'
 import { BatchPrintModal } from './components/BatchPrintModal'
 import { DeviceGrid } from './components/DeviceGrid'
 import { AddDeviceModal } from './components/AddDeviceModal'
+import { ForceChangePasswordGate } from './components/ForceChangePasswordGate'
 import { DeviceDetailDrawer } from './components/DeviceDetailDrawer'
 import { LogDrawer } from './components/LogDrawer'
 import { WindowControls } from './components/WindowControls'
@@ -303,8 +304,7 @@ export default function App() {
     return () => window.clearInterval(t)
   }, [role, deviceRefreshSec])
 
-  // Browser / client: only auto-poll devices + statuses (deviceRefreshSec).
-  // Filament / settings / monitor / print queue: load on enter or after mutate — no interval here.
+  // Browser / client: SSE statuses when available; fallback poll for full device list.
   useEffect(() => {
     if (!isRemoteDataMode() || !authed) return
     const pullDevices = () => {
@@ -315,13 +315,41 @@ export default function App() {
         .catch(() => undefined)
     }
     pullDevices()
-    const t = window.setInterval(pullDevices, resolveDeviceRefreshMs({ deviceRefreshSec }))
+
+    let es: EventSource | null = null
+    let pollTimer: number | null = null
+    const token = useAuthStore.getState().token
+    const base = useAuthStore.getState().serverUrl.replace(/\/$/, '')
+    try {
+      // EventSource cannot set Authorization header — pass token query for SSE only
+      const qs = token ? `?access_token=${encodeURIComponent(token)}` : ''
+      es = new EventSource(`${base}/api/v1/events${qs}`)
+      es.addEventListener('statuses', (ev) => {
+        try {
+          const data = JSON.parse((ev as MessageEvent).data) as {
+            statuses?: Record<string, import('./types/printer').PrinterLiveStatus>
+          }
+          if (data.statuses) useDeviceStore.getState().applyStatusesFromServer(data.statuses)
+        } catch {
+          /* ignore */
+        }
+      })
+      es.onerror = () => {
+        /* keep poll as backup */
+      }
+      // Slower full refresh for device list / ACL changes
+      pollTimer = window.setInterval(pullDevices, Math.max(15000, resolveDeviceRefreshMs({ deviceRefreshSec }) * 5))
+    } catch {
+      pollTimer = window.setInterval(pullDevices, resolveDeviceRefreshMs({ deviceRefreshSec }))
+    }
+
     const onVis = () => {
       if (!document.hidden) pullDevices()
     }
     document.addEventListener('visibilitychange', onVis)
     return () => {
-      window.clearInterval(t)
+      es?.close()
+      if (pollTimer) window.clearInterval(pollTimer)
       document.removeEventListener('visibilitychange', onVis)
     }
   }, [role, authed, deviceRefreshSec])
@@ -885,7 +913,7 @@ export default function App() {
                                   ? 'AI 建模网'
                                   : '软件设置'}
                 {' · v'}
-                {typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.4.0'}
+                {typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.4.1'}
               </span>
               <span>
                 {siteFooter?.trim()
@@ -1002,6 +1030,7 @@ export default function App() {
 
   return (
     <ConfigProvider locale={zhCN} theme={uiThemeDef.antd}>
+      <ForceChangePasswordGate />
       <ThemeLoader mode="app" />
       <PluginLoader mode="app" />
       {useFullSite ? (

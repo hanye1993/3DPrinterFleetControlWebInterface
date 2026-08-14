@@ -12,7 +12,7 @@ export function SnapshotCam({
   cameras,
   title,
   subtitle,
-  intervalMs = 1500,
+  intervalMs = 2500,
   active = true,
   alertLabel,
   aiEnabled,
@@ -123,20 +123,7 @@ export function SnapshotCam({
           }
           if (data.message) setErr(data.message)
         } else {
-          const res = await window.electronAPI?.camera?.snapshot({ url: remote })
-          if (res?.ok && res.base64) {
-            failRef.current = 0
-            aliveRef.current = true
-            setPhase('live')
-            setErr('')
-            const next = `data:${res.contentType || 'image/jpeg'};base64,${res.base64}`
-            if (next !== lastSrcRef.current) {
-              lastSrcRef.current = next
-              setImgSrc(next)
-            }
-            return
-          }
-          if (res && 'message' in res && res.message) setErr(res.message)
+          setErr('请通过网页服务访问摄像头')
         }
       } catch {
         /* ignore */

@@ -11,8 +11,8 @@ const DAY_MS = 24 * 60 * 60 * 1000
 const REPO_URL = 'https://github.com/hanye1993/3DPrinterFleetControlWebInterface'
 /** Build-time version from package.json — always available without API */
 const BUILTIN_VERSION = String(
-  typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.4.0'
-).replace(/^v/i, '') || '1.4.0'
+  typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.4.1'
+).replace(/^v/i, '') || '1.4.1'
 
 export type UpdateCheckPayload = {
   ok: boolean

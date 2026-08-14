@@ -387,7 +387,7 @@ export function UsersPage() {
       </Space>
       <PluginSlot name="users.toolbar.after" context={pageCtx} />
       <Typography.Paragraph type="secondary">
-        可新建用户、分配权限，并按设备单独授权。默认管理员 admin / admin123，请及时改密。在线状态来自网页登录心跳（约
+        可新建用户、分配权限，并按设备单独授权。默认管理员 admin / admin123，首次登录会强制改密。在线状态来自网页登录心跳（约
         90 秒无活动视为离线）；踢下线会吊销令牌；封号后无法登录。插件可通过列 / 工具栏 /
         表单字段扩展本页。
       </Typography.Paragraph>

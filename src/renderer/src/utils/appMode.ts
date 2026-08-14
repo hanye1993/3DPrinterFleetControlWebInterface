@@ -1,5 +1,4 @@
 import { isWebBrowser } from '@shared/platform'
-import { hasPerm } from '@shared/permissions'
 import { useAuthStore } from '../stores/authStore'
 
 /** Web SPA (or legacy remote client) — data via HTTP, no local printer IO */
@@ -8,7 +7,7 @@ export function isRemoteDataMode(): boolean {
   return isWebBrowser() || role === 'client'
 }
 
-/** Admin management UI (users, quote history, open API, etc.) */
+/** Admin management UI (users, soft settings sensitive tabs, etc.) */
 export function isAdminUi(): boolean {
   if (!isWebBrowser()) {
     return useAuthStore.getState().role === 'server'
@@ -17,7 +16,7 @@ export function isAdminUi(): boolean {
   if (!user) return false
   if (user.level === 'admin') return true
   if (permissions.includes('*')) return true
-  return hasPerm(permissions, 'nav.users') || hasPerm(permissions, 'nav.tools')
+  return false
 }
 
 /**

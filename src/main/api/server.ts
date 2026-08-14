@@ -890,8 +890,22 @@ export class ApiServer {
     const users = this.deps.getUserStore?.()
     const presence = this.deps.getPresenceStore?.()
     const bearer = String(req.headers.authorization || '')
-    if (bearer.toLowerCase().startsWith('bearer ') && users) {
-      const token = bearer.slice(7).trim()
+    let token = ''
+    if (bearer.toLowerCase().startsWith('bearer ')) {
+      token = bearer.slice(7).trim()
+    } else {
+      // EventSource cannot set Authorization — allow token query on SSE only
+      try {
+        const u = new URL(req.url || '/', 'http://127.0.0.1')
+        const p = u.pathname.replace(/\/+$/, '') || '/'
+        if (p === '/api/v1/events') {
+          token = String(u.searchParams.get('access_token') || u.searchParams.get('token') || '').trim()
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    if (token && users) {
       const payload = verifyJwt(token, users.getJwtSecret())
       if (payload) {
         if (presence?.isTokenRevoked(payload.sub, payload.iat)) {
@@ -907,12 +921,13 @@ export class ApiServer {
     const key = req.headers['x-api-key']
     // Open API Key auth removed — web uses JWT / local session only
     void key
+    void settings
 
     if (this.deps.allowLocalAdmin !== false) {
       const ra = req.socket.remoteAddress || ''
       if (isLoopbackAddress(ra)) {
         // Only elevate loopback when no credential was attempted
-        if (!key && !bearer) return { kind: 'local' }
+        if (!key && !bearer && !token) return { kind: 'local' }
       }
     }
     return null
@@ -932,7 +947,7 @@ export class ApiServer {
     if (path === '/api/health') {
       sendJson(res, 200, {
         ok: true,
-        version: this.deps.version || readLocalPackageVersion() || '1.2.1',
+        version: this.deps.version || readLocalPackageVersion() || '1.4.1',
         mode: settings.apiMode,
         time: new Date().toISOString(),
         web: webClientAvailable()
