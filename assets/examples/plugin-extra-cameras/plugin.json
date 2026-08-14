@@ -1,0 +1,31 @@
+{
+  "identifier": "extra_cameras",
+  "name": "设备第三方摄像头",
+  "version": "1.0.0",
+  "description": "为每台设备添加 HTTP/MJPEG 第三方摄像头：详情页左右滑动切换、内部监控墙显示，并纳入 AI 巡检。",
+  "copyright": "hanye",
+  "author": "hanye",
+  "available": true,
+  "apiVersion": "2",
+  "hooks": ["register"],
+  "modules": [],
+  "vars": [
+    {
+      "key": "show_settings",
+      "title": "详情页显示摄像头设置",
+      "type": "boolean",
+      "value": "1"
+    },
+    {
+      "key": "default_ai",
+      "title": "新增摄像头默认参与 AI 巡检",
+      "type": "boolean",
+      "value": "1"
+    }
+  ],
+  "clientJs": ["client.js"],
+  "themeCss": "theme.css",
+  "mainFile": "main.js",
+  "installFile": "install.js",
+  "uninstallFile": "uninstall.js"
+}

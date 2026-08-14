@@ -29,9 +29,13 @@ function wallFingerprint(slots: WallSlot[]): string {
   return slots
     .map(
       (s) =>
-        `${s.device.id}:${s.cameras.map((c) => `${c.id}|${c.remoteSnapshotUrl || c.snapshotUrl || c.streamUrl}`).join(',')}`
+        `${s.device.id}/${s.cameras[0]?.id || ''}:${s.cameras.map((c) => `${c.id}|${c.remoteSnapshotUrl || c.snapshotUrl || c.streamUrl}`).join(',')}`
     )
     .join(';')
+}
+
+function wallTileKey(slot: WallSlot): string {
+  return `${slot.device.id}::${slot.cameras[0]?.id || 'cam'}`
 }
 
 /**
@@ -146,19 +150,20 @@ export function MonitorWallPage() {
                 brand: row.brand as DeviceConfig['brand'],
                 tech: 'fdm'
               } as DeviceConfig)
-            const primary = row.cameras[0]!
-            next.push({
-              device,
-              cameras: [
-                {
-                  id: primary.id,
-                  name: primary.name,
-                  streamUrl: primary.streamUrl,
-                  snapshotUrl: primary.snapshotUrl || primary.streamUrl,
-                  remoteSnapshotUrl: `server-api:/api/v1/devices/${encodeURIComponent(row.deviceId)}/cameras/${encodeURIComponent(primary.id)}/snapshot?format=json`
-                }
-              ]
-            })
+            for (const cam of row.cameras) {
+              next.push({
+                device,
+                cameras: [
+                  {
+                    id: cam.id,
+                    name: cam.name,
+                    streamUrl: cam.streamUrl,
+                    snapshotUrl: cam.snapshotUrl || cam.streamUrl,
+                    remoteSnapshotUrl: `server-api:/api/v1/devices/${encodeURIComponent(row.deviceId)}/cameras/${encodeURIComponent(cam.id)}/snapshot?format=json`
+                  }
+                ]
+              })
+            }
           }
           setSlots((prev) => (wallFingerprint(prev) === wallFingerprint(next) ? prev : next))
         } catch {
@@ -203,7 +208,7 @@ export function MonitorWallPage() {
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deviceKey, adapterReadyKey, aclKey])
+  }, [deviceKey, adapterReadyKey, aclKey, pluginTick])
 
   const visibleSlots = useMemo(() => {
     const filteredIds = new Set(
@@ -252,7 +257,7 @@ export function MonitorWallPage() {
             内部监控 · 打印机摄像头墙
           </Typography.Title>
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            仅显示已授权设备的机舱摄像头；离开本页自动停止拉流。可在每路画面上单独开关 AI 巡检（需先在「软件设置 → AI 对接」启用总开关）。
+            已授权设备的机舱摄像头与第三方摄像头；离开本页自动停止拉流。可在每路画面上单独开关设备 AI 巡检（需先在「软件设置 → AI 对接」启用总开关）。
           </Typography.Text>
         </div>
         <PluginSlot name="monitor.toolbar.before" context={slotCtx} />
@@ -318,6 +323,11 @@ export function MonitorWallPage() {
             const alert = latestByDevice.get(slot.device.id)
             const live = devices.find((d) => d.id === slot.device.id) || slot.device
             const aiOn = isDeviceAiVisionEnabled(live)
+            const camName = slot.cameras[0]?.name || slot.device.brand
+            const multiLabel =
+              slot.cameras[0]?.id?.startsWith('extra:') ||
+              (camName && camName !== '摄像头' && camName !== '机舱摄像头')
+            const tileTitle = multiLabel ? `${slot.device.name} · ${camName}` : slot.device.name
             const tileCtx = {
               scope: 'wall' as const,
               deviceId: live.id,
@@ -325,11 +335,11 @@ export function MonitorWallPage() {
               brand: String(live.brand || ''),
               cameraId: slot.cameras[0]?.id,
               cameraName: slot.cameras[0]?.name,
-              title: slot.device.name,
-              subtitle: slot.cameras[0]?.name || slot.device.brand
+              title: tileTitle,
+              subtitle: camName
             }
             return (
-              <div key={slot.device.id}>
+              <div key={wallTileKey(slot)}>
                 <PluginSlot
                   name="monitor.tile.before"
                   context={{ ...slotCtx, deviceId: live.id }}
@@ -340,8 +350,8 @@ export function MonitorWallPage() {
                   context={{ ...slotCtx, ...tileCtx }}
                 >
                   <SnapshotCam
-                    title={slot.device.name}
-                    subtitle={slot.cameras[0]?.name || slot.device.brand}
+                    title={tileTitle}
+                    subtitle={camName}
                     cameras={slot.cameras}
                     alertLabel={
                       aiOn && alert

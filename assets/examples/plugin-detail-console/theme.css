@@ -69,6 +69,59 @@
   background: #0b0f14;
   display: grid;
   place-items: center;
+  touch-action: pan-y;
+  user-select: none;
+  overflow: hidden;
+}
+
+.dc-cam-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  width: 32px;
+  height: 44px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+.dc-cam-prev {
+  left: 6px;
+}
+
+.dc-cam-next {
+  right: 6px;
+}
+
+.dc-cam-dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 8px;
+  z-index: 3;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.dc-cam-dot {
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+}
+
+.dc-cam-dot.is-on {
+  background: rgba(255, 255, 255, 0.95);
 }
 
 .dc-cam-img {
@@ -83,14 +136,12 @@
   display: block;
 }
 
-.dc-cam-empty {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  color: rgba(255, 255, 255, 0.55);
-  font-size: 13px;
-  pointer-events: none;
+.dc-cam-plugin-slots {
+  padding: 0 10px 10px;
+}
+
+.dc-cam-plugin-slot {
+  margin-top: 4px;
 }
 
 .dc-main {

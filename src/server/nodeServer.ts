@@ -26,6 +26,10 @@ import { DeviceHost } from './device/host'
 import { scanLanPrinters, cancelLanDiscover, type LanDiscoverOpts } from '../main/discover/lanScan'
 import { discoverCameras, fetchSnapshot } from '../main/camera/proxy'
 import { grabBambuJpegFrame, parseBambuCameraUrl } from '../main/bambu/camera'
+import {
+  mergeDiscoveredWithExtra,
+  parseDeviceExtraCameras
+} from '../shared/deviceExtraCameras'
 import { createFileOperationLogStore } from '../main/operationLogs/fileStore'
 import { MysqlOperationLogStore } from './storage/mysqlOperationLogs'
 import { VisionMonitor } from '../main/ai/visionMonitor'
@@ -345,12 +349,13 @@ async function bootstrap(): Promise<void> {
               if (snap.ok) return { ok: true, contentType: snap.contentType, base64: snap.base64 }
             }
           }
-          const cams = await discoverCameras({
+          const discovered = await discoverCameras({
             brand: String(d.brand || ''),
             host: deviceHost(d) || undefined,
             baseUrl: typeof d.baseUrl === 'string' ? d.baseUrl : undefined,
             apiKey: apiKey || undefined
           })
+          const cams = mergeDiscoveredWithExtra(discovered, parseDeviceExtraCameras(d))
           const cam =
             (opts.cameraId && cams.find((c) => c.id === opts.cameraId)) || cams[0]
           const url = cam?.snapshotUrl || cam?.streamUrl
@@ -487,12 +492,23 @@ async function bootstrap(): Promise<void> {
         try {
           const secretKey = typeof d.secretKey === 'string' ? d.secretKey : ''
           const apiKey = secretKey ? secretsCache[secretKey] || (await resolveSecret(secretKey)) : null
-          const cams = await discoverCameras({
-            brand: String(d.brand || ''),
-            host: deviceHost(d) || undefined,
-            baseUrl: typeof d.baseUrl === 'string' ? d.baseUrl : undefined,
-            apiKey: apiKey || undefined
-          })
+          let discovered: Array<{
+            id: string
+            name: string
+            streamUrl: string
+            snapshotUrl?: string
+          }> = []
+          try {
+            discovered = await discoverCameras({
+              brand: String(d.brand || ''),
+              host: deviceHost(d) || undefined,
+              baseUrl: typeof d.baseUrl === 'string' ? d.baseUrl : undefined,
+              apiKey: apiKey || undefined
+            })
+          } catch {
+            discovered = []
+          }
+          const cams = mergeDiscoveredWithExtra(discovered, parseDeviceExtraCameras(d))
           if (!cams.length) continue
           out.push({
             deviceId: id,
@@ -511,12 +527,23 @@ async function bootstrap(): Promise<void> {
       if (!d) return null
       const secretKey = typeof d.secretKey === 'string' ? d.secretKey : ''
       const apiKey = secretKey ? secretsCache[secretKey] || (await resolveSecret(secretKey)) : null
-      const cams = await discoverCameras({
-        brand: String(d.brand || ''),
-        host: deviceHost(d) || undefined,
-        baseUrl: typeof d.baseUrl === 'string' ? d.baseUrl : undefined,
-        apiKey: apiKey || undefined
-      })
+      let discovered: Array<{
+        id: string
+        name: string
+        streamUrl: string
+        snapshotUrl?: string
+      }> = []
+      try {
+        discovered = await discoverCameras({
+          brand: String(d.brand || ''),
+          host: deviceHost(d) || undefined,
+          baseUrl: typeof d.baseUrl === 'string' ? d.baseUrl : undefined,
+          apiKey: apiKey || undefined
+        })
+      } catch {
+        discovered = []
+      }
+      const cams = mergeDiscoveredWithExtra(discovered, parseDeviceExtraCameras(d))
       return {
         deviceId,
         name: String(d.name || deviceId),
@@ -653,7 +680,13 @@ async function bootstrap(): Promise<void> {
     const out: Array<{
       deviceId: string
       name: string
-      cameras: Array<{ id: string; name: string; streamUrl: string; snapshotUrl?: string }>
+      cameras: Array<{
+        id: string
+        name: string
+        streamUrl: string
+        snapshotUrl?: string
+        aiEnabled?: boolean
+      }>
     }> = []
     for (const d of readDeviceRows()) {
       const id = String(d.id || '')
@@ -661,12 +694,23 @@ async function bootstrap(): Promise<void> {
       try {
         const secretKey = typeof d.secretKey === 'string' ? d.secretKey : ''
         const apiKey = secretKey ? secretsCache[secretKey] || (await resolveSecret(secretKey)) : null
-        const cams = await discoverCameras({
-          brand: String(d.brand || ''),
-          host: deviceHost(d) || undefined,
-          baseUrl: typeof d.baseUrl === 'string' ? d.baseUrl : undefined,
-          apiKey: apiKey || undefined
-        })
+        let discovered: Array<{
+          id: string
+          name: string
+          streamUrl: string
+          snapshotUrl?: string
+        }> = []
+        try {
+          discovered = await discoverCameras({
+            brand: String(d.brand || ''),
+            host: deviceHost(d) || undefined,
+            baseUrl: typeof d.baseUrl === 'string' ? d.baseUrl : undefined,
+            apiKey: apiKey || undefined
+          })
+        } catch {
+          discovered = []
+        }
+        const cams = mergeDiscoveredWithExtra(discovered, parseDeviceExtraCameras(d))
         if (!cams.length) continue
         out.push({
           deviceId: id,

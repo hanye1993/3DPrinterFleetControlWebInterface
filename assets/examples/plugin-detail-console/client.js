@@ -306,9 +306,14 @@
       '<div class="dc-cam-switch"></div>' +
       '</div>' +
       '<div class="dc-cam-frame">' +
-      '<img class="dc-cam-img" alt="camera" />' +
+      '<button type="button" class="dc-cam-nav dc-cam-prev" data-act="cam-prev" aria-label="上一路">‹</button>' +
+      '<img class="dc-cam-img" alt="camera" draggable="false" />' +
+      '<button type="button" class="dc-cam-nav dc-cam-next" data-act="cam-next" aria-label="下一路">›</button>' +
       '<div class="dc-cam-empty">暂无摄像头</div>' +
-      '</div></div>'
+      '<div class="dc-cam-dots"></div>' +
+      '</div>' +
+      '<div class="dc-cam-plugin-slots" data-slot="device.detail.camera.after"></div>' +
+      '</div>'
     )
   }
 
@@ -1087,13 +1092,17 @@
     return out
   }
 
-  /** 发现出的多个「摄像头」URL 候选不当作多路机位；仅真正不同名称时显示切换 */
+  /** 多路机位 / 第三方摄像头：显示切换；同源 URL 候选不当作多路 */
   function shouldShowCamSwitch(cams) {
     if (!cams || cams.length <= 1) return false
+    for (var i = 0; i < cams.length; i++) {
+      var id = String((cams[i] && cams[i].id) || '')
+      if (id.indexOf('extra:') === 0) return true
+    }
     var names = Object.create(null)
     var meaningful = 0
-    for (var i = 0; i < cams.length; i++) {
-      var n = String((cams[i] && cams[i].name) || '').trim() || '摄像头'
+    for (var j = 0; j < cams.length; j++) {
+      var n = String((cams[j] && cams[j].name) || '').trim() || '摄像头'
       names[n] = 1
       if (n !== '摄像头' && n !== '机舱摄像头') meaningful++
     }
@@ -1108,6 +1117,9 @@
     var img = root.querySelector('.dc-cam-img')
     var empty = root.querySelector('.dc-cam-empty')
     var sw = root.querySelector('.dc-cam-switch')
+    var dots = root.querySelector('.dc-cam-dots')
+    var prevBtn = root.querySelector('.dc-cam-prev')
+    var nextBtn = root.querySelector('.dc-cam-next')
     var cams = sess.cameras || []
     var showSwitch = shouldShowCamSwitch(cams)
 
@@ -1132,6 +1144,27 @@
       }
     }
 
+    if (prevBtn) prevBtn.style.display = showSwitch ? '' : 'none'
+    if (nextBtn) nextBtn.style.display = showSwitch ? '' : 'none'
+    if (dots) {
+      if (!showSwitch) {
+        dots.innerHTML = ''
+        dots.style.display = 'none'
+      } else {
+        dots.style.display = ''
+        var dh = ''
+        for (var d = 0; d < cams.length; d++) {
+          dh +=
+            '<button type="button" class="dc-cam-dot' +
+            (d === sess.camIdx ? ' is-on' : '') +
+            '" data-act="cam-pick" data-cam-idx="' +
+            d +
+            '"></button>'
+        }
+        dots.innerHTML = dh
+      }
+    }
+
     if (!cams.length) {
       if (title) title.textContent = '摄像头'
       if (phase) phase.textContent = '无信号'
@@ -1149,7 +1182,10 @@
     if (frame && frame.src && img) {
       img.src = frame.src
       img.classList.add('is-live')
-      if (title) title.textContent = frame.name || '摄像头'
+      if (title)
+        title.textContent =
+          (frame.name || '摄像头') +
+          (showSwitch ? ' · ' + (sess.camIdx + 1) + '/' + cams.length : '')
       if (phase) phase.textContent = 'LIVE'
       if (empty) empty.style.display = 'none'
       sess.camPhase = 'live'
@@ -1176,6 +1212,18 @@
         tickCamera()
         return
       }
+      var prev = t && t.closest ? t.closest('[data-act="cam-prev"]') : null
+      var next = t && t.closest ? t.closest('[data-act="cam-next"]') : null
+      if ((prev || next) && ev.type === 'click') {
+        var n = (sess.cameras || []).length
+        if (n > 1) {
+          sess.camIdx = prev
+            ? (sess.camIdx - 1 + n) % n
+            : (sess.camIdx + 1) % n
+          tickCamera()
+        }
+        return
+      }
       onHostEvent(el, deviceId, ev)
     }
     el.addEventListener('click', onEv)
@@ -1183,6 +1231,36 @@
     el.addEventListener('change', onEv)
     el.addEventListener('mousedown', onEv)
     el.addEventListener('focusin', onEv)
+
+    var touchX = null
+    el.addEventListener(
+      'touchstart',
+      function (ev) {
+        var frame = ev.target && ev.target.closest ? ev.target.closest('.dc-cam-frame') : null
+        if (!frame || !el.contains(frame)) return
+        touchX = ev.changedTouches && ev.changedTouches[0] ? ev.changedTouches[0].clientX : null
+      },
+      { passive: true }
+    )
+    el.addEventListener(
+      'touchend',
+      function (ev) {
+        if (touchX == null) return
+        var start = touchX
+        touchX = null
+        var frame = ev.target && ev.target.closest ? ev.target.closest('.dc-cam-frame') : null
+        if (!frame || !el.contains(frame)) return
+        var n = (sess.cameras || []).length
+        if (n <= 1) return
+        var end = ev.changedTouches && ev.changedTouches[0] ? ev.changedTouches[0].clientX : null
+        if (end == null) return
+        var dx = end - start
+        if (Math.abs(dx) < 48) return
+        sess.camIdx = dx < 0 ? (sess.camIdx + 1) % n : (sess.camIdx - 1 + n) % n
+        tickCamera()
+      },
+      { passive: true }
+    )
 
     function ensureShell() {
       if (el.querySelector('.dc-root')) return
@@ -1304,13 +1382,12 @@
         })
         .catch(function () {
           if (dead) return
-          // 候选 URL 自动试下一个；多路切换模式下也轮询失败路
-          if (cams.length > 1) {
+          // 仅「同源候选」时自动试下一 URL；真多路机位不自动跳
+          if (!showSwitch && cams.length > 1) {
             sess.camIdx = (sess.camIdx + 1) % cams.length
           }
           if (sess.camPhase !== 'live') sess.camPhase = 'boot'
           updateCamUi(root, sess, null)
-          // 无切换条时静默连试下一候选
           if (!showSwitch && cams.length > 1) {
             return pullCameraFrame(deviceId, cams[sess.camIdx]).then(
               function (frame) {
@@ -1322,6 +1399,33 @@
             )
           }
         })
+    }
+
+    function mountCameraPluginSlots() {
+      ensureShell()
+      var host = el.querySelector('.dc-cam-plugin-slots')
+      if (!host || !P.getSlotEntries) return
+      var entries = P.getSlotEntries('device.detail.camera.after') || []
+      host.innerHTML = ''
+      for (var i = 0; i < entries.length; i++) {
+        var entry = entries[i]
+        var box = document.createElement('div')
+        box.className = 'dc-cam-plugin-slot'
+        host.appendChild(box)
+        try {
+          if (typeof entry.render === 'function') {
+            entry.render(box, {
+              context: {
+                deviceId: deviceId,
+                deviceName: brandCache[deviceId + ':name'] || deviceId,
+                brand: brandCache[deviceId] || ''
+              }
+            })
+          }
+        } catch (e) {
+          console.error('[detail_console] slot', e)
+        }
+      }
     }
 
     function refreshCameras() {
@@ -1346,6 +1450,7 @@
           return
         }
         ensureShell()
+        mountCameraPluginSlots()
         return refresh()
           .then(function () {
             return refreshCameras()
@@ -1363,12 +1468,29 @@
           })
       })
 
+    var offReload = null
+    try {
+      offReload = P.on('device:cameras-reload', function (payload) {
+        var id =
+          payload && typeof payload === 'object' && payload.deviceId
+            ? String(payload.deviceId)
+            : ''
+        if (id && id === deviceId && !dead) {
+          refreshCameras()
+          mountCameraPluginSlots()
+        }
+      })
+    } catch (_) {
+      offReload = null
+    }
+
     return function cleanup() {
       dead = true
       delete bodyRefreshers[deviceId]
       if (timer) clearInterval(timer)
       if (camTimer) clearInterval(camTimer)
       if (camListTimer) clearInterval(camListTimer)
+      if (typeof offReload === 'function') offReload()
       el.removeEventListener('click', onEv)
       el.removeEventListener('input', onEv)
       el.removeEventListener('change', onEv)

@@ -56,6 +56,7 @@ import {
 import { downloadBlob } from '../utils/openExternal'
 import { usePrintQueueStore, type PrintJob } from '../stores/printQueueStore'
 import { PluginSlot } from '../plugins/PluginSlot'
+import { getHanyePlugin } from '../plugins/runtime'
 
 function fileNameOf(path: string): string {
   const parts = path.replace(/\\/g, '/').split('/')
@@ -234,7 +235,26 @@ export function DeviceDetailDrawer({
         )
       } else {
         const list = await adapter!.getCameras()
-        setCameras(list || [])
+        const extras = Array.isArray(device?.pluginData?.extraCameras)
+          ? (device!.pluginData!.extraCameras as Array<Record<string, unknown>>)
+          : []
+        const mappedExtras = extras
+          .map((e, i) => {
+            const streamUrl = String(e.streamUrl || e.url || e.snapshotUrl || '').trim()
+            if (!streamUrl) return null
+            const id = String(e.id || '').startsWith('extra:')
+              ? String(e.id)
+              : `extra:${String(e.id || i)}`
+            return {
+              id,
+              name: String(e.name || `第三方摄像头 ${i + 1}`),
+              streamUrl,
+              snapshotUrl: String(e.snapshotUrl || streamUrl)
+            }
+          })
+          .filter(Boolean) as CameraSource[]
+        const byId = new Set((list || []).map((c) => c.id))
+        setCameras([...(list || []), ...mappedExtras.filter((c) => !byId.has(c.id))])
       }
     } catch {
       setCameras([])
@@ -292,6 +312,18 @@ export function DeviceDetailDrawer({
     if (st?.chamberFanSpeed != null) setChamberFanPct(st.chamberFanSpeed)
     if (st?.printSpeed != null) setSpeedPct(st.printSpeed)
     // Only re-run on open / device change — not on adapter identity churn
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, deviceId])
+
+  useEffect(() => {
+    if (!open || !deviceId) return
+    return getHanyePlugin().on('device:cameras-reload', (payload) => {
+      const id =
+        payload && typeof payload === 'object' && payload !== null && 'deviceId' in payload
+          ? String((payload as { deviceId?: unknown }).deviceId || '')
+          : ''
+      if (id && id === deviceId) void loadCameras()
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, deviceId])
 

@@ -5,6 +5,7 @@ import {
   isDeviceAiVisionEnabled,
   normalizeAiVisionSettings
 } from '../../shared/aiVision'
+import { camerasForAiPatrol, type CameraCandidate } from '../../shared/deviceExtraCameras'
 import { runYoloSpaghetti, yoloWeightsExists } from './yoloDetect'
 import { runCloudVision } from './cloudVision'
 
@@ -15,7 +16,7 @@ export type VisionMonitorDeps = {
     Array<{
       deviceId: string
       name: string
-      cameras: Array<{ id: string; name: string; streamUrl: string; snapshotUrl?: string }>
+      cameras: CameraCandidate[]
     }>
   >
   takeCameraSnapshot: (
@@ -152,7 +153,7 @@ export class VisionMonitor {
     wallRow?: {
       deviceId: string
       name: string
-      cameras: Array<{ id: string; name: string; streamUrl: string; snapshotUrl?: string }>
+      cameras: CameraCandidate[]
     }
   ): Promise<AiVisionAlert[]> {
     let row = wallRow
@@ -160,95 +161,102 @@ export class VisionMonitor {
       const wall = await this.deps.listWallCameras()
       row = wall.find((d) => d.deviceId === deviceId)
     }
-    if (!row?.cameras?.length) {
+    const patrolCams = camerasForAiPatrol(row?.cameras || [])
+    if (!patrolCams.length) {
       if (force) throw new Error('该设备无可用摄像头')
       return []
     }
 
-    const cam = row.cameras[0]!
-    const url = (cam.snapshotUrl || cam.streamUrl || '').trim()
-    if (!url) {
-      if (force) throw new Error('摄像头地址为空')
-      return []
-    }
-    const snap = await this.deps.takeCameraSnapshot(url)
-    if (!snap.ok || !snap.base64) {
-      if (force) throw new Error(snap.ok === false ? snap.message || '抓拍失败' : '抓拍失败')
-      return []
-    }
-
-    const found = new Map<AiFaultKind, { confidence: number; source: 'yolo' | 'cloud' }>()
-
-    if (cfg.yoloEnabled) {
-      const yolo = await runYoloSpaghetti({
-        python: cfg.yoloPython,
-        weights: cfg.yoloWeights,
-        imageBase64: snap.base64,
-        conf: Math.min(cfg.minConfidence, 0.25)
-      })
-      if (yolo.ok && yolo.maxConfidence >= cfg.minConfidence) {
-        found.set('spaghetti', {
-          confidence: yolo.maxConfidence,
-          source: 'yolo'
-        })
-      } else if (!yolo.ok && force) {
-        this.status.yoloMessage = yolo.message
-      }
-    }
-
-    if (cfg.cloudEnabled) {
-      const cloud = await runCloudVision({
-        baseUrl: cfg.cloudBaseUrl,
-        apiKey: cfg.cloudApiKey,
-        model: cfg.cloudModel,
-        imageBase64: snap.base64
-      })
-      if (cloud.ok) {
-        for (const hit of cloud.hits) {
-          if (hit.confidence < cfg.minConfidence) continue
-          const prev = found.get(hit.kind)
-          if (!prev || hit.confidence > prev.confidence) {
-            found.set(hit.kind, { confidence: hit.confidence, source: 'cloud' })
-          }
-        }
-      } else if (force) {
-        throw new Error(cloud.message)
-      }
-    }
-
     const alerts: AiVisionAlert[] = []
-    for (const [kind, info] of found) {
-      const action = cfg.actions[kind] || 'none'
-      const cdKey = `${deviceId}:${kind}`
-      const until = this.cooldown.get(cdKey) || 0
-      if (!force && Date.now() < until) continue
+    let anySnapOk = false
+    let lastSnapErr = ''
 
-      let actionOk: boolean | undefined
-      let actionMessage: string | undefined
-      if (action === 'pause' || action === 'stop') {
-        const payload =
-          action === 'pause' ? { action: 'pause' } : { action: 'cancel' }
-        const res = await this.deps.controlDevice(deviceId, payload)
-        actionOk = res.ok
-        actionMessage = res.message
+    for (const cam of patrolCams) {
+      const url = (cam.snapshotUrl || cam.streamUrl || '').trim()
+      if (!url) continue
+      const snap = await this.deps.takeCameraSnapshot(url)
+      if (!snap.ok || !snap.base64) {
+        lastSnapErr = snap.ok === false ? snap.message || '抓拍失败' : '抓拍失败'
+        continue
+      }
+      anySnapOk = true
+
+      const found = new Map<AiFaultKind, { confidence: number; source: 'yolo' | 'cloud' }>()
+
+      if (cfg.yoloEnabled) {
+        const yolo = await runYoloSpaghetti({
+          python: cfg.yoloPython,
+          weights: cfg.yoloWeights,
+          imageBase64: snap.base64,
+          conf: Math.min(cfg.minConfidence, 0.25)
+        })
+        if (yolo.ok && yolo.maxConfidence >= cfg.minConfidence) {
+          found.set('spaghetti', {
+            confidence: yolo.maxConfidence,
+            source: 'yolo'
+          })
+        } else if (!yolo.ok && force) {
+          this.status.yoloMessage = yolo.message
+        }
       }
 
-      const alert: AiVisionAlert = {
-        id: randomUUID(),
-        deviceId,
-        deviceName: row.name,
-        kind,
-        label: AI_FAULT_LABELS[kind],
-        confidence: info.confidence,
-        source: info.source,
-        action,
-        actionOk,
-        actionMessage,
-        at: new Date().toISOString()
+      if (cfg.cloudEnabled) {
+        const cloud = await runCloudVision({
+          baseUrl: cfg.cloudBaseUrl,
+          apiKey: cfg.cloudApiKey,
+          model: cfg.cloudModel,
+          imageBase64: snap.base64
+        })
+        if (cloud.ok) {
+          for (const hit of cloud.hits) {
+            if (hit.confidence < cfg.minConfidence) continue
+            const prev = found.get(hit.kind)
+            if (!prev || hit.confidence > prev.confidence) {
+              found.set(hit.kind, { confidence: hit.confidence, source: 'cloud' })
+            }
+          }
+        } else if (force) {
+          throw new Error(cloud.message)
+        }
       }
-      alerts.push(alert)
-      this.pushAlert(alert)
-      this.cooldown.set(cdKey, Date.now() + Math.max(gapMs(cfg.intervalSec) * 2, 60_000))
+
+      for (const [kind, info] of found) {
+        const action = cfg.actions[kind] || 'none'
+        const cdKey = `${deviceId}:${cam.id}:${kind}`
+        const until = this.cooldown.get(cdKey) || 0
+        if (!force && Date.now() < until) continue
+
+        let actionOk: boolean | undefined
+        let actionMessage: string | undefined
+        if (action === 'pause' || action === 'stop') {
+          const payload =
+            action === 'pause' ? { action: 'pause' } : { action: 'cancel' }
+          const res = await this.deps.controlDevice(deviceId, payload)
+          actionOk = res.ok
+          actionMessage = res.message
+        }
+
+        const alert: AiVisionAlert = {
+          id: randomUUID(),
+          deviceId,
+          deviceName: row!.name,
+          kind,
+          label: AI_FAULT_LABELS[kind],
+          confidence: info.confidence,
+          source: info.source,
+          action,
+          actionOk,
+          actionMessage,
+          at: new Date().toISOString()
+        }
+        alerts.push(alert)
+        this.pushAlert(alert)
+        this.cooldown.set(cdKey, Date.now() + Math.max(gapMs(cfg.intervalSec) * 2, 60_000))
+      }
+    }
+
+    if (force && !anySnapOk) {
+      throw new Error(lastSnapErr || '抓拍失败')
     }
     return alerts
   }
