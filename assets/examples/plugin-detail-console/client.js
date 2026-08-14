@@ -678,6 +678,13 @@
       '<span class="dc-zlabel">热床</span>' +
       '<button type="button" class="dc-zbtn" data-jog="Z" data-dist="-1">▼1</button>' +
       '<button type="button" class="dc-zbtn" data-jog="Z" data-dist="-10">▼10</button>' +
+      '</div>' +
+      '<div class="dc-zrow">' +
+      '<button type="button" class="dc-zbtn" data-act="extrude" data-amount="5" title="挤出 5mm">E+5</button>' +
+      '<button type="button" class="dc-zbtn" data-act="extrude" data-amount="1" title="挤出 1mm">E+1</button>' +
+      '<span class="dc-zlabel">挤出</span>' +
+      '<button type="button" class="dc-zbtn" data-act="retract" data-amount="1" title="回抽 1mm">E-1</button>' +
+      '<button type="button" class="dc-zbtn" data-act="retract" data-amount="5" title="回抽 5mm">E-5</button>' +
       '</div></div>' +
       '<div class="dc-col dc-col-ext">' +
       '<button type="button" class="dc-ext-up" data-act="load" title="进料">▲</button>' +
@@ -844,7 +851,7 @@
 
     if (setTemp) {
       var cur = window.prompt(
-        setTemp === 'bed' ? '热床目标温度 °C' : setTemp === 'chamber' ? '腔温（仅显示）' : '喷头目标温度 °C',
+        setTemp === 'bed' ? '热床目标温度 °C' : setTemp === 'chamber' ? '仓内目标温度 °C' : '喷头目标温度 °C',
         String(sess.tempInput || defaultTemp)
       )
       if (cur == null) return
@@ -852,7 +859,14 @@
       if (!Number.isFinite(n)) return
       sess.tempInput = n
       if (setTemp === 'chamber') {
-        toast('腔温设定需机型支持，已记录目标 ' + n + '°C', false)
+        runSafe(deviceId, function () {
+          return control(deviceId, {
+            action: 'set_chamber_temp',
+            temperature: n
+          }).then(function () {
+            toast('仓内 → ' + n + '°C')
+          })
+        })
         return
       }
       runSafe(deviceId, function () {
@@ -962,6 +976,23 @@
       runSafe(deviceId, function () {
         return control(deviceId, payload).then(function () {
           toast(act === 'load' ? '进料已发送' : '退料已发送')
+        })
+      })
+      return
+    }
+
+    if (act === 'extrude' || act === 'retract') {
+      var amt = Number(btn.getAttribute('data-amount') || 5)
+      if (!Number.isFinite(amt) || amt <= 0) amt = 5
+      if (
+        !confirmBox(
+          (act === 'extrude' ? '确认挤出 ' : '确认回抽 ') + amt + 'mm？\n请确认喷嘴已加热'
+        )
+      )
+        return
+      runSafe(deviceId, function () {
+        return control(deviceId, { action: act, amount: amt }).then(function () {
+          toast((act === 'extrude' ? '挤出' : '回抽') + ' ' + amt + 'mm')
         })
       })
       return

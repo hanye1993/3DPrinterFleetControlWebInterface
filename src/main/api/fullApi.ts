@@ -64,6 +64,10 @@ export type FullApiDeps = {
       body?: unknown
     }
   ) => Promise<{ ok: boolean; status?: number; data?: unknown; message?: string }>
+  onSendGcode?: (
+    deviceId: string,
+    script: string
+  ) => Promise<{ ok: boolean; message?: string }>
   onBatchPrint: BatchPrintHandler
   startLanDiscover: (opts?: { brands?: string[] }) => Promise<{ ok: boolean; message?: string }>
   getLanDiscover: () => {
@@ -662,6 +666,51 @@ export async function handleFullApi(opts: {
     }
     const capabilities = deps.onGetDeviceCapabilities(id)
     sendJson(res, 200, { ok: true, capabilities })
+    return true
+  }
+
+  // —— Arbitrary G-code (Moonraker-class devices) ——
+  const gcodeMatch = path.match(/^\/api\/v1\/devices\/([^/]+)\/gcode$/)
+  if (gcodeMatch && method === 'POST') {
+    if (!requireControl(settings, res, sendJson, auth)) return true
+    const id = decodeURIComponent(gcodeMatch[1])
+    if (!deps.onSendGcode) {
+      sendJson(res, 501, { ok: false, message: 'gcode 未实现' })
+      return true
+    }
+    if (auth) {
+      const gate = assertDeviceControlAllowed(auth, id, 'gcode')
+      if (!gate.ok) {
+        sendJson(res, gate.status, { ok: false, message: gate.message })
+        return true
+      }
+    }
+    const parsed = await parseJsonBody(req, readBody)
+    if (!parsed.ok) {
+      sendJson(res, 400, { ok: false, message: parsed.message })
+      return true
+    }
+    const script =
+      typeof parsed.body.script === 'string'
+        ? parsed.body.script
+        : typeof parsed.body.gcode === 'string'
+          ? parsed.body.gcode
+          : ''
+    if (!String(script).trim()) {
+      sendJson(res, 400, { ok: false, message: '需要 script 或 gcode 字符串' })
+      return true
+    }
+    const result = await deps.onSendGcode(id, script)
+    deps.appendLog?.(
+      makeOperationLog(
+        id,
+        deviceNameFromPath(deps.getDevicesPath, id),
+        'gcode',
+        result.ok ? 'ok' : 'error',
+        result.message
+      )
+    )
+    sendJson(res, result.ok ? 200 : 502, { ok: result.ok, message: result.message })
     return true
   }
 

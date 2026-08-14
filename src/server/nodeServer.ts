@@ -469,6 +469,7 @@ async function bootstrap(): Promise<void> {
         query: req.query,
         body: req.body
       }),
+    onSendGcode: (deviceId, script) => deviceHostEngine.sendGcode(deviceId, script),
     onBatchPrint: (payload) => deviceHostEngine.batchPrint(payload),
     onDevicesChanged: () => {
       void deviceHostEngine.reconnectAll().catch((e) => console.error('[devices] reconnect failed', e))

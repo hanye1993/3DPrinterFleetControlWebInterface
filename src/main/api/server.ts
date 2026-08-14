@@ -641,6 +641,7 @@ export type ApiServerDeps = {
   onDeviceOp: FullApiDeps['onDeviceOp']
   onGetDeviceCapabilities?: FullApiDeps['onGetDeviceCapabilities']
   onMoonrakerRequest?: FullApiDeps['onMoonrakerRequest']
+  onSendGcode?: FullApiDeps['onSendGcode']
   onBatchPrint: FullApiDeps['onBatchPrint']
   startLanDiscover: FullApiDeps['startLanDiscover']
   getLanDiscover: FullApiDeps['getLanDiscover']
@@ -1463,6 +1464,7 @@ export class ApiServer {
           onDeviceOp: this.deps.onDeviceOp,
           onGetDeviceCapabilities: this.deps.onGetDeviceCapabilities,
           onMoonrakerRequest: this.deps.onMoonrakerRequest,
+          onSendGcode: this.deps.onSendGcode,
           onBatchPrint: this.deps.onBatchPrint,
           startLanDiscover: this.deps.startLanDiscover,
           getLanDiscover: this.deps.getLanDiscover,

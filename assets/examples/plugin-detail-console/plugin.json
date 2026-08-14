@@ -1,8 +1,8 @@
 {
   "identifier": "detail_console",
   "name": "详情控制台",
-  "version": "1.2.9",
-  "description": "替换设备详情：顶部摄像头 + 控制台（XY/Z 点动已接通宿主 jog）+ AMS 料卷绑定 + G代码入队。",
+  "version": "1.3.1",
+  "description": "替换设备详情：摄像头 + XY/Z 点动 + 真挤出/回抽 + 仓温设定 + AMS 绑定 + G代码入队。",
   "copyright": "hanye",
   "author": "hanye",
   "available": true,

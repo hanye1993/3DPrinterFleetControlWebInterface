@@ -49,6 +49,7 @@ import {
   serverDownloadDeviceFile,
   serverListDeviceCameras,
   serverListDeviceFiles,
+  serverSend,
   serverUploadDeviceFile
 } from '../api/serverClient'
 import { downloadBlob } from '../utils/openExternal'
@@ -139,6 +140,11 @@ export function DeviceDetailDrawer({
   const [fanPct, setFanPct] = useState(100)
   const [chamberFanPct, setChamberFanPct] = useState(0)
   const [speedPct, setSpeedPct] = useState(100)
+  const [flowPct, setFlowPct] = useState(100)
+  const [extrudeMm, setExtrudeMm] = useState(5)
+  const [zOffsetMm, setZOffsetMm] = useState(0.05)
+  const [gcodeScript, setGcodeScript] = useState('')
+  const [gcodeBusy, setGcodeBusy] = useState(false)
   const [filamentSlot, setFilamentSlot] = useState(0)
   const [busy, setBusy] = useState(false)
   const [fileBusy, setFileBusy] = useState<string | null>(null)
@@ -333,6 +339,24 @@ export function DeviceDetailDrawer({
       message.error(err instanceof Error ? err.message : '操作失败')
     } finally {
       setBusy(false)
+    }
+  }
+
+  const sendGcode = async () => {
+    if (!deviceId || !gcodeScript.trim()) {
+      message.warning('请输入 G-code')
+      return
+    }
+    setGcodeBusy(true)
+    try {
+      await serverSend(`/api/v1/devices/${encodeURIComponent(deviceId)}/gcode`, 'POST', {
+        script: gcodeScript
+      })
+      message.success('G-code 已发送')
+    } catch (err) {
+      message.error(err instanceof Error ? err.message : 'G-code 发送失败')
+    } finally {
+      setGcodeBusy(false)
     }
   }
 
@@ -848,6 +872,34 @@ export function DeviceDetailDrawer({
       </PluginSlot>
       <PluginSlot name="device.detail.control.after" context={deviceSlotCtx} />
 
+      {!isResin && canDevice(device.id, 'jog') ? (
+        <div style={{ marginBottom: 16 }}>
+          <Typography.Title level={5}>轴点动</Typography.Title>
+          <Space direction="vertical" size={8} style={{ width: '100%' }}>
+            {(['X', 'Y', 'Z'] as const).map((axis) => (
+              <Space key={axis} wrap>
+                <Typography.Text style={{ width: 28 }}>{axis}</Typography.Text>
+                {([-10, -1, 1, 10] as const).map((amount) => (
+                  <Button
+                    key={`${axis}-${amount}`}
+                    disabled={busy}
+                    onClick={() =>
+                      void run(
+                        { action: 'jog', axis, amount },
+                        `点动 ${axis}${amount > 0 ? '+' : ''}${amount}`
+                      )
+                    }
+                  >
+                    {amount > 0 ? '+' : ''}
+                    {amount}
+                  </Button>
+                ))}
+              </Space>
+            ))}
+          </Space>
+        </div>
+      ) : null}
+
       {!isResin && canDevice(device.id, 'set_temp') ? (
         <>
           <Space wrap style={{ marginBottom: 12 }}>
@@ -871,6 +923,19 @@ export function DeviceDetailDrawer({
             >
               热床温度
             </Button>
+            {canDevice(device.id, 'set_chamber_temp') ? (
+              <Button
+                disabled={busy}
+                onClick={() =>
+                  void run(
+                    { action: 'set_chamber_temp', temperature: temp },
+                    '设置仓内温度'
+                  )
+                }
+              >
+                仓内温度
+              </Button>
+            ) : null}
           </Space>
           <PluginSlot name="device.detail.temps.after" context={deviceSlotCtx} />
         </>
@@ -883,6 +948,43 @@ export function DeviceDetailDrawer({
           description="本机不提供挤出机/热床/风扇等 FDM 参数；切片上传与曝光参数后续接入。"
         />
       )}
+
+      {!isResin && (canDevice(device.id, 'extrude') || canDevice(device.id, 'retract')) ? (
+        <div style={{ marginBottom: 16 }}>
+          <Typography.Title level={5}>挤出 / 回抽</Typography.Title>
+          <Space wrap>
+            <InputNumber
+              min={0.1}
+              max={50}
+              step={0.5}
+              value={extrudeMm}
+              onChange={(v) => setExtrudeMm(Number(v || 5))}
+              addonAfter="mm"
+            />
+            {canDevice(device.id, 'extrude') ? (
+              <Popconfirm
+                title="确认挤出？"
+                description="请确认喷嘴已加热到耗材温度"
+                onConfirm={() =>
+                  void run({ action: 'extrude', amount: extrudeMm }, `挤出 ${extrudeMm}mm`)
+                }
+              >
+                <Button disabled={busy}>挤出</Button>
+              </Popconfirm>
+            ) : null}
+            {canDevice(device.id, 'retract') ? (
+              <Popconfirm
+                title="确认回抽？"
+                onConfirm={() =>
+                  void run({ action: 'retract', amount: extrudeMm }, `回抽 ${extrudeMm}mm`)
+                }
+              >
+                <Button disabled={busy}>回抽</Button>
+              </Popconfirm>
+            ) : null}
+          </Space>
+        </div>
+      ) : null}
 
       {!isResin && (canDevice(device.id, 'filament_load') || canDevice(device.id, 'filament_unload')) ? (
         <div style={{ marginBottom: 24 }}>
@@ -1010,9 +1112,108 @@ export function DeviceDetailDrawer({
             >
               应用速度
             </Button>
+            {canDevice(device.id, 'set_flow') ? (
+              <>
+                <InputNumber
+                  min={1}
+                  max={200}
+                  value={flowPct}
+                  onChange={(v) => setFlowPct(Number(v || 100))}
+                  addonAfter="流量%"
+                />
+                <Button
+                  disabled={busy}
+                  onClick={() => void run({ action: 'set_flow', percent: flowPct }, '设置流量')}
+                >
+                  应用流量
+                </Button>
+              </>
+            ) : null}
           </Space>
           <PluginSlot name="device.detail.fans.after" context={deviceSlotCtx} />
         </>
+      ) : null}
+
+      {!isResin &&
+      (canDevice(device.id, 'set_z_offset') ||
+        canDevice(device.id, 'restart') ||
+        canDevice(device.id, 'firmware_restart')) ? (
+        <div style={{ marginBottom: 24 }}>
+          <Typography.Title level={5}>调参 / 重启</Typography.Title>
+          <Space wrap>
+            {canDevice(device.id, 'set_z_offset') ? (
+              <>
+                <InputNumber
+                  min={0.01}
+                  max={2}
+                  step={0.01}
+                  value={zOffsetMm}
+                  onChange={(v) => setZOffsetMm(Number(v || 0.05))}
+                  addonAfter="Z±mm"
+                />
+                <Button
+                  disabled={busy}
+                  onClick={() =>
+                    void run(
+                      { action: 'set_z_offset', amount: -Math.abs(zOffsetMm) },
+                      `Z 偏移 -${Math.abs(zOffsetMm)}`
+                    )
+                  }
+                >
+                  Z-
+                </Button>
+                <Button
+                  disabled={busy}
+                  onClick={() =>
+                    void run(
+                      { action: 'set_z_offset', amount: Math.abs(zOffsetMm) },
+                      `Z 偏移 +${Math.abs(zOffsetMm)}`
+                    )
+                  }
+                >
+                  Z+
+                </Button>
+              </>
+            ) : null}
+            {canDevice(device.id, 'restart') ? (
+              <Popconfirm
+                title="确认重启主机（Klipper/Moonraker）？"
+                onConfirm={() => void run({ action: 'restart' }, '重启主机')}
+              >
+                <Button disabled={busy}>重启主机</Button>
+              </Popconfirm>
+            ) : null}
+            {canDevice(device.id, 'firmware_restart') ? (
+              <Popconfirm
+                title="确认固件重启？"
+                onConfirm={() => void run({ action: 'firmware_restart' }, '固件重启')}
+              >
+                <Button danger disabled={busy}>
+                  固件重启
+                </Button>
+              </Popconfirm>
+            ) : null}
+          </Space>
+        </div>
+      ) : null}
+
+      {!isResin && canDevice(device.id, 'gcode') ? (
+        <div style={{ marginBottom: 24 }}>
+          <Typography.Title level={5}>任意 G-code</Typography.Title>
+          <Typography.Paragraph type="secondary" style={{ marginBottom: 8 }}>
+            仅 Moonraker 类设备（Klipper / 部分创想等）。请确认指令安全后再发送。
+          </Typography.Paragraph>
+          <Input.TextArea
+            rows={3}
+            value={gcodeScript}
+            onChange={(e) => setGcodeScript(e.target.value)}
+            placeholder="例如：M118 Hello&#10;G28"
+            style={{ marginBottom: 8, fontFamily: 'ui-monospace, monospace' }}
+          />
+          <Button type="primary" loading={gcodeBusy} disabled={busy} onClick={() => void sendGcode()}>
+            发送 G-code
+          </Button>
+        </div>
       ) : null}
 
       {!isResin && canSubmitPrint ? (

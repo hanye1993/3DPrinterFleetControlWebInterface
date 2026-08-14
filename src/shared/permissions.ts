@@ -154,11 +154,15 @@ export function defaultPermissions(level: UserLevel): string[] {
         deviceActionPerm('retract'),
         deviceActionPerm('home'),
         deviceActionPerm('jog'),
+        deviceActionPerm('emergency_stop'),
+        deviceActionPerm('restart'),
+        deviceActionPerm('firmware_restart'),
         deviceActionPerm('filament_load'),
         deviceActionPerm('filament_unload'),
         deviceActionPerm('files.read'),
         deviceActionPerm('files.upload'),
         deviceActionPerm('camera.view'),
+        deviceActionPerm('gcode'),
         ...FILAMENT_PERMS
       ]
     case 'viewer':

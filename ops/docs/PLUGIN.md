@@ -264,9 +264,9 @@ module.exports = class {
 
 示例：`assets/examples/plugin-capability-kit/`。
 
-### 4.2.0a 设备控制全量原语（宿主 ≥ 1.3.1 / 无 UI）
+### 4.2.0a 设备控制全量原语（宿主 ≥ 1.3.5）
 
-主体**界面不展示**下列深控能力；插件用 `controlDevice` / `moonrakerRequest` 或 HTTP 自行决定 UI。
+主体详情页已提供 jog / 仓温 / 挤出回抽 / 流量 / Z 偏移 / 重启 / 任意 G-code（按权限与 caps 显示）。插件仍可用同一套 `controlDevice` / HTTP。
 
 #### 统一 `controlDevice` / `POST /api/v1/devices/:id/control`
 
@@ -311,6 +311,13 @@ HTTP（需登录 + `device.action.moonraker`）：
 
 `POST /api/v1/devices/:id/moonraker`  
 body: `{ "method": "GET"|"POST"|"DELETE", "path": "/…", "query"?: {}, "body"?: any }`
+
+#### 任意 G-code HTTP
+
+`POST /api/v1/devices/:id/gcode`（需 `device.action.gcode`；仅 Moonraker 类）  
+body: `{ "script": "G28\\nM118 hi" }` 或 `{ "gcode": "…" }`
+
+插件侧亦可 `devices.gcode` → `sendGcode(deviceId, script)`。
 
 约束：仅 Moonraker 类设备（klipper / qidi / 创想局域网）；path 必须 `/` 开头、禁止 `..`；只转发到该设备已连接的 baseUrl。
 
