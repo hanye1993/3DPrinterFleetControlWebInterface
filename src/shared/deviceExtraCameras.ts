@@ -54,6 +54,60 @@ export function isExtraCameraId(id: string): boolean {
   return String(id || '').startsWith(EXTRA_CAM_ID_PREFIX)
 }
 
+function isGenericChamberName(name: string): boolean {
+  const n = String(name || '').trim()
+  return !n || n === '摄像头' || n === '机舱摄像头'
+}
+
+/**
+ * discoverCameras returns many URL *candidates* (same chamber, different paths/ports).
+ * Collapse those into one logical cam per distinct name so UI switch is not flooded.
+ * Named Moonraker webcams (不同名称) stay separate.
+ */
+export function collapseDiscoveredCameras(
+  discovered: Array<{ id: string; name: string; streamUrl: string; snapshotUrl?: string }>
+): CameraCandidate[] {
+  const groups = new Map<string, CameraCandidate>()
+  for (const c of discovered || []) {
+    if (!c?.streamUrl && !c?.snapshotUrl) continue
+    const name = String(c.name || '').trim() || '摄像头'
+    const key = isGenericChamberName(name) ? '__chamber__' : name
+    if (groups.has(key)) continue
+    groups.set(key, {
+      id: key === '__chamber__' ? 'chamber' : String(c.id || name),
+      name: key === '__chamber__' ? '机舱摄像头' : name,
+      streamUrl: String(c.streamUrl || c.snapshotUrl || ''),
+      snapshotUrl: c.snapshotUrl
+    })
+  }
+  return [...groups.values()]
+}
+
+/** All candidate URLs for a logical (collapsed) camera — for snapshot fail-over. */
+export function discoveredUrlsForLogicalCam(
+  discovered: Array<{ id: string; name: string; streamUrl: string; snapshotUrl?: string }>,
+  logicalId: string
+): string[] {
+  const wantChamber = logicalId === 'chamber'
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const c of discovered || []) {
+    const name = String(c.name || '').trim() || '摄像头'
+    const isChamber = isGenericChamberName(name)
+    const match = wantChamber
+      ? isChamber
+      : String(c.id) === logicalId || name === logicalId
+    if (!match) continue
+    for (const raw of [c.snapshotUrl, c.streamUrl]) {
+      const u = normalizeUrl(raw)
+      if (!u || seen.has(u)) continue
+      seen.add(u)
+      out.push(u)
+    }
+  }
+  return out
+}
+
 export function parseDeviceExtraCameras(device: unknown): DeviceExtraCamera[] {
   const row = asRecord(device)
   if (!row) return []
@@ -90,7 +144,7 @@ export function parseDeviceExtraCameras(device: unknown): DeviceExtraCamera[] {
   return out
 }
 
-/** Append extras after discovered cams; skip duplicate URLs. */
+/** Collapse discovery candidates, then append extras (skip duplicate URLs). */
 export function mergeDiscoveredWithExtra(
   discovered: Array<{ id: string; name: string; streamUrl: string; snapshotUrl?: string }>,
   extras: DeviceExtraCamera[]
@@ -109,14 +163,8 @@ export function mergeDiscoveredWithExtra(
     out.push(c)
   }
 
-  for (const c of discovered || []) {
-    if (!c?.streamUrl && !c?.snapshotUrl) continue
-    push({
-      id: String(c.id),
-      name: String(c.name || '摄像头'),
-      streamUrl: String(c.streamUrl || c.snapshotUrl || ''),
-      snapshotUrl: c.snapshotUrl
-    })
+  for (const c of collapseDiscoveredCameras(discovered)) {
+    push(c)
   }
   for (const e of extras || []) {
     push({

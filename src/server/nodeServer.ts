@@ -28,7 +28,9 @@ import { discoverCameras, fetchSnapshot } from '../main/camera/proxy'
 import { grabBambuJpegFrame, parseBambuCameraUrl } from '../main/bambu/camera'
 import {
   mergeDiscoveredWithExtra,
-  parseDeviceExtraCameras
+  parseDeviceExtraCameras,
+  discoveredUrlsForLogicalCam,
+  isExtraCameraId
 } from '../shared/deviceExtraCameras'
 import { createFileOperationLogStore } from '../main/operationLogs/fileStore'
 import { MysqlOperationLogStore } from './storage/mysqlOperationLogs'
@@ -549,6 +551,24 @@ async function bootstrap(): Promise<void> {
         name: String(d.name || deviceId),
         brand: String(d.brand || ''),
         cameras: cams
+      }
+    },
+    listDeviceCameraProbeUrls: async (deviceId, cameraId) => {
+      if (isExtraCameraId(cameraId)) return []
+      const d = readDeviceRows().find((x) => String(x.id || '') === deviceId)
+      if (!d) return []
+      const secretKey = typeof d.secretKey === 'string' ? d.secretKey : ''
+      const apiKey = secretKey ? secretsCache[secretKey] || (await resolveSecret(secretKey)) : null
+      try {
+        const discovered = await discoverCameras({
+          brand: String(d.brand || ''),
+          host: deviceHost(d) || undefined,
+          baseUrl: typeof d.baseUrl === 'string' ? d.baseUrl : undefined,
+          apiKey: apiKey || undefined
+        })
+        return discoveredUrlsForLogicalCam(discovered, cameraId)
+      } catch {
+        return []
       }
     },
     takeCameraSnapshot: async (url, apiKey) => {

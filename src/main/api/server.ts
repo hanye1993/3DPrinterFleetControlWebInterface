@@ -634,6 +634,7 @@ export type ApiServerDeps = {
   onDevicesChanged?: () => void
   listWallCameras: MonitorApiDeps['listWall']
   listDeviceCameras: MonitorApiDeps['listDeviceCameras']
+  listDeviceCameraProbeUrls?: MonitorApiDeps['listDeviceCameraProbeUrls']
   takeCameraSnapshot: MonitorApiDeps['takeSnapshot']
   getDeviceApiKey: MonitorApiDeps['getDeviceApiKey']
   setDeviceSecret: FullApiDeps['setDeviceSecret']
@@ -1424,6 +1425,7 @@ export class ApiServer {
           onMonitorZonesChanged: this.deps.onMonitorZonesChanged,
           listWall: this.deps.listWallCameras,
           listDeviceCameras: this.deps.listDeviceCameras,
+          listDeviceCameraProbeUrls: this.deps.listDeviceCameraProbeUrls,
           takeSnapshot: this.deps.takeCameraSnapshot,
           getDeviceApiKey: this.deps.getDeviceApiKey,
           getPluginManager: () => this.deps.getPluginManager?.() || null

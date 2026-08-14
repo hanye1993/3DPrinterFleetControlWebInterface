@@ -1089,7 +1089,32 @@
       seen[key] = 1
       out.push(c)
     }
-    return out
+    // 宿主已折叠 URL 候选；此处再兜底：同名「摄像头」只留一路
+    var byName = Object.create(null)
+    var collapsed = []
+    for (var j = 0; j < out.length; j++) {
+      var cam = out[j]
+      var id = String(cam.id || '')
+      if (id.indexOf('extra:') === 0) {
+        collapsed.push(cam)
+        continue
+      }
+      var n = String(cam.name || '').trim() || '摄像头'
+      var g = n === '摄像头' || n === '机舱摄像头' ? '__chamber__' : n
+      if (byName[g]) continue
+      byName[g] = 1
+      if (g === '__chamber__') {
+        collapsed.push({
+          id: cam.id || 'chamber',
+          name: '机舱摄像头',
+          streamUrl: cam.streamUrl,
+          snapshotUrl: cam.snapshotUrl
+        })
+      } else {
+        collapsed.push(cam)
+      }
+    }
+    return collapsed
   }
 
   /** 多路机位 / 第三方摄像头：显示切换；同源 URL 候选不当作多路 */

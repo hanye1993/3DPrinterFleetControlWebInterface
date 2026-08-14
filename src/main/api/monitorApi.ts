@@ -49,6 +49,11 @@ export type MonitorApiDeps = {
   takeSnapshot: (url: string, apiKey?: string) => Promise<SnapshotResult>
   /** Device secret for Moonraker / Bambu LAN access code */
   getDeviceApiKey: (deviceId: string) => string | null
+  /**
+   * Extra discovery URL candidates for a logical device camera (chamber fail-over).
+   * Used when the primary collapsed URL does not yield a frame.
+   */
+  listDeviceCameraProbeUrls?: (deviceId: string, cameraId: string) => Promise<string[]>
   getPluginManager?: () => {
     runHook: (name: string, value: unknown, ctx?: unknown) => Promise<unknown>
   } | null
@@ -364,7 +369,19 @@ export async function handleMonitorApi(opts: {
     }
     const target = cam.snapshotUrl || cam.streamUrl
     const apiKey = deps.getDeviceApiKey(deviceId) || undefined
-    const shot = await deps.takeSnapshot(target, apiKey)
+    let shot = await deps.takeSnapshot(target, apiKey)
+    if (!shot.ok && deps.listDeviceCameraProbeUrls && !String(cameraId).startsWith('extra:')) {
+      try {
+        const probes = await deps.listDeviceCameraProbeUrls(deviceId, cameraId)
+        for (const u of probes) {
+          if (!u || u === target) continue
+          shot = await deps.takeSnapshot(u, apiKey)
+          if (shot.ok) break
+        }
+      } catch {
+        /* keep first failure */
+      }
+    }
     await respondSnapshot(res, url, shot, sendJson)
     return true
   }

@@ -223,8 +223,25 @@ export function DeviceDetailDrawer({
     try {
       if (clientMode) {
         const list = await serverListDeviceCameras(deviceId)
+        // Host collapses URL candidates; keep extras + one chamber (safety if old server)
+        const extras = (list || []).filter((c) => String(c.id || '').startsWith('extra:'))
+        const builtIn = (list || []).filter((c) => !String(c.id || '').startsWith('extra:'))
+        const chamber =
+          builtIn.find((c) => c.id === 'chamber') ||
+          builtIn.find((c) => {
+            const n = String(c.name || '').trim()
+            return n === '机舱摄像头' || n === '摄像头'
+          }) ||
+          builtIn[0]
+        const named = builtIn.filter((c) => {
+          if (!chamber) return true
+          if (c.id === chamber.id) return false
+          const n = String(c.name || '').trim()
+          return n && n !== '摄像头' && n !== '机舱摄像头'
+        })
+        const logical = [...(chamber ? [chamber] : []), ...named, ...extras]
         setCameras(
-          (list || []).map((c) => ({
+          logical.map((c) => ({
             id: c.id,
             name: c.name,
             streamUrl: c.streamUrl,
