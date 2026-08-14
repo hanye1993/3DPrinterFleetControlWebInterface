@@ -1,8 +1,8 @@
 {
   "identifier": "extra_cameras",
   "name": "设备第三方摄像头",
-  "version": "1.0.0",
-  "description": "为每台设备添加 HTTP/MJPEG 第三方摄像头：详情页左右滑动切换、内部监控墙显示，并纳入 AI 巡检。",
+  "version": "1.0.1",
+  "description": "为每台设备添加 HTTP/MJPEG 第三方摄像头：按钮弹窗添加、详情左右滑动切换、内部监控墙显示，并纳入 AI 巡检。",
   "copyright": "hanye",
   "author": "hanye",
   "available": true,

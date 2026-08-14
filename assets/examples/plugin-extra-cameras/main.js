@@ -3,13 +3,18 @@
  * Host merges them into /devices/:id/cameras, monitor wall, and AI patrol.
  */
 function normalizeUrl(raw) {
-  return String(raw == null ? '' : raw)
+  var s = String(raw == null ? '' : raw)
     .trim()
     .replace(/\s+/g, '')
+  if (!s) return ''
+  if (/^https?:\/\//i.test(s) || s.indexOf('bambu-cam://') === 0) return s
+  // IP / host without scheme → assume http
+  if (/^[\w.-]+(:\d+)?(\/|$)/.test(s) || s.indexOf('/') === 0) return 'http://' + s.replace(/^\/+/, '')
+  return s
 }
 
 function isHttpCam(url) {
-  return /^https?:\/\//i.test(url) || String(url).startsWith('bambu-cam://')
+  return /^https?:\/\//i.test(url) || String(url).indexOf('bambu-cam://') === 0
 }
 
 function ensureId(rawId, url, index) {
@@ -96,14 +101,17 @@ async function register(api) {
 
     var next = devices.slice()
     var row = Object.assign({}, next[idx])
-    var pd = Object.assign({}, row.pluginData && typeof row.pluginData === 'object' ? row.pluginData : {})
+    var pd = Object.assign(
+      {},
+      row.pluginData && typeof row.pluginData === 'object' ? row.pluginData : {}
+    )
     pd.extraCameras = cameras
     row.pluginData = pd
     next[idx] = row
     if (typeof api.saveDevices !== 'function') {
       return { ok: false, message: '无法保存设备（saveDevices 不可用）' }
     }
-    api.saveDevices(next)
+    await Promise.resolve(api.saveDevices(next))
     return { ok: true, deviceId: deviceId, cameras: cameras }
   })
 

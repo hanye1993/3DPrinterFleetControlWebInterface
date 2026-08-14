@@ -322,7 +322,17 @@ export function DeviceDetailDrawer({
         payload && typeof payload === 'object' && payload !== null && 'deviceId' in payload
           ? String((payload as { deviceId?: unknown }).deviceId || '')
           : ''
-      if (id && id === deviceId) void loadCameras()
+      if (!id || id !== deviceId) return
+      void (async () => {
+        try {
+          if (isClientMode()) {
+            await useDeviceStore.getState().refreshFromServer()
+          }
+        } catch {
+          /* ignore */
+        }
+        await loadCameras()
+      })()
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, deviceId])

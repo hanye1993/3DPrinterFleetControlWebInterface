@@ -1,23 +1,31 @@
 .ec-panel {
   width: 100%;
   max-width: 560px;
-  margin: 0 auto 16px;
-  padding: 10px 12px;
+  margin: 0 auto 12px;
+  padding: 8px 10px;
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.18);
   text-align: left;
   box-sizing: border-box;
 }
 
-.ec-head {
+.ec-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ec-bar-left {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  margin-bottom: 8px;
+  min-width: 0;
 }
 
-.ec-head strong {
+.ec-bar-left strong {
   font-size: 13px;
 }
 
@@ -26,37 +34,121 @@
   opacity: 0.65;
 }
 
-.ec-list {
+.ec-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.ec-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 4px 6px 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 12px;
+}
+
+.ec-chip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 160px;
+}
+
+.ec-chip-tag {
+  font-size: 10px;
+  opacity: 0.65;
+}
+
+.ec-chip-del {
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 77, 79, 0.2);
+  color: inherit;
+  cursor: pointer;
+  line-height: 1;
+  font-size: 14px;
+}
+
+.ec-btn {
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  font-size: 12px;
+  padding: 5px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ec-btn.ec-primary {
+  background: rgba(64, 150, 255, 0.28);
+  border-color: rgba(64, 150, 255, 0.5);
+}
+
+.ec-modal-root {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.ec-modal-mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.ec-modal {
+  position: relative;
+  z-index: 1;
+  width: min(420px, 100%);
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #141820;
+  color: #e8eaed;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+  box-sizing: border-box;
+}
+
+.ec-modal-title {
+  font-size: 15px;
+  font-weight: 650;
+  margin-bottom: 12px;
+}
+
+.ec-field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-}
-
-.ec-empty {
+  gap: 4px;
+  margin-bottom: 10px;
   font-size: 12px;
-  opacity: 0.6;
-  padding: 6px 0;
 }
 
-.ec-row {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 6px;
-  padding: 8px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+.ec-field span {
+  opacity: 0.75;
 }
 
-.ec-row input[type='text'] {
+.ec-field input {
   width: 100%;
   box-sizing: border-box;
   border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   background: rgba(0, 0, 0, 0.35);
   color: inherit;
-  padding: 6px 8px;
-  font-size: 12px;
+  padding: 8px 10px;
+  font-size: 13px;
 }
 
 .ec-ai {
@@ -64,35 +156,13 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  opacity: 0.9;
+  margin: 4px 0 12px;
 }
 
-.ec-actions {
+.ec-modal-actions {
   display: flex;
-  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
-  margin-top: 10px;
-}
-
-.ec-btn,
-.ec-del {
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.06);
-  color: inherit;
-  font-size: 12px;
-  padding: 5px 10px;
-  cursor: pointer;
-}
-
-.ec-btn.ec-primary {
-  background: rgba(64, 150, 255, 0.25);
-  border-color: rgba(64, 150, 255, 0.45);
-}
-
-.ec-del {
-  justify-self: start;
-  opacity: 0.8;
 }
 
 .ec-toast {
@@ -100,7 +170,7 @@
   left: 50%;
   bottom: 28px;
   transform: translateX(-50%);
-  z-index: 99999;
+  z-index: 100001;
   padding: 8px 14px;
   border-radius: 8px;
   font-size: 13px;

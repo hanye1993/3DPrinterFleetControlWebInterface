@@ -4,14 +4,14 @@
 
 ## 能力
 
-- **设备详情**：摄像头下方设置面板（添加 / 删除 / 保存）
-- **左右切换**：详情画面左右滑动或箭头切换（宿主 `CameraPanel`；详情控制台插件同步支持）
-- **内部监控**：第三方摄像头单独成瓦片显示
-- **AI 巡检**：默认参与设备 AI 巡检（可在设置中关闭单路）
+- **设备详情**：一行工具条 +「添加摄像头」按钮（弹窗填写）；已添加显示为可删除标签
+- **左右切换**：详情画面左右滑动或箭头切换
+- **内部监控**：第三方摄像头单独成瓦片
+- **AI 巡检**：默认参与（弹窗内可关）
 
 ## 依赖
 
-需要宿主 **≥ 1.4.2**（合并 `device.pluginData.extraCameras` 到摄像头列表 / 监控墙 / AI）。
+需要宿主 **≥ 1.4.2**。
 
 ## 配置
 
@@ -19,12 +19,13 @@
 
 | 键 | 说明 | 默认 |
 |----|------|------|
-| `show_settings` | 详情页显示设置面板 | 开 |
-| `default_ai` | 新增摄像头默认 AI 巡检 | 开 |
+| `show_settings` | 详情页显示工具条 | 开 |
+| `default_ai` | 新增默认 AI 巡检 | 开 |
 
 ## API
 
 - `GET /api/v1/extra-cameras/list?deviceId=`
 - `PUT /api/v1/extra-cameras/save` body `{ deviceId, cameras: [{ name, streamUrl, snapshotUrl?, aiEnabled? }] }`
 
-数据写入 `device.pluginData.extraCameras`，摄像头 id 形如 `extra:…`。
+数据写入 `device.pluginData.extraCameras`。URL 可省略 `http://`（自动补全）。
+

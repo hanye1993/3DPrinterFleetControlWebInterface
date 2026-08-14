@@ -30,9 +30,15 @@ function asRecord(v: unknown): Record<string, unknown> | null {
 }
 
 function normalizeUrl(raw: unknown): string {
-  return String(raw ?? '')
+  let s = String(raw ?? '')
     .trim()
     .replace(/\s+/g, '')
+  if (!s) return ''
+  if (/^https?:\/\//i.test(s) || s.startsWith('bambu-cam://')) return s
+  if (/^[\w.-]+(:\d+)?(\/|$)/.test(s) || s.startsWith('/')) {
+    return `http://${s.replace(/^\/+/, '')}`
+  }
+  return s
 }
 
 /** Stable id: keep existing extra:* or mint from URL hash-ish */

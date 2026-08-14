@@ -1,6 +1,6 @@
 /**
- * extra_cameras — device detail settings for third-party cams.
- * Swipe switching is provided by host CameraPanel / detail_console.
+ * extra_cameras — button opens modal to add; list + delete in compact bar.
+ * Host CameraPanel / detail_console handle swipe switching.
  */
 ;(function () {
   var P = window.HanyePlugin
@@ -27,6 +27,11 @@
       .replace(/"/g, '&quot;')
   }
 
+  function unwrap(j) {
+    if (j && j.data && typeof j.data === 'object') return j.data
+    return j
+  }
+
   function toast(msg, ok) {
     var el = document.createElement('div')
     el.className = 'ec-toast' + (ok === false ? ' is-err' : ' is-ok')
@@ -43,10 +48,13 @@
   function fetchJson(url, opts) {
     return fetch(url, opts || {}).then(function (r) {
       return r.json().then(function (j) {
-        if (!r.ok && (!j || j.ok === false)) {
-          throw new Error((j && j.message) || '请求失败 ' + r.status)
+        var payload = unwrap(j)
+        if (!r.ok || (payload && payload.ok === false) || (j && j.ok === false && !payload)) {
+          throw new Error(
+            (payload && payload.message) || (j && j.message) || '请求失败 ' + r.status
+          )
         }
-        return j
+        return payload
       })
     })
   }
@@ -70,47 +78,105 @@
     })
   }
 
-  function rowHtml(cam, i) {
-    return (
-      '<div class="ec-row" data-idx="' +
-      i +
-      '">' +
-      '<input class="ec-name" type="text" placeholder="名称" value="' +
-      escapeHtml(cam.name || '') +
-      '" />' +
-      '<input class="ec-url" type="text" placeholder="画面 URL（HTTP / MJPEG）" value="' +
-      escapeHtml(cam.streamUrl || '') +
-      '" />' +
-      '<input class="ec-snap" type="text" placeholder="可选：快照 URL" value="' +
-      escapeHtml(cam.snapshotUrl || '') +
-      '" />' +
-      '<label class="ec-ai"><input type="checkbox" class="ec-ai-ck"' +
-      (cam.aiEnabled === false ? '' : ' checked') +
-      ' /> AI 巡检</label>' +
-      '<button type="button" class="ec-del" data-act="del">删除</button>' +
-      '</div>'
-    )
+  function closeModal() {
+    var m = document.getElementById('ec-modal-root')
+    if (m && m.parentNode) m.parentNode.removeChild(m)
   }
 
-  function collect(root) {
-    var rows = root.querySelectorAll('.ec-row')
-    var out = []
-    for (var i = 0; i < rows.length; i++) {
-      var row = rows[i]
-      var name = (row.querySelector('.ec-name') || {}).value || ''
-      var url = (row.querySelector('.ec-url') || {}).value || ''
-      var snap = (row.querySelector('.ec-snap') || {}).value || ''
-      var ai = row.querySelector('.ec-ai-ck')
-      if (!String(url).trim()) continue
-      out.push({
+  function openAddModal(deviceId, existing, onDone) {
+    closeModal()
+    var root = document.createElement('div')
+    root.id = 'ec-modal-root'
+    root.className = 'ec-modal-root'
+    root.innerHTML =
+      '<div class="ec-modal-mask" data-act="cancel"></div>' +
+      '<div class="ec-modal" role="dialog" aria-modal="true">' +
+      '<div class="ec-modal-title">添加第三方摄像头</div>' +
+      '<label class="ec-field"><span>名称</span>' +
+      '<input class="ec-modal-name" type="text" placeholder="例如：机后 / 门口" /></label>' +
+      '<label class="ec-field"><span>画面 URL</span>' +
+      '<input class="ec-modal-url" type="text" placeholder="http://192.168.x.x/stream 或 IP:端口/路径" /></label>' +
+      '<label class="ec-field"><span>快照 URL（可选）</span>' +
+      '<input class="ec-modal-snap" type="text" placeholder="留空则用画面地址" /></label>' +
+      '<label class="ec-ai ec-modal-ai"><input type="checkbox" class="ec-modal-ai-ck"' +
+      (defaultAi ? ' checked' : '') +
+      ' /> 参与 AI 巡检</label>' +
+      '<div class="ec-modal-actions">' +
+      '<button type="button" class="ec-btn" data-act="cancel">取消</button>' +
+      '<button type="button" class="ec-btn ec-primary" data-act="confirm">确定</button>' +
+      '</div></div>'
+
+    function onClick(ev) {
+      var t = ev.target
+      var act = t && t.getAttribute ? t.getAttribute('data-act') : ''
+      if (act === 'cancel' || t === root.querySelector('.ec-modal-mask')) {
+        closeModal()
+        return
+      }
+      if (act !== 'confirm') return
+      var name = (root.querySelector('.ec-modal-name') || {}).value || ''
+      var url = (root.querySelector('.ec-modal-url') || {}).value || ''
+      var snap = (root.querySelector('.ec-modal-snap') || {}).value || ''
+      var ai = root.querySelector('.ec-modal-ai-ck')
+      if (!String(url).trim()) {
+        toast('请填写画面 URL', false)
+        return
+      }
+      var next = (existing || []).slice()
+      next.push({
         id: '',
         name: String(name).trim(),
         streamUrl: String(url).trim(),
         snapshotUrl: String(snap).trim() || undefined,
         aiEnabled: ai ? !!ai.checked : true
       })
+      var btn = t
+      btn.disabled = true
+      saveList(deviceId, next)
+        .then(function (j) {
+          var cams = (j && j.cameras) || next
+          toast('已添加，共 ' + cams.length + ' 路', true)
+          closeModal()
+          try {
+            P.emit('device:cameras-reload', { deviceId: deviceId })
+            P.emit('monitor:change', null)
+          } catch (_) {
+            /* ignore */
+          }
+          if (typeof onDone === 'function') onDone(cams)
+        })
+        .catch(function (e) {
+          toast(e && e.message ? e.message : '保存失败', false)
+          btn.disabled = false
+        })
     }
-    return out
+
+    root.addEventListener('click', onClick)
+    document.body.appendChild(root)
+    var first = root.querySelector('.ec-modal-name')
+    if (first && first.focus) setTimeout(function () {
+      first.focus()
+    }, 30)
+  }
+
+  function chipHtml(cam, i) {
+    return (
+      '<div class="ec-chip" data-idx="' +
+      i +
+      '" data-id="' +
+      escapeHtml(cam.id || '') +
+      '" title="' +
+      escapeHtml(cam.streamUrl || '') +
+      '">' +
+      '<span class="ec-chip-name">' +
+      escapeHtml(cam.name || '摄像头') +
+      '</span>' +
+      (cam.aiEnabled === false ? '<span class="ec-chip-tag">无AI</span>' : '') +
+      '<button type="button" class="ec-chip-del" data-act="del" data-idx="' +
+      i +
+      '" aria-label="删除">×</button>' +
+      '</div>'
+    )
   }
 
   function render(el, deviceId, cameras) {
@@ -118,24 +184,36 @@
       el.innerHTML = ''
       return
     }
+    el._ecCams = cameras || []
     var html =
       '<div class="ec-panel" data-device-id="' +
       escapeHtml(deviceId) +
       '">' +
-      '<div class="ec-head">' +
+      '<div class="ec-bar">' +
+      '<div class="ec-bar-left">' +
       '<strong>第三方摄像头</strong>' +
-      '<span class="ec-hint">左右滑动画面可切换；保存后进入内部监控与 AI 巡检</span>' +
+      '<span class="ec-hint">' +
+      (cameras.length ? '已添加 ' + cameras.length + ' 路 · 画面左右滑切换' : '未添加') +
+      '</span>' +
       '</div>' +
-      '<div class="ec-list">' +
+      '<button type="button" class="ec-btn ec-primary" data-act="add">添加摄像头</button>' +
+      '</div>' +
       (cameras.length
-        ? cameras.map(rowHtml).join('')
-        : '<div class="ec-empty">尚未添加第三方摄像头</div>') +
-      '</div>' +
-      '<div class="ec-actions">' +
-      '<button type="button" class="ec-btn" data-act="add">添加摄像头</button>' +
-      '<button type="button" class="ec-btn ec-primary" data-act="save">保存</button>' +
-      '</div></div>'
+        ? '<div class="ec-chips">' + cameras.map(chipHtml).join('') + '</div>'
+        : '') +
+      '</div>'
     el.innerHTML = html
+  }
+
+  function refresh(el, deviceId) {
+    return loadList(deviceId)
+      .then(function (cams) {
+        render(el, deviceId, cams)
+        return cams
+      })
+      .catch(function () {
+        render(el, deviceId, el._ecCams || [])
+      })
   }
 
   P.registerSlot(
@@ -147,55 +225,38 @@
         el.innerHTML = ''
         return
       }
-      el.innerHTML = '<div class="ec-panel"><div class="ec-hint">加载摄像头设置…</div></div>'
-      loadList(deviceId)
-        .then(function (cams) {
-          render(el, deviceId, cams)
-        })
-        .catch(function () {
-          render(el, deviceId, [])
-        })
+      el.innerHTML = '<div class="ec-panel"><div class="ec-hint">加载中…</div></div>'
+      void refresh(el, deviceId)
 
       if (el._ecBound) return
       el._ecBound = true
       el.addEventListener('click', function (ev) {
         var t = ev.target
-        var act = t && t.getAttribute ? t.getAttribute('data-act') : ''
+        if (!t || !t.getAttribute) return
+        var act = t.getAttribute('data-act')
         var panel = el.querySelector('.ec-panel')
         if (!panel) return
         var id = panel.getAttribute('data-device-id') || deviceId
+        var cams = el._ecCams || []
 
         if (act === 'add') {
-          var list = el.querySelector('.ec-list')
-          if (!list) return
-          var empty = list.querySelector('.ec-empty')
-          if (empty) empty.parentNode.removeChild(empty)
-          var wrap = document.createElement('div')
-          wrap.innerHTML = rowHtml(
-            { name: '', streamUrl: '', snapshotUrl: '', aiEnabled: defaultAi },
-            list.children.length
-          )
-          list.appendChild(wrap.firstChild)
+          openAddModal(id, cams, function (next) {
+            render(el, id, next)
+          })
           return
         }
 
         if (act === 'del') {
-          var row = t.closest ? t.closest('.ec-row') : null
-          if (row && row.parentNode) row.parentNode.removeChild(row)
-          var list2 = el.querySelector('.ec-list')
-          if (list2 && !list2.querySelector('.ec-row')) {
-            list2.innerHTML = '<div class="ec-empty">尚未添加第三方摄像头</div>'
-          }
-          return
-        }
-
-        if (act === 'save') {
-          var cams = collect(panel)
+          var idx = Number(t.getAttribute('data-idx'))
+          if (!Number.isFinite(idx) || idx < 0 || idx >= cams.length) return
+          var next = cams.slice()
+          next.splice(idx, 1)
           t.disabled = true
-          saveList(id, cams)
+          saveList(id, next)
             .then(function (j) {
-              toast('已保存 ' + ((j && j.cameras && j.cameras.length) || 0) + ' 路摄像头', true)
-              render(el, id, (j && j.cameras) || cams)
+              var list = (j && j.cameras) || next
+              toast(list.length ? '已删除' : '已清空第三方摄像头', true)
+              render(el, id, list)
               try {
                 P.emit('device:cameras-reload', { deviceId: id })
                 P.emit('monitor:change', null)
@@ -204,9 +265,7 @@
               }
             })
             .catch(function (e) {
-              toast(e && e.message ? e.message : '保存失败', false)
-            })
-            .then(function () {
+              toast(e && e.message ? e.message : '删除失败', false)
               t.disabled = false
             })
         }
