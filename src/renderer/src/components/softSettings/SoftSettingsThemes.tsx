@@ -32,8 +32,6 @@ type ThemeRow = {
   styles: Array<{ id: string; name: string }>
 }
 
-type Bundled = { identifier: string; name: string; version: string }
-
 type ActivePayload = {
   packId: string
   styleId: string
@@ -41,7 +39,6 @@ type ActivePayload = {
 
 export function SoftSettingsThemes() {
   const [themes, setThemes] = useState<ThemeRow[]>([])
-  const [bundled, setBundled] = useState<Bundled[]>([])
   const [active, setActive] = useState<ActivePayload | null>(null)
   const [loading, setLoading] = useState(false)
   const settings = useSettingsStore((s) => s.settings)
@@ -52,11 +49,9 @@ export function SoftSettingsThemes() {
     try {
       const data = await serverGet<{
         themes?: ThemeRow[]
-        bundled?: Bundled[]
         active?: ActivePayload | null
       }>('/api/v1/themes')
       setThemes(data.themes || [])
-      setBundled(data.bundled || [])
       setActive(data.active || null)
       await refreshActiveThemePack()
     } catch (e) {
@@ -103,16 +98,6 @@ export function SoftSettingsThemes() {
         settings.uiTheme
       message.success('已启用主题')
       await applyLocal(id, styleId)
-      await refresh()
-    } catch (e) {
-      message.error(e instanceof Error ? e.message : String(e))
-    }
-  }
-
-  const installBundled = async (id: string) => {
-    try {
-      await serverSend('/api/v1/themes/install-bundled', 'POST', { identifier: id })
-      message.success('已安装')
       await refresh()
     } catch (e) {
       message.error(e instanceof Error ? e.message : String(e))
@@ -178,11 +163,7 @@ export function SoftSettingsThemes() {
           Discuz 式<strong>.htm 模板引擎</strong>（extends / block / include / {'{$var}'}）+ 排版引擎（layout /
           deviceView / loginLayout）+ 多套配色 styles。支持<strong>整站模板模式</strong>（
           <code>siteMode: full</code>：主题 HTML 骨架 + <code>data-hanye-mount</code> 交互岛）。系统仅内置{' '}
-          <code>default</code>（skin）。其它主题请上传 ZIP 安装；开发示例可下载：
-          <Typography.Link href="/api/v1/docs/downloads/hanye-theme-sample-topnav.zip">
-            hanye-theme-sample-topnav.zip
-          </Typography.Link>
-          （顶栏 + .htm 槽位示例）。完整说明见页底文档。
+          <code>default</code>（skin）。其它主题请上传 ZIP 安装，或在「应用市场」获取。完整说明见页底文档。
         </Typography.Paragraph>
 
         <Upload.Dragger
@@ -201,20 +182,6 @@ export function SoftSettingsThemes() {
           <p className="ant-upload-hint">包根目录须含 theme.json</p>
         </Upload.Dragger>
         <PluginSlot name="settings.themes.upload.after" />
-
-        {bundled.length ? (
-          <>
-            <Typography.Title level={5}>内置主题</Typography.Title>
-            <Space wrap style={{ marginBottom: 16 }}>
-              {bundled.map((b) => (
-                <Button key={b.identifier} onClick={() => void installBundled(b.identifier)}>
-                  同步 {b.name} v{b.version}
-                </Button>
-              ))}
-            </Space>
-            <PluginSlot name="settings.themes.bundled.after" />
-          </>
-        ) : null}
 
         <PluginSlot name="settings.themes.list.before" />
         <Table

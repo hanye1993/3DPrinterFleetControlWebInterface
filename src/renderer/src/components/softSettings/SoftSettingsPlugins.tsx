@@ -62,8 +62,6 @@ type PluginRow = {
   enabledModules?: Record<string, boolean>
 }
 
-type Bundled = { identifier: string; name: string; version: string }
-
 type ModuleRef = { pluginId: string; module: string }
 
 type UserGroup = {
@@ -133,7 +131,6 @@ function normalizeGroupsFromResponse(data: {
 
 export function SoftSettingsPlugins() {
   const [plugins, setPlugins] = useState<PluginRow[]>([])
-  const [bundled, setBundled] = useState<Bundled[]>([])
   const [kernelVersion, setKernelVersion] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const [varsOpen, setVarsOpen] = useState<PluginRow | null>(null)
@@ -152,11 +149,9 @@ export function SoftSettingsPlugins() {
     try {
       const data = await serverGet<{
         plugins?: PluginRow[]
-        bundled?: Bundled[]
         kernelVersion?: string
       }>('/api/v1/plugins')
       setPlugins(data.plugins || [])
-      setBundled(data.bundled || [])
       setKernelVersion(data.kernelVersion || '')
       try {
         const dbg = await serverGet<KernelDebug>('/api/v1/plugins/kernel-debug')
@@ -238,16 +233,6 @@ export function SoftSettingsPlugins() {
     }
   }
 
-  const installBundled = async (id: string) => {
-    try {
-      await serverSend('/api/v1/plugins/install-bundled', 'POST', { identifier: id })
-      message.success('已安装')
-      await refresh()
-    } catch (e) {
-      message.error(e instanceof Error ? e.message : String(e))
-    }
-  }
-
   const onZip = async (file: File) => {
     try {
       const buf = await file.arrayBuffer()
@@ -280,15 +265,8 @@ export function SoftSettingsPlugins() {
           <code>apiVersion: &quot;2&quot;</code> + <code>activate(ctx)</code>（Hook / Context / 模板 / HMAC 回调 /
           cron）。旧版 <code>main.js</code> 同名钩子仍兼容。包结构：
           <code>plugin.json</code> + 服务端 + <code>client.js</code>/<code>login.js</code> + 槽位/模板 +{' '}
-          <code>theme.css</code>。只安装可信来源。示例：
-          <Typography.Link href="/api/v1/docs/downloads/hanye-plugin-sample-hello.zip">
-            sample-hello.zip
-          </Typography.Link>
-          、
-          <Typography.Link href="/api/v1/docs/downloads/hanye-plugin-kernel-v2.zip">
-            kernel-v2.zip
-          </Typography.Link>
-          。手册见页底「插件开发文档」与「微内核 v2」；主题换皮见主题页文档。
+          <code>theme.css</code>。只安装可信来源。也可在「应用市场」安装。手册见页底「插件开发文档」与「微内核
+          v2」；主题换皮见主题页文档。
         </Typography.Paragraph>
 
         <Upload.Dragger
@@ -342,20 +320,6 @@ export function SoftSettingsPlugins() {
           </Button>
         </Space.Compact>
         <PluginSlot name="settings.plugins.installUrl.after" />
-
-        {bundled.length ? (
-          <>
-            <Typography.Title level={5}>内置示例</Typography.Title>
-            <Space wrap style={{ marginBottom: 16 }}>
-              {bundled.map((b) => (
-                <Button key={b.identifier} onClick={() => void installBundled(b.identifier)}>
-                  安装 {b.name} v{b.version}
-                </Button>
-              ))}
-            </Space>
-            <PluginSlot name="settings.plugins.bundled.after" />
-          </>
-        ) : null}
 
         <PluginSlot name="settings.plugins.list.before" />
         <Table
