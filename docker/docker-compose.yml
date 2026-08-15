@@ -61,8 +61,12 @@ services:
       IMPORT_FORCE: ${IMPORT_FORCE:-0}
       WAIT_MYSQL_SECONDS: ${WAIT_MYSQL_SECONDS:-120}
       LAN_SCAN_SUBNETS: ${LAN_SCAN_SUBNETS:-}
+      RUNNING_IN_DOCKER: "1"
+      UPDATE_GIT_ROOT: /host-repo
     volumes:
       - ../data:/app/data
+      # Soft Settings「更新」写入宿主机源码（ZIP 部署也可，无需 .git）
+      - ..:/host-repo
     healthcheck:
       test:
         [

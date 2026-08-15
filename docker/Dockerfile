@@ -22,7 +22,7 @@ FROM docker.m.daocloud.io/library/node:20-bookworm-slim AS runtime
 WORKDIR /app
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates curl \
+  && apt-get install -y --no-install-recommends ca-certificates curl git \
   && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/package.json /app/package-lock.json ./
@@ -45,7 +45,9 @@ ENV NODE_ENV=production \
     MYSQL_HOST=mysql \
     MYSQL_PORT=3306 \
     MYSQL_USER=hanye \
-    MYSQL_DATABASE=hanye_printer
+    MYSQL_DATABASE=hanye_printer \
+    RUNNING_IN_DOCKER=1 \
+    UPDATE_GIT_ROOT=/host-repo
 
 EXPOSE 17890
 VOLUME ["/app/data"]

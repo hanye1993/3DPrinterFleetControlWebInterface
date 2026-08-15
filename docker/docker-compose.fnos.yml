@@ -63,8 +63,11 @@ services:
       IMPORT_FORCE: ${IMPORT_FORCE:-0}
       WAIT_MYSQL_SECONDS: ${WAIT_MYSQL_SECONDS:-120}
       LAN_SCAN_SUBNETS: ${LAN_SCAN_SUBNETS:-192.168.1}
+      RUNNING_IN_DOCKER: "1"
+      UPDATE_GIT_ROOT: /host-repo
     volumes:
       - ../data:/app/data
+      - ..:/host-repo
     healthcheck:
       test:
         [

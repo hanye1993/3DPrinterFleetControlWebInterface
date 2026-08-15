@@ -25,6 +25,8 @@ export type UpdateCheckPayload = {
   message: string
   checkedAt?: string
   cached?: boolean
+  deployMode?: 'docker' | 'source'
+  canApplyUpdate?: boolean
 }
 
 async function fetchLocalAppVersion(): Promise<string> {
@@ -76,7 +78,9 @@ export async function fetchUpdateCheck(force = false): Promise<UpdateCheckPayloa
     releaseUrl: j.releaseUrl || REPO_URL,
     message: j.message || '',
     checkedAt: j.checkedAt,
-    cached: j.cached
+    cached: j.cached,
+    deployMode: j.deployMode === 'docker' ? 'docker' : j.deployMode === 'source' ? 'source' : undefined,
+    canApplyUpdate: j.canApplyUpdate
   }
 }
 
@@ -210,24 +214,31 @@ export function SoftSettingsAbout() {
   }, [doCheck, serverUrl, token])
 
   const onUpdateClick = () => {
+    const docker = status?.deployMode === 'docker'
     Modal.confirm({
-      title: '确认更新源码？',
+      title: docker ? '确认更新（Docker）？' : '确认更新源码？',
       icon: <GithubOutlined />,
       content: (
         <div>
           <p style={{ marginBottom: 8 }}>
-            更新由<strong>服务器</strong>执行 git pull，需该机器能访问{' '}
+            更新由<strong>服务器</strong>执行：优先 git，否则下载 GitHub 源码包。需该机器能访问{' '}
             <Typography.Link href={REPO_URL} target="_blank" rel="noreferrer">
               github.com
             </Typography.Link>
-            （与你本机浏览器能否打开不是一回事）。
+            。
           </p>
-          <p style={{ marginBottom: 0, color: 'rgba(0,0,0,.45)' }}>
-            确认服务器网络可用后再继续。完成后请自行 npm run build 并重启服务。
-          </p>
+          {docker ? (
+            <p style={{ marginBottom: 0, color: 'rgba(0,0,0,.45)' }}>
+              Docker 只会更新宿主机上的源码目录；成功后请到飞牛 Docker 项目点「重新构建并启动」，新版本才会进容器。
+            </p>
+          ) : (
+            <p style={{ marginBottom: 0, color: 'rgba(0,0,0,.45)' }}>
+              完成后请自行 npm run build 并重启服务。
+            </p>
+          )}
         </div>
       ),
-      okText: '服务器可访问，开始更新',
+      okText: docker ? '下载源码并更新' : '服务器可访问，开始更新',
       cancelText: '取消',
       onOk: async () => {
         setApplying(true)
@@ -235,6 +246,14 @@ export function SoftSettingsAbout() {
           const probe = await fetchUpdateCheck(true)
           if (!probe.reachable) {
             message.error(probe.message || '无法连接 GitHub，请检查网络后再试')
+            setStatus(probe)
+            return
+          }
+          if (probe.canApplyUpdate === false) {
+            message.error(
+              probe.message ||
+                '当前 Docker 未挂载宿主机源码目录，无法在设置里更新。请先按文档更新 compose 并重建。'
+            )
             setStatus(probe)
             return
           }
@@ -246,6 +265,8 @@ export function SoftSettingsAbout() {
             ok?: boolean
             reachable?: boolean
             message?: string
+            needsRebuild?: boolean
+            deployMode?: string
           }
           if (!j.reachable) {
             message.error(j.message || '无法连接 GitHub，请检查网络后再试')
@@ -257,6 +278,13 @@ export function SoftSettingsAbout() {
           }
           localStorage.removeItem(LS_HINT)
           message.success(j.message || '源码已更新')
+          if (j.needsRebuild || j.deployMode === 'docker') {
+            Modal.info({
+              title: '还差一步：重建 Docker 镜像',
+              content:
+                '源码已更新到宿主机。请到飞牛 → Docker → 本项目 →「重新构建并启动」。完成后刷新网页查看新版本号。'
+            })
+          }
           await doCheck(true)
         } catch (e) {
           message.error(e instanceof Error ? e.message : '更新失败')
@@ -345,7 +373,9 @@ export function SoftSettingsAbout() {
               </Typography.Text>
             ) : (
               <Typography.Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
-                自动每 24 小时检查一次。更新会 git pull 仓库源码，完成后请重新构建并重启。
+                {status?.deployMode === 'docker'
+                  ? 'Docker 模式：更新会把新源码写到宿主机目录（需挂载 /host-repo），然后请重新构建镜像。自动每 24 小时检查一次。'
+                  : '自动每 24 小时检查一次。更新会拉取仓库源码（git 或 ZIP），完成后请重新构建并重启。'}
               </Typography.Text>
             )}
           </div>
