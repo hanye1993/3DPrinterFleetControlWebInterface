@@ -1,0 +1,78 @@
+{
+  "identifier": "print_log",
+  "name": "打印记录",
+  "version": "1.0.0",
+  "description": "记录谁在何时通过系统或现场打印了什么文件、用了多少材料；可勾选设备；软件设置配置；侧栏导航查看（可开关/授权）。",
+  "copyright": "hanye",
+  "author": "hanye",
+  "available": true,
+  "hooks": [
+    "register",
+    "control_before",
+    "print_request_create",
+    "print_approve",
+    "print_start",
+    "print_batch_before",
+    "statuses_publish",
+    "ui_assets",
+    "permissions_catalog"
+  ],
+  "modules": [
+    {
+      "name": "page",
+      "menu": "打印记录",
+      "type": "page",
+      "displayOrder": 35,
+      "perm": "plugin.print_log.page"
+    }
+  ],
+  "vars": [
+    {
+      "key": "show_nav",
+      "title": "显示侧栏「打印记录」导航",
+      "type": "boolean",
+      "value": "1"
+    },
+    {
+      "key": "record_all",
+      "title": "记录全部打印机（关闭则仅勾选设备）",
+      "type": "boolean",
+      "value": "1"
+    },
+    {
+      "key": "device_ids",
+      "title": "要记录的设备 ID（JSON 数组，record_all=0 时生效）",
+      "type": "text",
+      "value": "[]"
+    },
+    {
+      "key": "record_system",
+      "title": "记录系统发送的打印",
+      "type": "boolean",
+      "value": "1"
+    },
+    {
+      "key": "record_on_device",
+      "title": "记录现场/机上操作的打印",
+      "type": "boolean",
+      "value": "1"
+    },
+    {
+      "key": "retain_days",
+      "title": "记录保留天数（0=不自动清理）",
+      "type": "number",
+      "value": "180"
+    },
+    {
+      "key": "max_rows",
+      "title": "最多保留条数",
+      "type": "number",
+      "value": "2000"
+    }
+  ],
+  "clientJs": ["client.js"],
+  "themeCss": "theme.css",
+  "mainFile": "main.js",
+  "installFile": "install.js",
+  "uninstallFile": "uninstall.js"
+}

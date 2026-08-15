@@ -500,12 +500,16 @@ export async function handleFullApi(opts: {
     }
     const pm = deps.getPluginManager?.()
     if (pm) {
-      const before = (await pm.runHook('print_batch_before', {
-        proceed: true,
-        deviceIds,
-        filename,
-        contentBase64
-      })) as {
+      const before = (await pm.runHook(
+        'print_batch_before',
+        {
+          proceed: true,
+          deviceIds,
+          filename,
+          contentBase64
+        },
+        { method, path, url, query: Object.fromEntries(url.searchParams), headers: {}, auth }
+      )) as {
         proceed?: boolean
         status?: number
         body?: unknown

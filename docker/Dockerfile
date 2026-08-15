@@ -1,10 +1,12 @@
 # Build context = 仓库根目录（由 compose 的 context: .. 指定）
+# 国内 NAS：默认走 DaoCloud 代理拉官方 node 镜像，避免 Docker Hub 超时
 # —— Build stage ——
-FROM node:20-bookworm AS builder
+FROM docker.m.daocloud.io/library/node:20-bookworm AS builder
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm config set registry https://registry.npmmirror.com \
+  && npm ci
 
 COPY tsconfig.json ./
 COPY config ./config
@@ -16,7 +18,7 @@ RUN npm run build \
   && npm prune --omit=dev
 
 # —— Runtime ——
-FROM node:20-bookworm-slim AS runtime
+FROM docker.m.daocloud.io/library/node:20-bookworm-slim AS runtime
 WORKDIR /app
 
 RUN apt-get update \

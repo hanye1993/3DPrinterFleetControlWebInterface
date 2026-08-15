@@ -1,0 +1,109 @@
+.pl-settings h3 {
+  margin: 0 0 8px;
+}
+
+.pl-desc {
+  margin: 0 0 14px;
+  opacity: 0.75;
+  font-size: 13px;
+}
+
+.pl-field {
+  margin-bottom: 14px;
+  max-width: 640px;
+}
+
+.pl-field > label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.pl-field select,
+.pl-field input[type='number'] {
+  width: 100%;
+  max-width: 320px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  border: 1px solid rgba(127, 127, 127, 0.35);
+  background: transparent;
+  color: inherit;
+  padding: 7px 10px;
+}
+
+.pl-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+.pl-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pl-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(127, 127, 127, 0.3);
+  background: rgba(127, 127, 127, 0.08);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.pl-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.pl-row label {
+  font-weight: 500 !important;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+}
+
+.pl-grid2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.pl-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.pl-btn {
+  border-radius: 8px;
+  border: 1px solid rgba(127, 127, 127, 0.35);
+  background: rgba(127, 127, 127, 0.1);
+  color: inherit;
+  padding: 7px 14px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.pl-btn.primary {
+  background: rgba(22, 119, 255, 0.2);
+  border-color: rgba(22, 119, 255, 0.45);
+}
+
+.pl-msg {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.pl-err {
+  color: #ff4d4f;
+}

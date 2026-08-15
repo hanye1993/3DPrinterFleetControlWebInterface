@@ -43,6 +43,8 @@ services:
       context: ..
       dockerfile: docker/Dockerfile
     image: hanye-printer-monitor:latest
+    # 不要去 Docker Hub 拉这个本地镜像名（否则会一直 app Pulling）
+    pull_policy: build
     container_name: hanye-app
     restart: unless-stopped
     network_mode: host
