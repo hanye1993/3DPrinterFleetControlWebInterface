@@ -1,5 +1,6 @@
 import http from 'http'
 import axios from 'axios'
+import { scoreWebcamUrl } from '../../shared/deviceExtraCameras'
 
 export type CameraCandidate = {
   id: string
@@ -57,6 +58,55 @@ function absolutize(origin: string, path?: string | null): string {
   if (p.startsWith('//')) return `http:${p}`
   if (p.startsWith('/')) return `${origin}${p}`
   return `${origin}/${p}`
+}
+
+function portFromBaseUrl(raw?: string): string {
+  if (!raw) return ''
+  try {
+    const u = new URL(raw.includes('://') ? raw : `http://${raw}`)
+    return u.port || (u.protocol === 'https:' ? '443' : '80')
+  } catch {
+    return ''
+  }
+}
+
+function urlUsesPort(url: string, port: string): boolean {
+  if (!url || !port) return false
+  try {
+    const u = new URL(url.includes('://') ? url : `http://${url}`)
+    const p = u.port || (u.protocol === 'https:' ? '443' : '80')
+    return p === port
+  } catch {
+    return url.includes(`:${port}`)
+  }
+}
+
+function candidateScore(c: CameraCandidate): number {
+  return Math.max(scoreWebcamUrl(c.streamUrl), scoreWebcamUrl(c.snapshotUrl || ''))
+}
+
+/** Probe top candidates in parallel; return first that yields a JPEG frame. */
+async function pickFirstWorkingCandidate(
+  list: CameraCandidate[],
+  apiKey?: string
+): Promise<CameraCandidate | null> {
+  const sorted = [...list].sort((a, b) => candidateScore(b) - candidateScore(a))
+  const batchSize = 4
+  for (let i = 0; i < sorted.length; i += batchSize) {
+    const batch = sorted.slice(i, i + batchSize)
+    const hits = await Promise.all(
+      batch.map(async (c) => {
+        for (const u of [c.snapshotUrl, c.streamUrl].filter(Boolean) as string[]) {
+          const shot = await fetchSnapshot(u, apiKey)
+          if (shot.ok) return c
+        }
+        return null
+      })
+    )
+    const found = hits.find(Boolean)
+    if (found) return found
+  }
+  return null
 }
 
 /** Moonraker API ports that usually do NOT host the MJPEG webcam */
@@ -486,20 +536,15 @@ export async function discoverCameras(opts: CameraDiscoverOpts): Promise<CameraC
   }
   // Creality/Klipper: put likely MJPEG endpoints first so collapsed "chamber" picks a good primary
   if (brand === 'creality' || brand === 'klipper' || brand === 'qidi' || !brand) {
-    const score = (url: string) => {
-      const u = String(url || '').toLowerCase()
-      let s = 0
-      if (u.includes(':4409') && !u.includes('/webcam')) s -= 50
-      if (u.includes(':7125')) s -= 40
-      if (u.includes(':4408') && u.includes('/webcam')) s += 40
-      if (u.includes('/webcam')) s += 15
-      if (u.includes(':8080')) s += 10
-      return s
-    }
-    unique.sort(
-      (a, b) =>
-        Math.max(score(b.streamUrl), score(b.snapshotUrl || '')) -
-        Math.max(score(a.streamUrl), score(a.snapshotUrl || ''))
+    unique.sort((a, b) => candidateScore(b) - candidateScore(a))
+  }
+
+  const basePort = portFromBaseUrl(opts.baseUrl)
+  if (basePort === '4408' || basePort === '80') {
+    return unique.filter(
+      (c) =>
+        !urlUsesPort(c.streamUrl, '8080') &&
+        !urlUsesPort(String(c.snapshotUrl || ''), '8080')
     )
   }
   return unique

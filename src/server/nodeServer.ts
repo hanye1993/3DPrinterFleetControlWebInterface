@@ -64,6 +64,7 @@ import {
   mergeDiscoveredWithExtra,
   parseDeviceExtraCameras,
   discoveredUrlsForLogicalCam,
+  patchCamerasWithBestUrls,
   isExtraCameraId
 } from '../shared/deviceExtraCameras'
 import { createFileOperationLogStore } from '../main/operationLogs/fileStore'
@@ -90,6 +91,15 @@ const MONITOR_ZONES_PATH = join(DATA_ROOT, 'monitor-zones.json')
 const SETTINGS_PATH = join(DATA_ROOT, 'app-settings.json')
 const LOGS_PATH = join(DATA_ROOT, 'operation-logs.jsonl')
 const USE_MYSQL = process.env.USE_MYSQL === '1'
+
+type DiscoveredCam = { id: string; name: string; streamUrl: string; snapshotUrl?: string }
+
+function mergeDeviceCameras(discovered: DiscoveredCam[], device: Record<string, unknown>) {
+  return patchCamerasWithBestUrls(
+    discovered,
+    mergeDiscoveredWithExtra(discovered, parseDeviceExtraCameras(device))
+  )
+}
 
 function readPackageVersion(): string {
   try {
@@ -468,7 +478,7 @@ async function bootstrap(): Promise<void> {
             baseUrl: typeof d.baseUrl === 'string' ? d.baseUrl : undefined,
             apiKey: apiKey || undefined
           })
-          const cams = mergeDiscoveredWithExtra(discovered, parseDeviceExtraCameras(d))
+          const cams = mergeDeviceCameras(discovered, d)
           const cam =
             (opts.cameraId && cams.find((c) => c.id === opts.cameraId)) || cams[0]
           const url = cam?.snapshotUrl || cam?.streamUrl
@@ -688,7 +698,7 @@ async function bootstrap(): Promise<void> {
           } catch {
             discovered = []
           }
-          const cams = mergeDiscoveredWithExtra(discovered, parseDeviceExtraCameras(d))
+          const cams = mergeDeviceCameras(discovered, d)
           if (!cams.length) continue
           out.push({
             deviceId: id,
@@ -723,7 +733,7 @@ async function bootstrap(): Promise<void> {
       } catch {
         discovered = []
       }
-      const cams = mergeDiscoveredWithExtra(discovered, parseDeviceExtraCameras(d))
+      const cams = mergeDeviceCameras(discovered, d)
       return {
         deviceId,
         name: String(d.name || deviceId),
@@ -972,7 +982,7 @@ async function bootstrap(): Promise<void> {
         } catch {
           discovered = []
         }
-        const cams = mergeDiscoveredWithExtra(discovered, parseDeviceExtraCameras(d))
+        const cams = mergeDeviceCameras(discovered, d)
         if (!cams.length) continue
         out.push({
           deviceId: id,

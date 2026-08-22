@@ -59,13 +59,8 @@ function isGenericChamberName(name: string): boolean {
   return !n || n === '摄像头' || n === '机舱摄像头'
 }
 
-/**
- * discoverCameras returns many URL *candidates* (same chamber, different paths/ports).
- * Collapse those into one logical cam per distinct name so UI switch is not flooded.
- * Named Moonraker webcams (不同名称) stay separate.
- * For the chamber group, prefer a URL that is more likely to serve MJPEG (not API ports).
- */
-function webcamUrlScore(url: string): number {
+/** Shared scoring for MJPEG webcam URL preference (higher = try first). */
+export function scoreWebcamUrl(url: string): number {
   const u = String(url || '').toLowerCase()
   if (!u) return -100
   let score = 0
@@ -73,9 +68,10 @@ function webcamUrlScore(url: string): number {
   if (u.includes(':7125')) score -= 40
   if (/:4409(\/|$|\?)/.test(u) && u.includes('/webcam')) score -= 10
   if (u.includes(':4408') && u.includes('/webcam')) score += 40
+  if (u.includes(':10088') && u.includes('/webcam')) score += 35
   if (u.includes(':80/') || /:80(\/|$|\?)/.test(u) || /^https?:\/\/[^/:]+\/webcam/.test(u))
     score += 30
-  if (u.includes(':8080')) score += 20
+  if (u.includes(':8080')) score -= 30
   if (u.includes('/webcam')) score += 15
   if (u.includes('action=snapshot') || u.includes('action=stream')) score += 5
   return score
@@ -94,7 +90,7 @@ export function collapseDiscoveredCameras(
     const key = isGenericChamberName(name) ? '__chamber__' : name
     const streamUrl = String(c.streamUrl || c.snapshotUrl || '')
     const snapshotUrl = c.snapshotUrl
-    const score = Math.max(webcamUrlScore(streamUrl), webcamUrlScore(String(snapshotUrl || '')))
+    const score = Math.max(scoreWebcamUrl(streamUrl), scoreWebcamUrl(String(snapshotUrl || '')))
     const cand: CameraCandidate = {
       id: key === '__chamber__' ? 'chamber' : String(c.id || name),
       name: key === '__chamber__' ? '机舱摄像头' : name,
@@ -130,6 +126,22 @@ export function discoveredUrlsForLogicalCam(
     }
   }
   return out
+    .map((u) => ({ u, s: scoreWebcamUrl(u) }))
+    .sort((a, b) => b.s - a.s)
+    .map((x) => x.u)
+}
+
+/** Point each logical cam at its highest-scored discovered URL. */
+export function patchCamerasWithBestUrls(
+  discovered: Array<{ id: string; name: string; streamUrl: string; snapshotUrl?: string }>,
+  cams: CameraCandidate[]
+): CameraCandidate[] {
+  return cams.map((c) => {
+    if (isExtraCameraId(c.id)) return c
+    const best = discoveredUrlsForLogicalCam(discovered, c.id)[0]
+    if (!best) return c
+    return { ...c, streamUrl: best, snapshotUrl: best }
+  })
 }
 
 export function parseDeviceExtraCameras(device: unknown): DeviceExtraCamera[] {

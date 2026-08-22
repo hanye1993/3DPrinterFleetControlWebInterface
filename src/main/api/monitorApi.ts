@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto'
 import type { IncomingMessage, ServerResponse } from 'http'
 import { readJsonArray, writeJsonArray } from '../storage/jsonBridge'
 import { canDeviceAction, effectivePermissions, hasPerm } from '../../shared/permissions'
+import { scoreWebcamUrl } from '../../shared/deviceExtraCameras'
 import type { AuthContext } from '../auth/authApi'
 
 export type ZoneCameraRow = {
@@ -504,18 +505,24 @@ export async function handleMonitorApi(opts: {
     }
     const target = cam.snapshotUrl || cam.streamUrl
     const apiKey = deps.getDeviceApiKey(deviceId) || undefined
-    let shot = await takeSnapshotLimited(deps, target, apiKey)
-    if (!shot.ok && deps.listDeviceCameraProbeUrls && !String(cameraId).startsWith('extra:')) {
+    let probes: string[] = []
+    if (deps.listDeviceCameraProbeUrls && !String(cameraId).startsWith('extra:')) {
       try {
-        const probes = await deps.listDeviceCameraProbeUrls(deviceId, cameraId)
-        for (const u of probes) {
-          if (!u || u === target) continue
-          shot = await takeSnapshotLimited(deps, u, apiKey)
-          if (shot.ok) break
-        }
+        probes = await deps.listDeviceCameraProbeUrls(deviceId, cameraId)
       } catch {
-        /* keep first failure */
+        probes = []
       }
+    }
+    const tryUrls = [...new Set([target, ...probes].filter(Boolean))].sort(
+      (a, b) => scoreWebcamUrl(b) - scoreWebcamUrl(a)
+    )
+    let shot: Awaited<ReturnType<typeof takeSnapshotLimited>> = {
+      ok: false,
+      message: '无可用摄像头地址'
+    }
+    for (const u of tryUrls) {
+      shot = await takeSnapshotLimited(deps, u, apiKey)
+      if (shot.ok) break
     }
     await respondSnapshot(res, url, shot, sendJson)
     return true

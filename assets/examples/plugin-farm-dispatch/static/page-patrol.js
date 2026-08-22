@@ -147,7 +147,7 @@
           )
         })
         .join('') +
-      '</div><div id="list"></div><div id="sheet" class="sheet-mask"></div>'
+      '</div><div id="list"></div><div id="sheet" class="sheet-mask"></div><div id="confirm" class="confirm-mask"></div>'
     Array.prototype.forEach.call(document.querySelectorAll('[data-tab]'), function (el) {
       el.onclick = function () {
         state.tab = el.getAttribute('data-tab')
@@ -162,6 +162,42 @@
       }
     })
     renderList()
+  }
+
+  function confirmAsk(title, detail, okLabel) {
+    return new Promise(function (resolve) {
+      var box = document.getElementById('confirm')
+      if (!box) {
+        resolve(window.confirm(title + (detail ? '\n' + detail : '')))
+        return
+      }
+      box.className = 'confirm-mask on'
+      box.innerHTML =
+        '<div class="confirm-box" role="dialog" aria-modal="true">' +
+        '<h3>' +
+        esc(title) +
+        '</h3>' +
+        (detail ? '<div class="meta">' + esc(detail) + '</div>' : '') +
+        '<div class="confirm-acts">' +
+        '<button type="button" class="ghost" id="cf-no">取消</button>' +
+        '<button type="button" class="primary" id="cf-yes">' +
+        esc(okLabel || '确认') +
+        '</button></div></div>'
+      function close(ok) {
+        box.className = 'confirm-mask'
+        box.innerHTML = ''
+        resolve(ok)
+      }
+      document.getElementById('cf-no').onclick = function () {
+        close(false)
+      }
+      document.getElementById('cf-yes').onclick = function () {
+        close(true)
+      }
+      box.onclick = function (e) {
+        if (e.target === box) close(false)
+      }
+    })
   }
 
   function cardTone(board) {
@@ -229,7 +265,7 @@
       '</div></div>' +
       '<div class="dev-card-foot"><span>' +
       esc(d.group || '其他') +
-      '</span><span>点按操作</span></div></div>'
+      '</span><span>点卡片操作</span></div></div>'
     )
   }
 
@@ -300,8 +336,18 @@
           .join('') +
         '</div>'
       Array.prototype.forEach.call(box.querySelectorAll('[data-act=done]'), function (btn) {
-        btn.onclick = async function () {
+        btn.onclick = async function (e) {
+          e.stopPropagation()
           var cardEl = btn.closest('[data-notice]')
+          var title = (cardEl && cardEl.querySelector('.dev-card-name')
+            ? cardEl.querySelector('.dev-card-name').textContent
+            : '通知') || '通知'
+          var ok = await confirmAsk(
+            '确认已换好？',
+            '将标记「' + title + '」完成，并尝试重新智能派单。',
+            '确认并重派'
+          )
+          if (!ok) return
           btn.disabled = true
           var j = await api('POST', '/api/v1/farm-dispatch/patrol/notice-done', {
             noticeId: cardEl.getAttribute('data-notice'),
@@ -434,29 +480,56 @@
     sheet.onclick = function (e) {
       if (e.target === sheet) document.getElementById('x').onclick()
     }
-    document.getElementById('idle').onclick = function () {
-      setDuty('idle')
+    document.getElementById('idle').onclick = async function () {
+      var ok = await confirmAsk(
+        '设为空闲？',
+        '设备「' + d.name + '」将标记为空闲，可用于智能派单。',
+        '确认空闲'
+      )
+      if (ok) setDuty('idle')
     }
-    document.getElementById('mnt').onclick = function () {
-      setDuty('maintenance')
+    document.getElementById('mnt').onclick = async function () {
+      var ok = await confirmAsk(
+        '设为维修？',
+        '设备「' + d.name + '」将进入维修，智能派单不会再选它。',
+        '确认维修'
+      )
+      if (ok) setDuty('maintenance')
     }
     document.getElementById('bind').onclick = async function () {
       var spoolId = document.getElementById('spool').value
       if (!spoolId) return alert('请选择料卷')
+      var sel = document.getElementById('spool')
+      var label = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : spoolId
+      var slotId = Number(document.getElementById('slot').value) || 0
+      var ok = await confirmAsk(
+        '绑定耗材？',
+        '将「' + label + '」绑定到「' + d.name + '」槽位 ' + slotId + '。',
+        '确认绑定'
+      )
+      if (!ok) return
       var j = await api('POST', '/api/v1/farm-dispatch/patrol/bind', {
         deviceId: d.id,
         spoolId: spoolId,
-        slotId: Number(document.getElementById('slot').value) || 0
+        slotId: slotId
       })
       alert(j.ok ? '已绑定' : j.message || '失败')
       if (j.ok) await loadBoard(true)
     }
     Array.prototype.forEach.call(sheet.querySelectorAll('[data-u]'), function (btn) {
       btn.onclick = async function () {
+        var spoolId = btn.getAttribute('data-u')
+        var slotId = Number(btn.getAttribute('data-s')) || 0
+        var ok = await confirmAsk(
+          '解绑耗材？',
+          '将解除「' + d.name + '」槽位 ' + slotId + ' 的料卷绑定。',
+          '确认解绑'
+        )
+        if (!ok) return
         var j = await api('POST', '/api/v1/farm-dispatch/patrol/unbind', {
           deviceId: d.id,
-          spoolId: btn.getAttribute('data-u'),
-          slotId: Number(btn.getAttribute('data-s')) || 0
+          spoolId: spoolId,
+          slotId: slotId
         })
         alert(j.ok ? '已解绑' : j.message || '失败')
         if (j.ok) await loadBoard(true)
