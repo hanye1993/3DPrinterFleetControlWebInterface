@@ -1,5 +1,6 @@
 /**
- * Shared iframe shell — 深色底跟宿主一致；token 读父窗口 localStorage
+ * Shared iframe shell — CSS 可内联（CSP 允许 style unsafe-inline）；
+ * JS 必须外链 static/*.js（宿主 script-src 'self' 禁止内联脚本）。
  */
 function shellCss() {
   return `
@@ -45,6 +46,17 @@ input, select, textarea, button {
   padding: 8px 11px;
   font-size: 13px;
   font-family: inherit;
+}
+/* 原生下拉：系统选项列表需强制深色字，否则白底浅字看不见 */
+select {
+  color: var(--fd-text);
+  background-color: #1a222d;
+  color-scheme: dark;
+}
+select option,
+select optgroup {
+  background-color: #1a222d;
+  color: #e8eaed;
 }
 textarea { width: 100%; min-height: 72px; resize: vertical; }
 button { cursor: pointer; }
@@ -101,79 +113,23 @@ code { white-space: pre-wrap; word-break: break-all; font-size: 11px; }
 `
 }
 
-function commonJs() {
-  return `
-var TOKEN_KEY = 'hanye_client_jwt';
-function token(){
-  try {
-    var t = localStorage.getItem(TOKEN_KEY) || '';
-    if (t) return t;
-    if (window.parent && window.parent !== window) {
-      try { t = window.parent.localStorage.getItem(TOKEN_KEY) || ''; } catch (e1) {}
-      if (t) return t;
-    }
-    if (window.top && window.top !== window) {
-      try { t = window.top.localStorage.getItem(TOKEN_KEY) || ''; } catch (e2) {}
-    }
-    return t || '';
-  } catch (e) { return ''; }
-}
-function authHeaders(json){
-  var h = { Accept: 'application/json' };
-  if (json) h['Content-Type'] = 'application/json';
-  var t = token();
-  if (t) h.Authorization = 'Bearer ' + t;
-  return h;
-}
-function unwrap(j){
-  if (!j || typeof j !== 'object') return j;
-  if (j.data && typeof j.data === 'object') {
-    var d = j.data;
-    if (j.ok === true || d.ok != null || d.roles || d.board || d.jobs || d.logs || d.models || d.records || d.user) return d;
-  }
-  return j;
-}
-function apiBase(){
-  try {
-    if (window.parent && window.parent !== window && window.parent.location && window.parent.location.origin && window.parent.location.origin !== 'null') {
-      return window.parent.location.origin;
-    }
-  } catch (e) {}
-  return '';
-}
-function apiUrl(path){
-  if (/^https?:\\/\\//.test(path)) return path;
-  var base = apiBase();
-  return base ? (base + path) : path;
-}
-function api(method, path, body){
-  var timeout = new Promise(function(_, reject){
-    setTimeout(function(){ reject(new Error('请求超时')); }, 15000);
-  });
-  var req = fetch(apiUrl(path), {
-    method: method,
-    headers: authHeaders(body != null),
-    body: body != null ? JSON.stringify(body) : undefined
-  }).then(function(res){
-    return res.json().catch(function(){ return { ok:false, message:'响应解析失败' }; }).then(function(j){
-      j = unwrap(j);
-      if (!res.ok && (!j || j.ok !== false)) j = { ok:false, message:(j && j.message) || ('HTTP '+res.status) };
-      return j;
-    });
-  });
-  return Promise.race([req, timeout]).catch(function(e){
-    return { ok:false, message: e && e.message ? e.message : String(e) };
-  });
-}
-function esc(s){
-  return String(s == null ? '' : s)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-function showErr(el, msg){
-  if (!el) return;
-  el.innerHTML = '<div class="card"><p class="err">' + esc(msg) + '</p></div>';
-}
-`
+/** 无内联 JS 的页面骨架；脚本走同源 /api/.../asset/static（满足 CSP script-src 'self'） */
+function pageHtml(title, pageScript) {
+  const asset = (f) => '/api/v1/plugins/farm_dispatch/asset/static/' + f
+  return `<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>${title}</title>
+<style>${shellCss()}</style>
+</head>
+<body>
+<div id="app"><div class="empty">加载中…</div></div>
+<script src="${asset('shell.js')}"></script>
+<script src="${asset(pageScript)}"></script>
+</body>
+</html>`
 }
 
-module.exports = { shellCss, commonJs }
+module.exports = { shellCss, pageHtml }

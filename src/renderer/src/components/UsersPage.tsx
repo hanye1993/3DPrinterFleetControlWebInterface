@@ -2,6 +2,7 @@ import { useEffect, useMemo, useReducer, useState } from 'react'
 import {
   Button,
   Checkbox,
+  Collapse,
   Empty,
   Form,
   Input,
@@ -387,7 +388,7 @@ export function UsersPage() {
       </Space>
       <PluginSlot name="users.toolbar.after" context={pageCtx} />
       <Typography.Paragraph type="secondary">
-        可新建用户、分配权限，并按设备单独授权。默认管理员 admin / admin123，首次登录会强制改密。在线状态来自网页登录心跳（约
+        可新建用户、分配权限，并按设备分组或单台授权。默认管理员 admin / admin123，首次登录会强制改密。在线状态来自网页登录心跳（约
         90 秒无活动视为离线）；踢下线会吊销令牌；封号后无法登录。插件可通过列 / 工具栏 /
         表单字段扩展本页。
       </Typography.Paragraph>
@@ -412,7 +413,11 @@ export function UsersPage() {
       <UserEditor
         open={creating || !!edit}
         user={edit}
-        devices={devices.map((d) => ({ id: d.id, name: d.name }))}
+        devices={devices.map((d) => ({
+          id: d.id,
+          name: d.name,
+          group: d.group
+        }))}
         pluginPerms={pluginPerms}
         onCancel={() => {
           setCreating(false)
@@ -428,10 +433,31 @@ export function UsersPage() {
   )
 }
 
+const UNGROUPED_LABEL = '其他'
+
+function deviceGroupName(group?: string): string {
+  const g = typeof group === 'string' ? group.trim() : ''
+  return g || UNGROUPED_LABEL
+}
+
+function applyDevicesAcl(
+  prev: Record<string, string[]>,
+  ids: string[],
+  mode: 'off' | 'view' | 'all'
+): Record<string, string[]> {
+  const next = { ...prev }
+  for (const id of ids) {
+    if (mode === 'off') delete next[id]
+    else if (mode === 'view') next[id] = ['view']
+    else next[id] = ['view', ...DEVICE_ACTION_PERMS]
+  }
+  return next
+}
+
 function UserEditor(props: {
   open: boolean
   user: AuthUserPublic | null
-  devices: Array<{ id: string; name: string }>
+  devices: Array<{ id: string; name: string; group?: string }>
   pluginPerms: PluginPermRow[]
   onCancel: () => void
   onSaved: () => void
@@ -591,6 +617,25 @@ function UserEditor(props: {
   }, [props.open, props.user, form])
 
   const deviceOptions = useMemo(() => props.devices, [props.devices])
+
+  const deviceGroups = useMemo(() => {
+    const map = new Map<string, Array<{ id: string; name: string; group?: string }>>()
+    for (const d of deviceOptions) {
+      const key = deviceGroupName(d.group)
+      const list = map.get(key)
+      if (list) list.push(d)
+      else map.set(key, [d])
+    }
+    const names = [...map.keys()].sort((a, b) => {
+      if (a === UNGROUPED_LABEL) return 1
+      if (b === UNGROUPED_LABEL) return -1
+      return a.localeCompare(b, 'zh-CN')
+    })
+    return names.map((name) => ({
+      name,
+      devices: (map.get(name) || []).slice().sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))
+    }))
+  }, [deviceOptions])
 
   const getPermissions = () => perms
   const getDeviceAcl = () => deviceAcl
@@ -922,86 +967,147 @@ function UserEditor(props: {
         <PluginSlot name="users.form.deviceAcl.before" context={formSlotCtx} />
         <Typography.Text strong>按设备授权</Typography.Text>
         <Typography.Paragraph type="secondary" style={{ margin: '4px 0 8px', fontSize: 12 }}>
-          开启设备后，该用户只能看到已开启的设备；暂停、归零、急停、进料等
-          <Typography.Text strong> 操作权限只在该设备下方勾选 </Typography.Text>
-          。全部关闭设备开关时，若有「查看设备」全局权限则可看到全部设备，但仍须开启设备并勾选操作才能控制。
+          可按分组一键授权，也可展开后逐台开关。开启设备后，该用户只能看到已开启的设备；暂停、归零、急停、进料等
+          <Typography.Text strong> 操作权限在设备下方勾选 </Typography.Text>
+          。未设置分组的机器归入「其他」。全部关闭设备开关时，若有「查看设备」全局权限则可看到全部设备，但仍须开启设备并勾选操作才能控制。
         </Typography.Paragraph>
-        <div style={{ maxHeight: 240, overflow: 'auto', marginTop: 8 }}>
-          {deviceOptions.map((d) => {
-            const selected = deviceAcl[d.id] || []
-            const active = d.id in deviceAcl
-            return (
-              <div
-                key={d.id}
-                style={{ marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid #2a2a2a' }}
-              >
-                <Space wrap>
-                  <Switch
-                    size="small"
-                    checked={active}
-                    onChange={(on) => {
-                      setDeviceAcl((prev) => {
-                        const next = { ...prev }
-                        if (on) next[d.id] = ['view']
-                        else delete next[d.id]
-                        return next
-                      })
-                    }}
-                  />
-                  <Typography.Text>{d.name}</Typography.Text>
-                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                    {d.id}
-                  </Typography.Text>
-                  {active ? (
-                    <>
+        <div style={{ maxHeight: 360, overflow: 'auto', marginTop: 8 }}>
+          {deviceGroups.length ? (
+            <Collapse
+              size="small"
+              defaultActiveKey={deviceGroups.map((g) => g.name)}
+              items={deviceGroups.map((g) => {
+                const ids = g.devices.map((d) => d.id)
+                const activeCount = ids.filter((id) => id in deviceAcl).length
+                const allOn = activeCount === ids.length && ids.length > 0
+                const someOn = activeCount > 0 && !allOn
+                return {
+                  key: g.name,
+                  label: (
+                    <Space size={6}>
+                      <span>{g.name}</span>
+                      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                        {activeCount}/{ids.length} 台
+                      </Typography.Text>
+                      {someOn ? (
+                        <Tag style={{ margin: 0 }} color="processing">
+                          部分
+                        </Tag>
+                      ) : null}
+                    </Space>
+                  ),
+                  extra: (
+                    <Space
+                      size={4}
+                      wrap
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                    >
+                      <Switch
+                        size="small"
+                        checked={allOn}
+                        onChange={(on) => {
+                          setDeviceAcl((prev) => applyDevicesAcl(prev, ids, on ? 'view' : 'off'))
+                        }}
+                      />
                       <Button
                         type="link"
                         size="small"
+                        style={{ paddingInline: 4 }}
                         onClick={() => {
-                          setDeviceAcl((prev) => ({
-                            ...prev,
-                            [d.id]: ['view', ...DEVICE_ACTION_PERMS]
-                          }))
+                          setDeviceAcl((prev) => applyDevicesAcl(prev, ids, 'all'))
                         }}
                       >
-                        全选操作
+                        全组操作
                       </Button>
                       <Button
                         type="link"
                         size="small"
+                        style={{ paddingInline: 4 }}
                         onClick={() => {
-                          setDeviceAcl((prev) => ({ ...prev, [d.id]: ['view'] }))
+                          setDeviceAcl((prev) => applyDevicesAcl(prev, ids, 'view'))
                         }}
                       >
-                        仅查看
+                        全组仅查看
                       </Button>
-                    </>
-                  ) : null}
-                </Space>
-                {active ? (
-                  <Checkbox.Group
-                    style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}
-                    value={selected}
-                    onChange={(v) => {
-                      const list = v as string[]
-                      const next = list.includes('view') ? list : ['view', ...list]
-                      setDeviceAcl((prev) => ({ ...prev, [d.id]: next }))
-                    }}
-                    options={[
-                      { value: 'view', label: '查看（仅卡片，不可进控制）' },
-                      ...DEVICE_ACTION_PERMS.map((a) => ({
-                        value: a,
-                        label: PERM_LABELS[`device.action.${a}`] || a
-                      }))
-                    ]}
-                  />
-                ) : null}
-              </div>
-            )
-          })}
-          {!deviceOptions.length ? (
+                    </Space>
+                  ),
+                  children: g.devices.map((d) => {
+                    const selected = deviceAcl[d.id] || []
+                    const active = d.id in deviceAcl
+                    return (
+                      <div
+                        key={d.id}
+                        style={{
+                          marginBottom: 12,
+                          paddingBottom: 8,
+                          borderBottom: '1px solid #2a2a2a'
+                        }}
+                      >
+                        <Space wrap>
+                          <Switch
+                            size="small"
+                            checked={active}
+                            onChange={(on) => {
+                              setDeviceAcl((prev) =>
+                                applyDevicesAcl(prev, [d.id], on ? 'view' : 'off')
+                              )
+                            }}
+                          />
+                          <Typography.Text>{d.name}</Typography.Text>
+                          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                            {d.id}
+                          </Typography.Text>
+                          {active ? (
+                            <>
+                              <Button
+                                type="link"
+                                size="small"
+                                onClick={() => {
+                                  setDeviceAcl((prev) => applyDevicesAcl(prev, [d.id], 'all'))
+                                }}
+                              >
+                                全选操作
+                              </Button>
+                              <Button
+                                type="link"
+                                size="small"
+                                onClick={() => {
+                                  setDeviceAcl((prev) => applyDevicesAcl(prev, [d.id], 'view'))
+                                }}
+                              >
+                                仅查看
+                              </Button>
+                            </>
+                          ) : null}
+                        </Space>
+                        {active ? (
+                          <Checkbox.Group
+                            style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}
+                            value={selected}
+                            onChange={(v) => {
+                              const list = v as string[]
+                              const next = list.includes('view') ? list : ['view', ...list]
+                              setDeviceAcl((prev) => ({ ...prev, [d.id]: next }))
+                            }}
+                            options={[
+                              { value: 'view', label: '查看（仅卡片，不可进控制）' },
+                              ...DEVICE_ACTION_PERMS.map((a) => ({
+                                value: a,
+                                label: PERM_LABELS[`device.action.${a}`] || a
+                              }))
+                            ]}
+                          />
+                        ) : null}
+                      </div>
+                    )
+                  })
+                }
+              })}
+            />
+          ) : (
             <Typography.Text type="secondary">暂无设备</Typography.Text>
-          ) : null}
+          )}
         </div>
         <PluginSlot name="users.form.deviceAcl.after" context={formSlotCtx} />
         <PluginSlot name="users.form.footer" context={formSlotCtx} />

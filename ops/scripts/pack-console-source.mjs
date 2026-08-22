@@ -35,7 +35,9 @@ const excludes = [
   'plugins-themes-packs',
   'plugins-themes-packs.zip',
   '*.zip',
-  '*.tsbuildinfo'
+  '*.tsbuildinfo',
+  'close_extensions.mjs',
+  'close_extensions.html'
 ]
 
 function run(cmd, args, opts = {}) {

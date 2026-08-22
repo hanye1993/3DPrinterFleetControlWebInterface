@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Alert, Spin } from 'antd'
 import { serverGet, serverSend } from '../api/serverClient'
 import { PluginSlot } from '../plugins/PluginSlot'
+import { useAuthStore } from '../stores/authStore'
 
 /** Load plugin module HTML with JWT (srcDoc; link tags use public static paths). */
 export function PluginHostPage({
@@ -15,9 +16,17 @@ export function PluginHostPage({
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const slotCtx = { identifier, moduleName }
+  const token = useAuthStore((s) => s.token)
+  const serverUrl = useAuthStore((s) => s.serverUrl)
 
   useEffect(() => {
     let cancelled = false
+    const timer = window.setTimeout(() => {
+      if (!cancelled) {
+        setError('插件页加载超时，请检查服务地址后重试')
+        setLoading(false)
+      }
+    }, 20000)
     setLoading(true)
     setError(null)
     setHtml(null)
@@ -28,7 +37,26 @@ export function PluginHostPage({
         if (cancelled) return
         const raw = data.data
         if (raw && typeof raw === 'object' && '__html' in (raw as object)) {
-          setHtml(String((raw as { __html: string }).__html))
+          let page = String((raw as { __html: string }).__html)
+          // 禁止注入内联 <script>（宿主 CSP script-src 'self' 会让 iframe 内联脚本不执行）
+          const apiOrigin = String(serverUrl || '').replace(/\/$/, '')
+          const safeOrigin = apiOrigin && /^https?:\/\//i.test(apiOrigin) ? apiOrigin : ''
+          const jwt = String(token || '')
+          // data-* 属性不依赖脚本，外链 static/*.js 可读取
+          page = page.replace(
+            /<html(\s[^>]*)?>/i,
+            (m) =>
+              m.replace(/>$/, '') +
+              ` data-hanye-jwt="${escapeAttr(jwt)}" data-hanye-api="${escapeAttr(safeOrigin)}">`
+          )
+          // 外链脚本改为绝对地址，避免 srcdoc 相对路径解析失败
+          if (safeOrigin) {
+            page = page.replace(
+              /(src=["'])(\/api\/v1\/plugins\/)/gi,
+              `$1${safeOrigin}$2`
+            )
+          }
+          setHtml(page)
         } else {
           setHtml(
             `<pre style="padding:16px;font-family:ui-monospace,monospace">${escapeHtml(
@@ -37,16 +65,17 @@ export function PluginHostPage({
           )
         }
       } catch (e) {
-        // POST-only modules: try GET failed — show message
         if (!cancelled) setError(e instanceof Error ? e.message : String(e))
       } finally {
+        window.clearTimeout(timer)
         if (!cancelled) setLoading(false)
       }
     })()
     return () => {
       cancelled = true
+      window.clearTimeout(timer)
     }
-  }, [identifier, moduleName])
+  }, [identifier, moduleName, token, serverUrl])
 
   if (loading) {
     return (
@@ -104,6 +133,14 @@ export function PluginHostPage({
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
+function escapeAttr(s: string): string {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
 }

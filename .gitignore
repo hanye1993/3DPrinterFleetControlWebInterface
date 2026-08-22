@@ -54,3 +54,7 @@ Desktop.ini
 .tools/
 .transcript-extract/
 .cursor/
+
+# 本机应急关扩展页（Discuz 风格），勿提交/勿上传
+/close_extensions.mjs
+/close_extensions.html

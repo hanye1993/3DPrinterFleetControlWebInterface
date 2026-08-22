@@ -9,7 +9,7 @@ import {
   copyFileSync
 } from 'fs'
 import { createHash, randomBytes } from 'crypto'
-import { join, resolve, basename, dirname } from 'path'
+import { join, resolve, basename, dirname, sep } from 'path'
 import { createRequire } from 'module'
 import { unzipSync } from 'fflate'
 import {
@@ -185,6 +185,8 @@ export type PluginApi = {
   dataDir: string
   /** Plugin package directory (read mostly) */
   pluginDir: string
+  /** Host data root (devices / filament / user-groups) */
+  dataRoot: string
   log: (...args: unknown[]) => void
   getVar: (key: string, fallback?: string) => string
   setVar: (key: string, value: string) => void
@@ -195,6 +197,29 @@ export type PluginApi = {
   getDevices: () => unknown[]
   saveDevices: (devices: unknown[]) => void
   getStatuses: () => Record<string, unknown>
+  /** Discuz-like usergroups (in-memory + disk) */
+  listUserGroups: () => Array<{
+    id: string
+    name: string
+    description?: string
+    permissions: string[]
+    moduleAccess: Array<{ pluginId: string; module: string }>
+  }>
+  saveUserGroups: (
+    groups: Array<{
+      id: string
+      name: string
+      description?: string
+      permissions: string[]
+      moduleAccess?: Array<{ pluginId: string; module: string }>
+    }>
+  ) => Array<{
+    id: string
+    name: string
+    description?: string
+    permissions: string[]
+    moduleAccess: Array<{ pluginId: string; module: string }>
+  }>
   controlDevice: (
     deviceId: string,
     payload: unknown
@@ -556,6 +581,9 @@ export class PluginManager {
       vars,
       dataDir,
       pluginDir,
+      dataRoot: this.deps.dataRoot,
+      listUserGroups: () => self.getUserGroupStore().list(),
+      saveUserGroups: (groups) => self.getUserGroupStore().saveAll(groups as UserGroup[]),
       log: (...args) => {
         console.log(`[plugin:${identifier}]`, ...args)
         this.deps.appendLog?.({
@@ -1250,6 +1278,22 @@ export class PluginManager {
         } catch {
           /* ignore */
         }
+        // 同步清掉 modules 目录下其它被 require 的依赖（如 _shell.js），避免升级后旧 exports 残留
+        try {
+          const modulesDir = join(dir, 'modules')
+          const baseResolved = resolve(modulesDir)
+          for (const key of Object.keys(this.require.cache || {})) {
+            try {
+              if (resolve(key).startsWith(baseResolved + sep) || resolve(key) === baseResolved) {
+                delete this.require.cache[key]
+              }
+            } catch {
+              /* ignore */
+            }
+          }
+        } catch {
+          /* ignore */
+        }
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const mod = this.require(modPath)
         const fn = mod?.default || mod?.handle || mod
@@ -1726,8 +1770,13 @@ export class PluginManager {
       if (route.method !== m && route.method !== '*') continue
       const plug = this.loaded.get(route.identifier)
       if (!plug?.state.available) continue
-      if (path === route.pattern || path.startsWith(route.pattern.replace(/\*$/, ''))) {
+      if (path === route.pattern) {
         return { route, api: plug.api }
+      }
+      // Only prefix-match when pattern explicitly ends with *
+      if (route.pattern.endsWith('*')) {
+        const prefix = route.pattern.slice(0, -1)
+        if (path.startsWith(prefix)) return { route, api: plug.api }
       }
       // simple :param
       const re = new RegExp(
