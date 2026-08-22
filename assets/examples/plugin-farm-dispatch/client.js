@@ -1,5 +1,5 @@
 /**
- * farm_dispatch — 宿主内：设置页 + 首页 FDM 卡片巡查状态
+ * farm_dispatch — 宿主内：设置页初始化用户组 + 概览统计（轻量，避免拖死 UI）
  */
 ;(function () {
   var P = window.HanyePlugin
@@ -7,7 +7,6 @@
 
   var TOKEN_KEY = 'hanye_client_jwt'
   var PLUGIN = 'farm_dispatch'
-  var boardCache = {}
 
   function authHeaders(json) {
     var token = ''
@@ -45,76 +44,6 @@
       .finally(function () {
         if (timer) clearTimeout(timer)
       })
-  }
-
-  function boardBadge(board) {
-    if (board === 'maintenance') return { cls: 'fd-mnt', text: '维修' }
-    if (board === 'error') return { cls: 'fd-err', text: '报错' }
-    if (board === 'finished') return { cls: 'fd-fin', text: '待清床' }
-    if (board === 'attention') return { cls: 'fd-att', text: '待巡查' }
-    if (board === 'idle') return { cls: 'fd-idle', text: '空闲' }
-    return null
-  }
-
-  function tagDeviceCard(el, board) {
-    var card = el && el.closest && el.closest('.device-card')
-    if (!card) return
-    if (board) card.setAttribute('data-fd-board', board)
-    else card.removeAttribute('data-fd-board')
-  }
-
-  function refreshBoards() {
-    return api('GET', '/api/v1/farm-dispatch/device-boards').then(function (j) {
-      if (j && j.ok && j.boards) boardCache = j.boards
-      if (P.emit) {
-        P.emit('slot:change', { name: 'device.card.after-name' })
-        P.emit('slot:change', { name: 'device.card.extra' })
-      }
-    })
-  }
-
-  P.registerSlot &&
-    P.registerSlot(
-      'device.card.after-name',
-      function (el, ctx) {
-        var c = (ctx && ctx.context) || {}
-        var row = boardCache[c.deviceId]
-        var board = row && row.board
-        tagDeviceCard(el, board)
-        var b = board ? boardBadge(board) : null
-        el.innerHTML = b
-          ? '<span class="fd-duty-badge ' +
-            b.cls +
-            '" title="巡查派单 · ' +
-            (row.label || b.text) +
-            '">' +
-            b.text +
-            '</span>'
-          : ''
-      },
-      { order: 18, plugin: PLUGIN }
-    )
-
-  P.registerSlot &&
-    P.registerSlot(
-      'device.card.extra',
-      function (el, ctx) {
-        var c = (ctx && ctx.context) || {}
-        var row = boardCache[c.deviceId]
-        tagDeviceCard(el, row && row.board)
-        el.innerHTML = ''
-      },
-      { order: 0, plugin: PLUGIN }
-    )
-
-  window.addEventListener('message', function (ev) {
-    if (ev && ev.data && ev.data.type === 'farm_dispatch:duty') refreshBoards()
-  })
-
-  if (P.on) {
-    P.on('farm_dispatch:duty', function () {
-      refreshBoards()
-    })
   }
 
   function renderStats(el, stats) {
@@ -158,6 +87,7 @@
           '<button type="button" class="ant-btn ant-btn-primary" data-act="groups">初始化用户组</button> ' +
           '<button type="button" class="ant-btn" data-act="refresh">刷新统计</button>' +
           '<div data-msg style="margin-top:10px;opacity:.75"></div></div>'
+        // 延后拉统计，避免设置页切换时同步打爆
         setTimeout(function () {
           api('GET', '/api/v1/farm-dispatch/stats').then(function (j) {
             renderStats(el, j && j.ok ? j.stats : null)
@@ -195,7 +125,4 @@
         })
       }
     })
-
-  refreshBoards()
-  setInterval(refreshBoards, 12000)
 })()

@@ -200,77 +200,11 @@
     })
   }
 
-  function rebuildBoardBuckets() {
-    state.board = {
-      error: [],
-      finished: [],
-      attention: [],
-      maintenance: [],
-      printing: [],
-      idle: []
-    }
-    ;(state.devices || []).forEach(function (d) {
-      var key = d.board || 'idle'
-      if (!state.board[key]) state.board[key] = []
-      state.board[key].push(d)
-    })
-  }
-
-  function patchDeviceAfterDuty(deviceId, status, duty) {
-    for (var i = 0; i < (state.devices || []).length; i++) {
-      if (String(state.devices[i].id) !== String(deviceId)) continue
-      state.devices[i].duty = duty || state.devices[i].duty
-      if (status === 'maintenance') state.devices[i].board = 'maintenance'
-      else if (status === 'idle') state.devices[i].board = 'idle'
-      break
-    }
-    rebuildBoardBuckets()
-  }
-
-  function notifyHostDutyChange() {
-    try {
-      if (window.parent && window.parent !== window) {
-        window.parent.postMessage({ type: 'farm_dispatch:duty', source: 'farm_dispatch' }, '*')
-      }
-    } catch (e) {}
-    try {
-      if (window.HanyePlugin && window.HanyePlugin.emit) {
-        window.HanyePlugin.emit('farm_dispatch:duty')
-      }
-    } catch (e2) {}
-  }
-
-  function toastMsg(msg) {
-    var id = 'fd-toast'
-    var el = document.getElementById(id)
-    if (!el) {
-      el = document.createElement('div')
-      el.id = id
-      el.className = 'fd-toast'
-      document.body.appendChild(el)
-    }
-    el.textContent = msg
-    el.className = 'fd-toast on'
-    clearTimeout(el._t)
-    el._t = setTimeout(function () {
-      el.className = 'fd-toast'
-    }, 2200)
-  }
-
-  function closeSheet() {
-    var sheet = document.getElementById('sheet')
-    if (!sheet) return
-    sheet.className = 'sheet-mask'
-    sheet.innerHTML = ''
-    state.device = null
-  }
-
   function cardTone(board) {
     if (board === 'error') return 'is-err'
     if (board === 'finished') return 'is-fin'
     if (board === 'maintenance') return 'is-mnt'
     if (board === 'printing') return 'is-print'
-    if (board === 'idle') return 'is-idle'
     return ''
   }
 
@@ -549,9 +483,7 @@
     document.getElementById('idle').onclick = async function () {
       var ok = await confirmAsk(
         '设为空闲？',
-        '设备「' +
-          d.name +
-          '」将标记为空闲，并自动取消当前任务、进度归 0，可用于智能派单。',
+        '设备「' + d.name + '」将标记为空闲，可用于智能派单。',
         '确认空闲'
       )
       if (ok) setDuty('idle')
@@ -613,23 +545,13 @@
       status: status
     })
     if (!j || !j.ok) {
-      toastMsg((j && j.message) || '失败')
+      alert((j && j.message) || '失败')
       return
     }
-    patchDeviceAfterDuty(d.id, status, j.duty)
-    state.tab = status === 'maintenance' ? 'maintenance' : 'idle'
-    state.tabPicked = true
-    closeSheet()
     var msg = status === 'idle' ? '已设为空闲' : '已设为维修'
     if (status === 'idle' && j.completed) msg += '（收尾任务 ' + j.completed + ' 条）'
-    if (status === 'idle' && j.reset && j.reset.ok && !j.reset.skipped) msg += '，打印机已归 0'
-    else if (status === 'idle' && j.reset && !j.reset.ok && !j.reset.skipped) {
-      msg += '（打印机归 0 失败：' + (j.reset.message || '未知') + '）'
-    }
-    toastMsg(msg)
-    render()
-    notifyHostDutyChange()
-    loadBoard(false)
+    alert(msg)
+    await loadBoard(true)
   }
 
   boot().catch(function (e) {

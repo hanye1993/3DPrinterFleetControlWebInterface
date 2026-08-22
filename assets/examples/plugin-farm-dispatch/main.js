@@ -1132,67 +1132,6 @@ function completeJobsOnIdle(api, deviceId, user) {
   return n
 }
 
-/** 确认空闲后：取消当前任务，让打印机进度归 0（失败不阻断设空闲） */
-async function resetPrinterOnIdle(api, deviceId) {
-  const id = String(deviceId || '')
-  if (!id) return { ok: false, skipped: true, message: '缺少 deviceId' }
-  if (typeof api.controlDevice !== 'function') {
-    return { ok: false, skipped: true, message: 'control 不可用' }
-  }
-  const st = (api.getStatuses() || {})[id] || {}
-  const prog = Number(st.progress)
-  const need =
-    isPrintingSt(st) ||
-    isFinishedSt(st) ||
-    isErrorSt(st) ||
-    (Number.isFinite(prog) && prog > 0.5)
-  if (!need) return { ok: true, skipped: true, message: '无需复位' }
-  try {
-    const r = await api.controlDevice(id, { action: 'cancel' })
-    if (!r || !r.ok) {
-      try {
-        api.log('[farm_dispatch] idle reset cancel failed ' + id + ' ' + (r && r.message))
-      } catch (_) {}
-      return { ok: false, message: (r && r.message) || '取消/复位失败' }
-    }
-    return { ok: true }
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e)
-    try {
-      api.log('[farm_dispatch] idle reset ' + id + ' ' + msg)
-    } catch (_) {}
-    return { ok: false, message: msg }
-  }
-}
-
-/** 已确认空闲且清床：对外发布的状态显示为 idle / 0% */
-function overlayIdleClearedStatuses(api, statuses) {
-  if (!statuses || typeof statuses !== 'object') return statuses
-  const duties = readObj(api, 'duty.json')
-  let touched = false
-  const out = { ...statuses }
-  for (const id of Object.keys(out)) {
-    const duty = duties[id]
-    if (!duty || duty.status !== 'idle' || !duty.clearedFp) continue
-    const st = out[id]
-    if (!st || typeof st !== 'object') continue
-    const fp = episodeFp(st)
-    if (!fp || fp !== duty.clearedFp) continue
-    touched = true
-    const health = String(st.health || '') === 'offline' ? 'offline' : 'ok'
-    out[id] = {
-      ...st,
-      progress: 0,
-      state: 'idle',
-      health,
-      filename: '',
-      gcodeFile: '',
-      message: ''
-    }
-  }
-  return touched ? out : statuses
-}
-
 function enrichDevices(api, spools) {
   const devices = api.getDevices() || []
   const statuses = api.getStatuses() || {}
@@ -1224,7 +1163,6 @@ function enrichDevices(api, spools) {
       name: String(d.name || id),
       model: String(d.model || ''),
       brand: d.brand,
-      tech: String(d.tech || 'fdm').toLowerCase(),
       group: deviceGroupName(d),
       health: st.health,
       state: st.state,
@@ -1236,25 +1174,6 @@ function enrichDevices(api, spools) {
       gate: canAcceptPrint(api, id, spools)
     }
   })
-}
-
-function boardUiLabel(board) {
-  switch (board) {
-    case 'maintenance':
-      return '维修'
-    case 'error':
-      return '报错'
-    case 'finished':
-      return '待清床'
-    case 'attention':
-      return '待巡查'
-    case 'printing':
-      return '打印中'
-    case 'idle':
-      return '空闲'
-    default:
-      return ''
-  }
 }
 
 function uniqueDeviceGroups(devices) {
@@ -1461,24 +1380,6 @@ module.exports = {
       }
     })
 
-    api.registerRoute('GET', '/api/v1/farm-dispatch/device-boards', async (req) => {
-      const user = authUser(req)
-      if (!user) return httpJson(401, { ok: false, message: '请先登录' })
-      const spools = readFilamentSpools(api)
-      const devices = filterDevicesForUser(user, enrichDevices(api, spools))
-      const boards = {}
-      for (const d of devices) {
-        const tech = String(d.tech || 'fdm').toLowerCase()
-        if (tech === 'resin') continue
-        boards[d.id] = {
-          board: d.board,
-          dutyStatus: d.duty && d.duty.status,
-          label: boardUiLabel(d.board)
-        }
-      }
-      return { ok: true, boards }
-    })
-
     api.registerRoute('POST', '/api/v1/farm-dispatch/patrol/duty', async (req) => {
       const user = authUser(req)
       const gate = requireRole(user, 'patrol', api)
@@ -1510,17 +1411,13 @@ module.exports = {
       }
       const duty = setDuty(api, deviceId, patch, user)
       let completed = 0
-      let reset = null
-      if (status === 'idle') {
-        completed = completeJobsOnIdle(api, deviceId, user)
-        reset = await resetPrinterOnIdle(api, deviceId)
-      }
+      if (status === 'idle') completed = completeJobsOnIdle(api, deviceId, user)
       appendLog(api, {
         ...actorOf(user),
         action: 'patrol_duty',
-        detail: { deviceId, status, note, completed, reset }
+        detail: { deviceId, status, note, completed }
       })
-      return { ok: true, duty, completed, reset }
+      return { ok: true, duty, completed }
     })
 
     api.registerRoute('POST', '/api/v1/farm-dispatch/patrol/bind', async (req) => {
@@ -2017,9 +1914,8 @@ module.exports = {
   },
 
   async statuses_publish(api, statuses) {
-    let map = statuses && typeof statuses === 'object' ? statuses : {}
     try {
-      map = overlayIdleClearedStatuses(api, map)
+      const map = statuses && typeof statuses === 'object' ? statuses : {}
       // 立刻返回，副作用合并延后执行，避免启用后状态风暴卡死宿主
       queueStatusSideEffects(api, map)
     } catch (e) {
@@ -2027,7 +1923,7 @@ module.exports = {
         api.log('[farm_dispatch] statuses_publish ' + (e && e.message))
       } catch (_) {}
     }
-    return map
+    return statuses
   }
 }
 
