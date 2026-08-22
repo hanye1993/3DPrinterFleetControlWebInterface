@@ -1,14 +1,31 @@
-# 巡查派单（farm_dispatch）1.0.9
+# 巡查派单（farm_dispatch）1.0.12
 
-## 修复
+四个页面均在**监控台侧栏**打开。
 
-- **一直加载中**：宿主 CSP 禁内联脚本 → 改为外链 `static/*.js`
-- **pageHtml is not a function**：升级后 Node 缓存旧 `_shell` → 加载前清缓存 + 兜底拼页
+| 侧栏 | 权限 / 用户组 |
+|------|----------------|
+| 巡查看板 | `plugin.farm_dispatch.patrol` / 巡查 |
+| 派单审核 | `plugin.farm_dispatch.audit` / 审核 |
+| 提交打印 | `plugin.farm_dispatch.submit` / 派单申请 |
+| 派单日志 | `plugin.farm_dispatch.logs` |
 
-## 安装（可上传应用市场）
+## 1.0.12
 
-1. 上传 `farm_dispatch-1.0.9.zip` 并启用（**先停用再启用**，或重启监控台）
-2. 软件设置 → 巡查派单 → 初始化用户组
-3. 浏览器强制刷新后再开侧栏
+- 巡查看板按**设备分组**展示与筛选（空分组 →「其他」）
+- 仅显示当前用户 ACL 可查看的机器；无权限设备不可设状态/绑料
 
-根目录包：`farm_dispatch-1.0.9.zip`
+## 安装
+
+1. 上传 ZIP → 启用（建议先停用再启用）
+2. **软件设置 → 巡查派单 → 初始化用户组**
+3. 用户加入对应组，并在用户管理中按分组/设备授权后刷新
+
+## 打包
+
+```bash
+cd assets/examples/plugin-farm-dispatch
+TMP=$(mktemp -d)
+cp plugin.json main.js client.js theme.css install.js uninstall.js cover.png README.md "$TMP/"
+cp -R modules static pages "$TMP/" 2>/dev/null || true
+cd "$TMP" && zip -qr farm_dispatch-1.0.12.zip .
+```

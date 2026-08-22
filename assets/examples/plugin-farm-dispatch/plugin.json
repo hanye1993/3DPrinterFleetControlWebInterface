@@ -1,8 +1,8 @@
 {
   "identifier": "farm_dispatch",
   "name": "巡查派单",
-  "version": "1.0.11",
-  "description": "侧栏巡查/审核/提交/日志；1000g=1卷绑满不可再绑；外链JS绕过CSP；兼容无数据库；智能派单。",
+  "version": "1.0.13",
+  "description": "巡查看板卡片网格展示；按设备分组筛选；ACL 仅显示授权机器；智能派单。",
   "copyright": "hanye",
   "author": "hanye",
   "available": true,

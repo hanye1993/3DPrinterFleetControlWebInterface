@@ -12,7 +12,9 @@ import {
 import { formatEtaFinish, formatRemain } from '../utils/timeFormat'
 import { colorSwatchBorder, normalizeColor, relativeLuminance } from '../utils/color'
 import { useFilamentStore } from '../stores/filamentStore'
-import { spoolBindings } from '../utils/spoolBinding'
+import { findSpoolBoundToSlot, spoolBindings } from '../utils/spoolBinding'
+import { amsSlotsSyncedWithSpools } from '../utils/amsSlotDisplay'
+import { materialLabel } from '../filament/filamentMaterials'
 import type { SpoolRecord } from '../types/filament'
 import { useAuthGrants } from '../stores/authStore'
 import { useThemePackStore } from '../theme/themePackStore'
@@ -26,30 +28,45 @@ function cardFilamentColors(
   st: PrinterLiveStatus | undefined,
   spools: SpoolRecord[]
 ): CardColor[] {
-  // AMS / multi-color from printer
+  // AMS / multi-color from printer — overlay bound filament-manager color + type
   const slots = st?.amsSlots
   if (slots && slots.length > 0) {
-    return slots
+    const synced = amsSlotsSyncedWithSpools(deviceId, slots, spools)
+    const colors: CardColor[] = synced
       .filter((s) => s.material && s.material !== '空')
       .map((s) => ({
         hex: normalizeColor(s.color),
         label: `${s.material}${s.remain != null ? ` · ${s.remain}%` : ''}`
       }))
+    // External / T0 binding (slot 0) when machine also has AMS
+    const ext = findSpoolBoundToSlot(spools, deviceId, 0)
+    if (ext) {
+      colors.push({
+        hex: normalizeColor(ext.colorHex || ext.color),
+        label: `${materialLabel(ext.material) || ext.material} · ${ext.color || ext.colorHex}`
+      })
+    }
+    return colors
   }
   // No on-printer colors → bound filament-manager colors (slot order)
-  const bound: { slotId: number; color: string; colorHex: string }[] = []
+  const bound: { slotId: number; color: string; colorHex: string; material: string }[] = []
   for (const s of spools) {
     if (s.archived) continue
     for (const b of spoolBindings(s)) {
       if (b.deviceId === deviceId && Number.isFinite(Number(b.slotId))) {
-        bound.push({ slotId: Number(b.slotId), color: s.color, colorHex: s.colorHex })
+        bound.push({
+          slotId: Number(b.slotId),
+          color: s.color,
+          colorHex: s.colorHex,
+          material: s.material
+        })
       }
     }
   }
   bound.sort((a, b) => a.slotId - b.slotId)
   return bound.map((s) => ({
     hex: normalizeColor(s.colorHex || s.color),
-    label: s.color || s.colorHex
+    label: `${materialLabel(s.material) || s.material} · ${s.color || s.colorHex}`
   }))
 }
 

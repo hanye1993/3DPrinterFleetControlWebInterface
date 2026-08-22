@@ -36,6 +36,47 @@ h2 { margin: 0 0 4px; font-size: 17px; font-weight: 650; }
   padding: 12px 14px;
   margin-bottom: 10px;
 }
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.dev-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  min-height: 128px;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease;
+}
+.dev-card:hover {
+  border-color: rgba(64,150,255,.45);
+  background: rgba(255,255,255,.06);
+}
+.dev-card.is-err { border-color: rgba(255,120,117,.45); }
+.dev-card.is-fin { border-color: rgba(82,196,26,.4); }
+.dev-card.is-mnt { border-color: rgba(250,173,20,.4); }
+.dev-card.is-print { border-color: rgba(64,150,255,.4); }
+.dev-card-name {
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.3;
+  word-break: break-word;
+}
+.dev-card-body { flex: 1; }
+.dev-card-fil {
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+  margin-top: 6px;
+}
+.dev-card-fil .swatch { width: 14px; height: 14px; }
+.dev-card-foot {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 8px; padding-top: 6px;
+  border-top: 1px solid rgba(255,255,255,.08);
+  font-size: 11px; color: var(--fd-muted);
+}
 .row { display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
 .bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; align-items: center; }
 input, select, textarea, button {
@@ -81,10 +122,20 @@ button.ghost { background: transparent; }
 .err { color: var(--fd-err); margin: 8px 0; }
 .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
 .tab {
-  border-radius: 999px; padding: 6px 12px; font-size: 12px;
+  border-radius: 999px; padding: 6px 12px; font-size: 12px; cursor: pointer;
   background: transparent; color: var(--fd-muted); border: 1px solid var(--fd-border);
 }
 .tab.on { color: var(--fd-text); background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.22); }
+.group-chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 12px; }
+.group-chip {
+  cursor: pointer; padding: 4px 10px; border-radius: 8px; font-size: 12px;
+  background: transparent; color: var(--fd-muted); border: 1px solid var(--fd-border);
+}
+.group-chip.on { color: #fff; background: rgba(64,150,255,.22); border-color: var(--fd-primary); }
+.group-h {
+  margin: 14px 0 8px; font-size: 12px; color: var(--fd-muted);
+}
+.group-h:first-child { margin-top: 4px; }
 .swatch {
   width: 12px; height: 12px; border-radius: 50%;
   border: 1px solid rgba(255,255,255,.35); display: inline-block; vertical-align: middle;

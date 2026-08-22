@@ -13,6 +13,8 @@
     me: null,
     board: null,
     devices: [],
+    groups: [],
+    groupFilter: '',
     notices: [],
     waitingJobs: [],
     spools: [],
@@ -54,9 +56,16 @@
     }
     state.board = j.board || {}
     state.devices = j.devices || []
+    state.groups = j.groups || []
     state.notices = j.notices || []
     state.waitingJobs = j.waitingJobs || []
     state.spools = j.spools || []
+    if (
+      state.groupFilter &&
+      state.groups.indexOf(state.groupFilter) < 0
+    ) {
+      state.groupFilter = ''
+    }
     if (!state.tabPicked) {
       if ((state.notices || []).length) state.tab = 'notices'
       else if (list('error').length) state.tab = 'error'
@@ -68,7 +77,40 @@
   }
 
   function list(key) {
-    return (state.board && state.board[key]) || []
+    var rows = (state.board && state.board[key]) || []
+    if (!state.groupFilter) return rows
+    return rows.filter(function (d) {
+      return String(d.group || '其他') === state.groupFilter
+    })
+  }
+
+  function groupChipsHtml() {
+    var groups = state.groups || []
+    if (groups.length <= 1) return ''
+    var chips = [
+      { id: '', label: '全部分组' }
+    ].concat(
+      groups.map(function (g) {
+        return { id: g, label: g }
+      })
+    )
+    return (
+      '<div class="group-chips">' +
+      chips
+        .map(function (c) {
+          return (
+            '<button type="button" class="group-chip' +
+            (state.groupFilter === c.id ? ' on' : '') +
+            '" data-group="' +
+            esc(c.id) +
+            '">' +
+            esc(c.label) +
+            '</button>'
+          )
+        })
+        .join('') +
+      '</div>'
+    )
   }
 
   function render() {
@@ -86,9 +128,10 @@
     document.getElementById('app').innerHTML =
       '<h2>巡查看板</h2><div class="sub">' +
       esc(u.displayName || u.username || '') +
-      ' · 点设备可设空闲 / 维修 / 绑定耗材' +
+      ' · 按设备分组筛选 · 点设备可设空闲 / 维修 / 绑定耗材' +
       (waitN ? ' · <span style="color:var(--fd-warn)">待办任务 ' + waitN + '</span>' : '') +
       '</div>' +
+      groupChipsHtml() +
       '<div class="tabs">' +
       tabs
         .map(function (t) {
@@ -112,62 +155,120 @@
         render()
       }
     })
+    Array.prototype.forEach.call(document.querySelectorAll('[data-group]'), function (el) {
+      el.onclick = function () {
+        state.groupFilter = el.getAttribute('data-group') || ''
+        render()
+      }
+    })
     renderList()
   }
 
+  function cardTone(board) {
+    if (board === 'error') return 'is-err'
+    if (board === 'finished') return 'is-fin'
+    if (board === 'maintenance') return 'is-mnt'
+    if (board === 'printing') return 'is-print'
+    return ''
+  }
+
+  function cardBadge(board) {
+    if (board === 'error') return { cls: 'b-err', label: '报错' }
+    if (board === 'finished') return { cls: 'b-fin', label: '完成' }
+    if (board === 'maintenance') return { cls: 'b-mnt', label: '维修' }
+    if (board === 'attention') return { cls: 'b-wait', label: '待处理' }
+    if (board === 'printing') return { cls: 'b-print', label: '打印中' }
+    return { cls: '', label: '空闲' }
+  }
+
   function card(d) {
-    var badge =
-      d.board === 'error'
-        ? 'b-err'
-        : d.board === 'finished'
-          ? 'b-fin'
-          : d.board === 'maintenance'
-            ? 'b-mnt'
-            : ''
-    var label =
-      d.board === 'error'
-        ? '报错'
-        : d.board === 'finished'
-          ? '完成'
-          : d.board === 'maintenance'
-            ? '维修'
-            : d.board === 'attention'
-              ? '待处理'
-              : d.board === 'printing'
-                ? '打印中'
-                : '空闲'
-    var bound =
-      (d.bound || [])
-        .map(function (b) {
-          return (
-            '<span class="swatch" style="background:' +
-            esc(b.colorHex || '#888') +
-            '"></span> ' +
-            esc((b.material || '') + ' ' + (b.color || ''))
-          )
-        })
-        .join(' · ') || '未绑定耗材'
+    var b = cardBadge(d.board)
+    var fil =
+      (d.bound || []).length > 0
+        ? (d.bound || [])
+            .map(function (x) {
+              return (
+                '<span class="swatch" title="' +
+                esc((x.material || '') + ' ' + (x.color || '')) +
+                '" style="background:' +
+                esc(x.colorHex || '#888') +
+                '"></span>'
+              )
+            })
+            .join('')
+        : '<span>未绑耗材</span>'
+    var statusLine = esc(d.state || d.health || '—')
+    if (d.message) statusLine += ' · ' + esc(d.message)
     return (
-      '<div class="card" data-dev="' +
+      '<div class="card dev-card ' +
+      cardTone(d.board) +
+      '" data-dev="' +
       esc(d.id) +
-      '" style="cursor:pointer">' +
-      '<div class="row"><strong>' +
-      esc(d.name) +
-      '</strong><span class="badge ' +
-      badge +
       '">' +
-      label +
+      '<div class="row">' +
+      '<div class="dev-card-name">' +
+      esc(d.name) +
+      '</div>' +
+      '<span class="badge ' +
+      b.cls +
+      '">' +
+      b.label +
       '</span></div>' +
-      '<div class="meta">机型 ' +
-      esc(d.model || '未知') +
-      ' · ' +
-      esc(d.state || d.health || '') +
-      (d.filename ? '<br>文件 ' + esc(d.filename) : '') +
-      (d.message ? '<br>' + esc(d.message) : '') +
-      '<br>耗材：' +
-      bound +
-      '</div></div>'
+      '<div class="dev-card-body meta">' +
+      '<div>' +
+      esc(d.model || '未知机型') +
+      '</div>' +
+      '<div style="margin-top:4px">' +
+      statusLine +
+      '</div>' +
+      (d.filename
+        ? '<div style="margin-top:4px;word-break:break-all">文件 ' + esc(d.filename) + '</div>'
+        : '') +
+      '<div class="dev-card-fil">' +
+      fil +
+      '</div></div>' +
+      '<div class="dev-card-foot"><span>' +
+      esc(d.group || '其他') +
+      '</span><span>点按操作</span></div></div>'
     )
+  }
+
+  function wrapGrid(html) {
+    return '<div class="card-grid">' + html + '</div>'
+  }
+
+  function renderGroupedCards(rows) {
+    if (state.groupFilter) {
+      return wrapGrid(rows.map(card).join(''))
+    }
+    var order = state.groups && state.groups.length ? state.groups.slice() : []
+    var by = {}
+    rows.forEach(function (d) {
+      var g = String(d.group || '其他')
+      if (!by[g]) by[g] = []
+      by[g].push(d)
+      if (order.indexOf(g) < 0) order.push(g)
+    })
+    if (!order.length) {
+      Object.keys(by).forEach(function (g) {
+        order.push(g)
+      })
+    }
+    return order
+      .filter(function (g) {
+        return by[g] && by[g].length
+      })
+      .map(function (g) {
+        return (
+          '<div class="group-h">' +
+          esc(g) +
+          ' · ' +
+          by[g].length +
+          '</div>' +
+          wrapGrid(by[g].map(card).join(''))
+        )
+      })
+      .join('')
   }
 
   function renderList() {
@@ -178,23 +279,26 @@
         box.innerHTML = '<div class="empty">暂无待办通知</div>'
         return
       }
-      box.innerHTML = ns
-        .map(function (n) {
-          return (
-            '<div class="card" data-notice="' +
-            esc(n.id) +
-            '" data-job="' +
-            esc(n.jobId || '') +
-            '">' +
-            '<strong>' +
-            esc(n.title) +
-            '</strong><div class="meta">' +
-            esc(n.body) +
-            '</div>' +
-            '<button class="ok" style="margin-top:10px;width:100%" data-act="done">换好了 / 确认并重新派单</button></div>'
-          )
-        })
-        .join('')
+      box.innerHTML =
+        '<div class="card-grid">' +
+        ns
+          .map(function (n) {
+            return (
+              '<div class="card dev-card" data-notice="' +
+              esc(n.id) +
+              '" data-job="' +
+              esc(n.jobId || '') +
+              '">' +
+              '<div class="dev-card-name">' +
+              esc(n.title) +
+              '</div><div class="dev-card-body meta">' +
+              esc(n.body) +
+              '</div>' +
+              '<button class="ok" style="margin-top:4px;width:100%" data-act="done">换好了 / 确认并重新派单</button></div>'
+            )
+          })
+          .join('') +
+        '</div>'
       Array.prototype.forEach.call(box.querySelectorAll('[data-act=done]'), function (btn) {
         btn.onclick = async function () {
           var cardEl = btn.closest('[data-notice]')
@@ -225,10 +329,13 @@
     }
     var rows = list(state.tab)
     if (!rows.length) {
-      box.innerHTML = '<div class="empty">这一栏暂无设备</div>'
+      box.innerHTML =
+        '<div class="empty">' +
+        (state.groupFilter ? '该分组下这一栏暂无设备' : '这一栏暂无设备') +
+        '</div>'
       return
     }
-    box.innerHTML = rows.map(card).join('')
+    box.innerHTML = renderGroupedCards(rows)
     Array.prototype.forEach.call(box.querySelectorAll('[data-dev]'), function (el) {
       el.onclick = function () {
         openSheet(el.getAttribute('data-dev'))
@@ -286,7 +393,9 @@
       '<div class="row"><strong>' +
       esc(d.name) +
       '</strong><button class="ghost" id="x">关闭</button></div>' +
-      '<div class="meta" style="margin:8px 0 12px">机型 ' +
+      '<div class="meta" style="margin:8px 0 12px">分组 ' +
+      esc(d.group || '其他') +
+      ' · 机型 ' +
       esc(d.model || '未知') +
       '</div>' +
       '<div class="row" style="margin-bottom:12px">' +

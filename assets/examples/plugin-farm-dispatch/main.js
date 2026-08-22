@@ -102,6 +102,40 @@ function isAdmin(user) {
   return user && String(user.level || '') === 'admin'
 }
 
+/** 设备分组名：空分组归入「其他」 */
+function deviceGroupName(d) {
+  const g = d && typeof d.group === 'string' ? d.group.trim() : ''
+  return g || '其他'
+}
+
+/**
+ * 与宿主 canDeviceAction(view) 对齐：deviceAcl 有任意键即为限制模式，
+ * 仅列出已授权查看的设备；未配置 ACL 时管理员/有 device.view 可见全部。
+ */
+function userCanViewDevice(user, deviceId) {
+  if (!user || !deviceId) return false
+  if (isAdmin(user)) {
+    const aclMap = user.deviceAcl && typeof user.deviceAcl === 'object' ? user.deviceAcl : {}
+    const restricted = Object.keys(aclMap).length > 0
+    if (!restricted) return true
+    const acl = aclMap[String(deviceId)]
+    return Array.isArray(acl) && (acl.includes('view') || acl.includes('*'))
+  }
+  const aclMap = user.deviceAcl && typeof user.deviceAcl === 'object' ? user.deviceAcl : {}
+  const restricted = Object.keys(aclMap).length > 0
+  if (restricted) {
+    const acl = aclMap[String(deviceId)]
+    return Array.isArray(acl) && (acl.includes('view') || acl.includes('*'))
+  }
+  return hasPerm(user, 'device.view') || hasPerm(user, '*')
+}
+
+function filterDevicesForUser(user, devices) {
+  const list = Array.isArray(devices) ? devices : []
+  if (!user) return []
+  return list.filter((d) => userCanViewDevice(user, String(d.id || '')))
+}
+
 function requireRole(user, roleKey, api) {
   if (!user) return { ok: false, status: 401, message: '请先登录' }
   const roles = roleFlags(user, api)
@@ -1129,6 +1163,7 @@ function enrichDevices(api, spools) {
       name: String(d.name || id),
       model: String(d.model || ''),
       brand: d.brand,
+      group: deviceGroupName(d),
       health: st.health,
       state: st.state,
       message: st.message,
@@ -1139,6 +1174,23 @@ function enrichDevices(api, spools) {
       gate: canAcceptPrint(api, id, spools)
     }
   })
+}
+
+function uniqueDeviceGroups(devices) {
+  const names = []
+  const seen = new Set()
+  for (const d of devices || []) {
+    const g = String(d.group || '其他')
+    if (seen.has(g)) continue
+    seen.add(g)
+    names.push(g)
+  }
+  names.sort((a, b) => {
+    if (a === '其他') return 1
+    if (b === '其他') return -1
+    return a.localeCompare(b, 'zh-CN')
+  })
+  return names
 }
 
 module.exports = {
@@ -1290,7 +1342,8 @@ module.exports = {
       const gate = requireRole(user, 'patrol', api)
       if (!gate.ok) return httpJson(gate.status, gate)
       const spools = readFilamentSpools(api)
-      const devices = enrichDevices(api, spools)
+      const devices = filterDevicesForUser(user, enrichDevices(api, spools))
+      const groups = uniqueDeviceGroups(devices)
       const board = {
         error: devices.filter((d) => d.board === 'error'),
         finished: devices.filter((d) => d.board === 'finished'),
@@ -1310,6 +1363,7 @@ module.exports = {
         notices,
         waitingJobs,
         devices,
+        groups,
         spools: spools
           .filter((s) => !s.archived)
           .map((s) => {
@@ -1335,6 +1389,9 @@ module.exports = {
       const status = String(body.status || '').trim()
       const note = String(body.note || '').trim()
       if (!deviceId) return { ok: false, message: '缺少 deviceId' }
+      if (!userCanViewDevice(user, deviceId)) {
+        return httpJson(403, { ok: false, message: '无该设备权限（请在用户管理中按分组/设备授权）' })
+      }
       if (status !== 'idle' && status !== 'maintenance') {
         return { ok: false, message: 'status 仅支持 idle / maintenance' }
       }
@@ -1372,6 +1429,9 @@ module.exports = {
       const spoolId = String(body.spoolId || '').trim()
       const slotId = Math.floor(Number(body.slotId != null ? body.slotId : 0))
       if (!deviceId || !spoolId) return { ok: false, message: '需要 deviceId 与 spoolId' }
+      if (!userCanViewDevice(user, deviceId)) {
+        return httpJson(403, { ok: false, message: '无该设备权限（请在用户管理中按分组/设备授权）' })
+      }
       const r = bindFilamentSpool(api, spoolId, deviceId, slotId, true)
       appendLog(api, {
         ...actorOf(user),
@@ -1391,6 +1451,9 @@ module.exports = {
       const spoolId = String(body.spoolId || '').trim()
       const slotId = Math.floor(Number(body.slotId != null ? body.slotId : 0))
       if (!deviceId || !spoolId) return { ok: false, message: '需要 deviceId 与 spoolId' }
+      if (!userCanViewDevice(user, deviceId)) {
+        return httpJson(403, { ok: false, message: '无该设备权限（请在用户管理中按分组/设备授权）' })
+      }
       const r = bindFilamentSpool(api, spoolId, deviceId, slotId, false)
       appendLog(api, {
         ...actorOf(user),

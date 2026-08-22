@@ -44,6 +44,7 @@ import {
   spoolBindSlotsLeft,
   spoolRolls
 } from '../utils/spoolBinding'
+import { amsSlotDisplay } from '../utils/amsSlotDisplay'
 import {
   isClientMode,
   serverDownloadDeviceFile,
@@ -964,9 +965,10 @@ export function DeviceDetailDrawer({
             <Space size={8} wrap style={{ marginBottom: 12 }}>
               {st.amsSlots.map((slot) => {
                 const bound = findSpoolBoundToSlot(linkableSpools, device.id, slot.id)
+                const displaySlot = amsSlotDisplay(device.id, slot, linkableSpools)
                 return (
                   <Space key={slot.id} direction="vertical" size={4}>
-                    <AmsSlotChip slot={slot} />
+                    <AmsSlotChip slot={displaySlot} />
                     <Select
                       size="small"
                       style={{ minWidth: 150 }}
@@ -1261,10 +1263,13 @@ export function DeviceDetailDrawer({
                 onChange={setFilamentSlot}
                 options={[
                   { value: 0, label: '外挂料架' },
-                  ...st.amsSlots.map((s) => ({
-                    value: s.id,
-                    label: `AMS ${s.id} · ${s.material}`
-                  }))
+                  ...st.amsSlots.map((s) => {
+                    const d = amsSlotDisplay(device.id, s, linkableSpools)
+                    return {
+                      value: s.id,
+                      label: `AMS ${s.id} · ${d.material}`
+                    }
+                  })
                 ]}
               />
             ) : null}
