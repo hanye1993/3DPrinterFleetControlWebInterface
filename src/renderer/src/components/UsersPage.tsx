@@ -967,7 +967,9 @@ function UserEditor(props: {
         <PluginSlot name="users.form.deviceAcl.before" context={formSlotCtx} />
         <Typography.Text strong>按设备授权</Typography.Text>
         <Typography.Paragraph type="secondary" style={{ margin: '4px 0 8px', fontSize: 12 }}>
-          可按分组一键授权，也可展开后逐台开关。开启设备后，该用户只能看到已开启的设备；暂停、归零、急停、进料等
+          可按分组一键授权，也可展开后逐台开关。开启设备后，该用户只能看到已开启的设备；
+          <Typography.Text strong>新建设备会自动加入创建者的授权</Typography.Text>
+          。暂停、归零、急停、进料等
           <Typography.Text strong> 操作权限在设备下方勾选 </Typography.Text>
           。未设置分组的机器归入「其他」。全部关闭设备开关时，若有「查看设备」全局权限则可看到全部设备，但仍须开启设备并勾选操作才能控制。
         </Typography.Paragraph>

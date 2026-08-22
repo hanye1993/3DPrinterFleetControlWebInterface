@@ -9,7 +9,13 @@ import {
 } from './deviceMutations'
 import type { AuthContext } from '../auth/authApi'
 import { assertDeviceControlAllowed } from '../auth/authApi'
-import { effectivePermissions, hasPerm } from '../../shared/permissions'
+import {
+  DEVICE_ACTION_PERMS,
+  effectivePermissions,
+  hasPerm,
+  type DeviceAcl
+} from '../../shared/permissions'
+import type { UserStore } from '../auth/users'
 import {
   DEVICE_CONTROL_ACTIONS,
   isControlAction,
@@ -91,6 +97,7 @@ export type FullApiDeps = {
   getPluginManager?: () => {
     runHook: (name: string, value: unknown, ctx?: unknown) => Promise<unknown>
   } | null
+  getUserStore?: () => UserStore | null
 }
 
 type SendJson = (res: ServerResponse, status: number, body: unknown) => void
@@ -174,6 +181,39 @@ function safeRemotePath(raw: string): string | null {
   const p = raw.replace(/\\/g, '/').trim()
   if (!p || p.includes('..') || p.startsWith('/') || /^[a-zA-Z]:/.test(p)) return null
   return p
+}
+
+/**
+ * When the creator already uses restrictive deviceAcl, auto-grant the new device
+ * so it appears in their fleet immediately (otherwise canDevice(view) hides it).
+ */
+function grantCreatedDeviceToActorAcl(
+  deps: FullApiDeps,
+  auth: AuthContext | null | undefined,
+  deviceId: string
+): DeviceAcl | undefined {
+  if (!auth || auth.kind !== 'user' || !deviceId) return undefined
+  const store = deps.getUserStore?.()
+  if (!store) return undefined
+  const rec = store.getById(auth.user.id)
+  if (!rec) return undefined
+  const prev =
+    rec.deviceAcl && typeof rec.deviceAcl === 'object' && !Array.isArray(rec.deviceAcl)
+      ? { ...(rec.deviceAcl as DeviceAcl) }
+      : {}
+  if (Object.keys(prev).length === 0) return undefined
+  if (prev[deviceId]?.length) return prev
+  const next: DeviceAcl = {
+    ...prev,
+    [deviceId]: ['view', ...DEVICE_ACTION_PERMS]
+  }
+  try {
+    store.update(auth.user.id, { deviceAcl: next })
+    return next
+  } catch (e) {
+    console.warn('[devices] auto-grant deviceAcl failed', e)
+    return undefined
+  }
 }
 
 /**
@@ -592,11 +632,13 @@ export async function handleFullApi(opts: {
       updateDevice(deps.getDevicesPath(), created.device.id, { bambuLanSecretKey: lanKey })
       created.device.bambuLanSecretKey = lanKey
     }
+    const deviceAcl = grantCreatedDeviceToActorAcl(deps, auth, String(created.device.id || ''))
     deps.onDevicesChanged?.()
     sendJson(res, 200, {
       ok: true,
       device: deps.sanitizeDevice(created.device),
-      secretSaved: !!created.secret
+      secretSaved: !!created.secret,
+      ...(deviceAcl ? { deviceAcl } : {})
     })
     return true
   }

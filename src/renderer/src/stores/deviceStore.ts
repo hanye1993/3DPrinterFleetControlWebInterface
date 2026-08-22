@@ -403,6 +403,12 @@ export const useDeviceStore = create<DeviceState>((set, get) => {
       if (lanCode) payload.bambuLanAccessCode = lanCode
       else delete payload.bambuLanAccessCode
       await serverSend('/api/v1/devices', 'POST', payload)
+      // Restrictive deviceAcl: server may have auto-granted; refresh session so canDevice sees it
+      try {
+        await useAuthStore.getState().refreshMe()
+      } catch {
+        /* ignore */
+      }
       await get().refreshFromServer()
       get().revealDevice(device.id, tech)
       return

@@ -1588,7 +1588,8 @@ export class ApiServer {
           patchSettings: this.deps.patchSettings,
           sanitizeDevice: (d) => sanitizeDevice(d as DeviceRow),
           onFilamentChanged: this.deps.onFilamentChanged,
-          getPluginManager: () => this.deps.getPluginManager?.() || null
+          getPluginManager: () => this.deps.getPluginManager?.() || null,
+          getUserStore: () => this.deps.getUserStore?.() || null
         },
         sendJson,
         readBody
