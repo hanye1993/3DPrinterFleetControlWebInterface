@@ -53,6 +53,10 @@ function isIdleStatus(st: PrinterLiveStatus): boolean {
   )
 }
 
+function isMaintenanceStatus(st: PrinterLiveStatus): boolean {
+  return norm(st.state) === 'maintenance'
+}
+
 /** Classify live status for filter checkboxes */
 export function deviceStatusKind(st?: PrinterLiveStatus | null): DeviceStatusKind {
   if (!st) return 'offline'
@@ -63,6 +67,7 @@ export function deviceStatusKind(st?: PrinterLiveStatus | null): DeviceStatusKin
   }
   if (isErrorStatus(st)) return 'error'
   if (isFinishedStatus(st)) return 'finished'
+  if (isMaintenanceStatus(st)) return 'idle'
   if (isIdleStatus(st)) return 'idle'
   return 'printing'
 }
@@ -80,6 +85,11 @@ export function deviceStatusLabel(st?: PrinterLiveStatus | null): string {
   }
 
   if (isFinishedStatus(st)) return '打印完成'
+
+  if (isMaintenanceStatus(st)) {
+    const msg = (st.message || '').trim()
+    return msg || '维修中'
+  }
 
   if (st.health === 'offline' || norm(st.state) === 'offline') {
     return (st.message || '').trim() || '离线'
@@ -102,6 +112,8 @@ export function deviceRuntimeStatusLabel(st?: PrinterLiveStatus | null): string 
   if (!st) return '等待状态…'
   const kind = deviceStatusKind(st)
   const s = norm(st.state)
+
+  if (s === 'maintenance') return '维修'
 
   if (kind === 'offline') {
     if (s === 'connecting' || s === 'reconnecting') return '连接中'
