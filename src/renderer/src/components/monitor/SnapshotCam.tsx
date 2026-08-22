@@ -38,7 +38,8 @@ export function SnapshotCam({
   footerExtra,
   /** Optional device id for monitorOffline alerts */
   alertDeviceId,
-  alertDeviceName
+  alertDeviceName,
+  onUnavailable
 }: {
   cameras: CameraSource[]
   title: string
@@ -58,6 +59,8 @@ export function SnapshotCam({
   footerExtra?: ReactNode
   alertDeviceId?: string
   alertDeviceName?: string
+  /** Called once when all camera URLs failed to yield a frame (wall can hide the tile). */
+  onUnavailable?: () => void
 }) {
   const [imgSrc, setImgSrc] = useState('')
   const [phase, setPhase] = useState<'boot' | 'live' | 'fail'>('boot')
@@ -72,6 +75,9 @@ export function SnapshotCam({
   const timer = useRef<ReturnType<typeof setInterval> | null>(null)
   const offlineEmitted = useRef(false)
   const lastErrRef = useRef('')
+  const unavailableEmitted = useRef(false)
+  const onUnavailableRef = useRef(onUnavailable)
+  onUnavailableRef.current = onUnavailable
 
   const camKey = useMemo(
     () => cameras.map((c) => `${c.id}|${remoteOf(c)}`).join(';'),
@@ -87,6 +93,7 @@ export function SnapshotCam({
     failRef.current = 0
     aliveRef.current = false
     offlineEmitted.current = false
+    unavailableEmitted.current = false
     setPhase((p) => (lastSrcRef.current ? 'live' : 'boot'))
     setErr('')
     if (timer.current) {
@@ -175,6 +182,10 @@ export function SnapshotCam({
               if (failRef.current % 2 === 0) idxRef.current += 1
               if (!aliveRef.current && failRef.current >= list.length * 3) {
                 setPhase('fail')
+                if (!unavailableEmitted.current) {
+                  unavailableEmitted.current = true
+                  onUnavailableRef.current?.()
+                }
                 const emitKey = alertDeviceId || schedKey
                 const now = Date.now()
                 const last = lastOfflineEmitAt.get(emitKey) || 0

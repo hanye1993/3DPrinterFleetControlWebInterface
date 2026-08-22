@@ -67,6 +67,7 @@ import {
   patchCamerasWithBestUrls,
   isExtraCameraId
 } from '../shared/deviceExtraCameras'
+import { filterCamerasWithWorkingSnapshot } from '../shared/wallCameraProbe'
 import { createFileOperationLogStore } from '../main/operationLogs/fileStore'
 import { MysqlOperationLogStore } from './storage/mysqlOperationLogs'
 import { VisionMonitor } from '../main/ai/visionMonitor'
@@ -99,6 +100,52 @@ function mergeDeviceCameras(discovered: DiscoveredCam[], device: Record<string, 
     discovered,
     mergeDiscoveredWithExtra(discovered, parseDeviceExtraCameras(device))
   )
+}
+
+async function takeCameraSnapshotInternal(url: string, apiKey?: string | null) {
+  try {
+    let target = url
+    try {
+      const u = new URL(url)
+      if (u.hostname === '127.0.0.1' && u.searchParams.get('url')) {
+        target = u.searchParams.get('url') || target
+      }
+    } catch {
+      /* ignore */
+    }
+    const bambu = parseBambuCameraUrl(target)
+    if (bambu) {
+      const snap = await grabBambuCameraFrame(bambu.host, bambu.code, {
+        timeoutMs: 12000,
+        model: bambu.model
+      })
+      if (!snap.ok) return snap
+      return { ok: true as const, contentType: snap.contentType, base64: snap.base64 }
+    }
+    const snap = await fetchSnapshot(target, apiKey || undefined)
+    if (!snap.ok) return snap
+    return { ok: true as const, contentType: snap.contentType, base64: snap.base64 }
+  } catch (e) {
+    return { ok: false as const, message: e instanceof Error ? e.message : String(e) }
+  }
+}
+
+async function discoverDeviceCameras(
+  d: Record<string, unknown>,
+  apiKey: string | null
+): Promise<{ discovered: DiscoveredCam[]; cams: ReturnType<typeof mergeDeviceCameras> }> {
+  let discovered: DiscoveredCam[] = []
+  try {
+    discovered = await discoverCameras({
+      brand: String(d.brand || ''),
+      host: deviceHost(d) || undefined,
+      baseUrl: typeof d.baseUrl === 'string' ? d.baseUrl : undefined,
+      apiKey: apiKey || undefined
+    })
+  } catch {
+    discovered = []
+  }
+  return { discovered, cams: mergeDeviceCameras(discovered, d) }
 }
 
 function readPackageVersion(): string {
@@ -337,6 +384,25 @@ async function bootstrap(): Promise<void> {
     void import('./storage/fileSecrets')
       .then(({ saveFileSecrets }) => saveFileSecrets(secretsPath, secretsCache))
       .catch((e) => console.error('[secret] file save failed', e))
+  }
+
+  const wallCamerasForDevice = async (
+    d: Record<string, unknown>,
+    opts?: { probe?: boolean }
+  ) => {
+    const secretKey = typeof d.secretKey === 'string' ? d.secretKey : ''
+    const apiKey = secretKey ? secretsCache[secretKey] || (await resolveSecret(secretKey)) : null
+    const { discovered, cams } = await discoverDeviceCameras(d, apiKey)
+    if (!cams.length) return []
+    if (opts?.probe === false) return cams
+    return filterCamerasWithWorkingSnapshot({
+      discovered,
+      cams,
+      probe: async (url) => {
+        const shot = await takeCameraSnapshotInternal(url, apiKey)
+        return { ok: shot.ok }
+      }
+    })
   }
 
   const deviceHostEngine = new DeviceHost({
@@ -680,25 +746,7 @@ async function bootstrap(): Promise<void> {
         const id = String(d.id || '')
         if (!id) continue
         try {
-          const secretKey = typeof d.secretKey === 'string' ? d.secretKey : ''
-          const apiKey = secretKey ? secretsCache[secretKey] || (await resolveSecret(secretKey)) : null
-          let discovered: Array<{
-            id: string
-            name: string
-            streamUrl: string
-            snapshotUrl?: string
-          }> = []
-          try {
-            discovered = await discoverCameras({
-              brand: String(d.brand || ''),
-              host: deviceHost(d) || undefined,
-              baseUrl: typeof d.baseUrl === 'string' ? d.baseUrl : undefined,
-              apiKey: apiKey || undefined
-            })
-          } catch {
-            discovered = []
-          }
-          const cams = mergeDeviceCameras(discovered, d)
+          const cams = await wallCamerasForDevice(d, { probe: true })
           if (!cams.length) continue
           out.push({
             deviceId: id,
@@ -759,33 +807,7 @@ async function bootstrap(): Promise<void> {
         return []
       }
     },
-    takeCameraSnapshot: async (url, apiKey) => {
-      try {
-        let target = url
-        try {
-          const u = new URL(url)
-          if (u.hostname === '127.0.0.1' && u.searchParams.get('url')) {
-            target = u.searchParams.get('url') || target
-          }
-        } catch {
-          /* ignore */
-        }
-        const bambu = parseBambuCameraUrl(target)
-        if (bambu) {
-          const snap = await grabBambuCameraFrame(bambu.host, bambu.code, {
-            timeoutMs: 12000,
-            model: bambu.model
-          })
-          if (!snap.ok) return snap
-          return { ok: true as const, contentType: snap.contentType, base64: snap.base64 }
-        }
-        const snap = await fetchSnapshot(target, apiKey)
-        if (!snap.ok) return snap
-        return { ok: true as const, contentType: snap.contentType, base64: snap.base64 }
-      } catch (e) {
-        return { ok: false as const, message: e instanceof Error ? e.message : String(e) }
-      }
-    },
+    takeCameraSnapshot: (url, apiKey) => takeCameraSnapshotInternal(url, apiKey),
     getDeviceApiKey: (deviceId) => {
       const d = readDeviceRows().find((x) => String(x.id || '') === deviceId)
       if (!d || typeof d.secretKey !== 'string' || !d.secretKey) return null
@@ -964,25 +986,7 @@ async function bootstrap(): Promise<void> {
       const id = String(d.id || '')
       if (!id) continue
       try {
-        const secretKey = typeof d.secretKey === 'string' ? d.secretKey : ''
-        const apiKey = secretKey ? secretsCache[secretKey] || (await resolveSecret(secretKey)) : null
-        let discovered: Array<{
-          id: string
-          name: string
-          streamUrl: string
-          snapshotUrl?: string
-        }> = []
-        try {
-          discovered = await discoverCameras({
-            brand: String(d.brand || ''),
-            host: deviceHost(d) || undefined,
-            baseUrl: typeof d.baseUrl === 'string' ? d.baseUrl : undefined,
-            apiKey: apiKey || undefined
-          })
-        } catch {
-          discovered = []
-        }
-        const cams = mergeDeviceCameras(discovered, d)
+        const cams = await wallCamerasForDevice(d, { probe: true })
         if (!cams.length) continue
         out.push({
           deviceId: id,
@@ -996,33 +1000,7 @@ async function bootstrap(): Promise<void> {
     return out
   }
 
-  const takeSnapForAi = async (url: string) => {
-    try {
-      let target = url
-      try {
-        const u = new URL(url)
-        if (u.hostname === '127.0.0.1' && u.searchParams.get('url')) {
-          target = u.searchParams.get('url') || target
-        }
-      } catch {
-        /* ignore */
-      }
-      const bambu = parseBambuCameraUrl(target)
-      if (bambu) {
-        const snap = await grabBambuCameraFrame(bambu.host, bambu.code, {
-          timeoutMs: 12000,
-          model: bambu.model
-        })
-        if (!snap.ok) return snap
-        return { ok: true as const, contentType: snap.contentType, base64: snap.base64 }
-      }
-      const snap = await fetchSnapshot(target)
-      if (!snap.ok) return snap
-      return { ok: true as const, contentType: snap.contentType, base64: snap.base64 }
-    } catch (e) {
-      return { ok: false as const, message: e instanceof Error ? e.message : String(e) }
-    }
-  }
+  const takeSnapForAi = (url: string) => takeCameraSnapshotInternal(url, null)
 
   visionMonitor = new VisionMonitor({
     getSettings: () => appSettings,

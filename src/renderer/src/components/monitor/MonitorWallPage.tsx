@@ -51,6 +51,7 @@ export function MonitorWallPage() {
   const updateDevice = useDeviceStore((s) => s.updateDevice)
   const { can, canDevice, deviceAcl, permissions } = useAuthGrants()
   const [slots, setSlots] = useState<WallSlot[]>([])
+  const [deadTiles, setDeadTiles] = useState<Set<string>>(() => new Set())
   const [scanning, setScanning] = useState(true)
   const [progress, setProgress] = useState('')
   const [aiAlerts, setAiAlerts] = useState<AiVisionAlert[]>([])
@@ -122,13 +123,17 @@ export function MonitorWallPage() {
   }, [allowedDevices, adapters])
 
   useEffect(() => {
+    setDeadTiles(new Set())
+  }, [deviceKey, aclKey, adapterReadyKey, pluginTick])
+
+  useEffect(() => {
     let cancelled = false
     setScanning(true)
     setProgress('')
 
     const run = async () => {
       if (isClientMode()) {
-        setProgress('加载摄像头墙…')
+        setProgress('验证可用摄像头…')
         try {
           const data = await serverGet<{
             devices?: Array<{
@@ -227,9 +232,9 @@ export function MonitorWallPage() {
         }))
       ).map((s) => s.deviceId)
     )
-    return slots.filter((s) => filteredIds.has(s.device.id))
+    return slots.filter((s) => !deadTiles.has(wallTileKey(s))).filter((s) => filteredIds.has(s.device.id))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slots, pluginTick])
+  }, [slots, deadTiles, pluginTick])
 
   const toolbarActions = useMemo(
     () => getHanyePlugin().getMonitorToolbarActions('wall'),
@@ -322,11 +327,12 @@ export function MonitorWallPage() {
       <PluginSlot name="monitor.grid.before" context={slotCtx} />
       {!visibleSlots.length && !scanning ? (
         <PluginSlot name="monitor.empty" replace context={slotCtx}>
-          <Empty description="没有发现可用的打印机摄像头（需已授权且局域网机舱摄像头已开）" />
+          <Empty description="没有可用的打印机摄像头（取流失败或摄像头未开启的设备已自动隐藏）" />
         </PluginSlot>
       ) : (
         <div className="monitor-wall-grid">
           {visibleSlots.map((slot) => {
+            const tileKey = wallTileKey(slot)
             const alert = latestByDevice.get(slot.device.id)
             const live = devices.find((d) => d.id === slot.device.id) || slot.device
             const aiOn = isDeviceAiVisionEnabled(live)
@@ -346,7 +352,7 @@ export function MonitorWallPage() {
               subtitle: camName
             }
             return (
-              <div key={wallTileKey(slot)}>
+              <div key={tileKey}>
                 <PluginSlot
                   name="monitor.tile.before"
                   context={{ ...slotCtx, deviceId: live.id }}
@@ -377,6 +383,14 @@ export function MonitorWallPage() {
                     onAiEnabledChange={
                       canToggleAi ? (v) => void setDeviceAi(live, v) : undefined
                     }
+                    onUnavailable={() => {
+                      setDeadTiles((prev) => {
+                        if (prev.has(tileKey)) return prev
+                        const next = new Set(prev)
+                        next.add(tileKey)
+                        return next
+                      })
+                    }}
                     headerExtra={<MonitorTilePluginHeader ctx={tileCtx} />}
                     footerExtra={
                       <>
