@@ -65,6 +65,7 @@ h2 { margin: 0 0 4px; font-size: 17px; font-weight: 650; }
 .dev-card.is-fin { border-color: rgba(82,196,26,.45); }
 .dev-card.is-mnt { border-color: rgba(250,173,20,.45); }
 .dev-card.is-print { border-color: rgba(64,150,255,.45); }
+.dev-card.is-idle { border-color: rgba(64,150,255,.28); }
 .dev-card-name {
   font-size: 15px;
   font-weight: 650;
@@ -143,6 +144,15 @@ button.ghost { background: transparent; }
 .b-rej { background: rgba(255,120,117,.18); color: #ffa39e; }
 .meta { color: var(--fd-muted); font-size: 12px; line-height: 1.5; }
 .empty { text-align: center; color: var(--fd-muted); padding: 36px 8px; }
+.fd-toast {
+  position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
+  z-index: 50; max-width: min(92vw, 420px); padding: 10px 14px;
+  border-radius: 10px; background: rgba(22,29,39,.96);
+  border: 1px solid var(--fd-border); color: var(--fd-text);
+  box-shadow: 0 8px 28px rgba(0,0,0,.35); font-size: 13px;
+  opacity: 0; pointer-events: none; transition: opacity .18s ease;
+}
+.fd-toast.on { opacity: 1; }
 .err { color: var(--fd-err); margin: 8px 0; }
 .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
 .tab {

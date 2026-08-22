@@ -1,8 +1,8 @@
 {
   "identifier": "farm_dispatch",
   "name": "巡查派单",
-  "version": "1.0.14",
-  "description": "巡查看板卡片网格；操作二次确认；按分组筛选；ACL 过滤；智能派单。",
+  "version": "1.1.0",
+  "description": "确认空闲后自动取消任务、进度归 0；空闲/维修同步看板与首页 FDM 卡片；智能派单。",
   "copyright": "hanye",
   "author": "hanye",
   "available": true,

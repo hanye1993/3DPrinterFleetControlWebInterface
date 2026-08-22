@@ -332,8 +332,30 @@
     var d = state.device
     if (!d) return
     var j = await api('POST', '/api/v1/farm-dispatch/patrol/duty', { deviceId: d.id, status: status })
-    toast(j.ok ? (status === 'idle' ? '已设为空闲' : '已设为维修') : (j.message || '失败'))
-    if (j.ok) await loadBoard(true)
+    if (!j || !j.ok) {
+      toast((j && j.message) || '失败')
+      return
+    }
+    for (var i = 0; i < (state.devices || []).length; i++) {
+      if (String(state.devices[i].id) !== String(d.id)) continue
+      state.devices[i].duty = j.duty || state.devices[i].duty
+      state.devices[i].board = status === 'maintenance' ? 'maintenance' : 'idle'
+      break
+    }
+    state.tab = status === 'maintenance' ? 'maintenance' : 'idle'
+    state.device = null
+    var sheet = document.getElementById('sheet')
+    if (sheet) { sheet.className = 'sheet-mask'; sheet.innerHTML = '' }
+    var msg = status === 'idle' ? '已设为空闲' : '已设为维修'
+    if (status === 'idle' && j.reset && j.reset.ok && !j.reset.skipped) msg += '，打印机已归 0'
+    toast(msg)
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'farm_dispatch:duty', source: 'farm_dispatch' }, '*')
+      }
+    } catch (e) {}
+    render()
+    await loadBoard(false)
   }
 
   async function loadBoard(keepSheet) {

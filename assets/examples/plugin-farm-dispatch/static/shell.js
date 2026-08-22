@@ -67,7 +67,8 @@
         d.groups ||
         d.devices ||
         d.spools ||
-        d.notices
+        d.notices ||
+        d.boards
       ) {
         return d
       }
