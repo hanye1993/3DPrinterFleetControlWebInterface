@@ -128,13 +128,28 @@ export function createBambuMqttBridge(
       return { ok: false, message: '缺少云端用户 ID' }
     }
 
+    const password = String(opts.password || '').trim()
+    if (!password || password.startsWith('v1:')) {
+      const message =
+        '访问码/令牌无效或已失效，请重新填写拓竹局域网访问码（或云端令牌）后重连'
+      emit({
+        connectionId: opts.connectionId,
+        health: 'error',
+        state: 'error',
+        progress: 0,
+        message,
+        updatedAt: new Date().toISOString()
+      })
+      return { ok: false, message }
+    }
+
     const url = `mqtts://${host}:8883`
 
     return await new Promise((resolve) => {
       let settled = false
       const client = mqtt.connect(url, {
         username,
-        password: opts.password,
+        password,
         clientId: `printer-monitor-${opts.connectionId.slice(0, 8)}-${Date.now()}`,
         reconnectPeriod: 5000,
         connectTimeout: 15000,

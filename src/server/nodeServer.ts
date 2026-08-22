@@ -272,15 +272,24 @@ async function bootstrap(): Promise<void> {
     const { getAllSecretsMap } = await import('./storage/secrets')
     Object.assign(secretsCache, await getAllSecretsMap())
   } else {
-    const { loadFileSecrets } = await import('./storage/fileSecrets')
+    const { setSecretsDataRoot } = await import('./storage/secretCrypto')
+    setSecretsDataRoot(DATA_ROOT)
+    const { loadFileSecretsDetailed, saveFileSecrets } = await import('./storage/fileSecrets')
     const secretsPath = join(DATA_ROOT, 'secrets.json')
-    Object.assign(secretsCache, loadFileSecrets(secretsPath))
-    // Migrate legacy plaintext → encrypted on boot
-    try {
-      const { saveFileSecrets } = await import('./storage/fileSecrets')
-      saveFileSecrets(secretsPath, secretsCache)
-    } catch (e) {
-      console.error('[secrets] migrate encrypt failed', e)
+    const loaded = loadFileSecretsDetailed(secretsPath)
+    Object.assign(secretsCache, loaded.secrets)
+    if (loaded.lostKeys.length) {
+      console.warn(
+        `[secrets] ${loaded.lostKeys.length} 条设备密钥无法解密（主密钥变更或丢失），请在设备设置中重新填写访问码/密钥：${loaded.lostKeys.slice(0, 8).join(', ')}${loaded.lostKeys.length > 8 ? '…' : ''}`
+      )
+    }
+    // Only migrate when on-disk file still has plaintext entries
+    if (loaded.hadPlaintext) {
+      try {
+        saveFileSecrets(secretsPath, secretsCache)
+      } catch (e) {
+        console.error('[secrets] migrate encrypt failed', e)
+      }
     }
   }
 

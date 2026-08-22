@@ -259,13 +259,22 @@ export class DeviceHost {
 
       if (brand === 'bambu') {
         const mode = d.connectionMode === 'cloud' ? 'cloud' : 'lan'
+        const password =
+          mode === 'lan' ? (await this.bambuLanAccessCode(d)) || secret : secret
+        if (!password || password.startsWith('v1:')) {
+          throw new Error(
+            mode === 'lan'
+              ? '拓竹访问码缺失或已失效（服务端密钥变更）。请编辑设备，重新填写局域网访问码后保存。'
+              : '拓竹云端令牌缺失或已失效。请编辑设备重新登录/填写令牌。'
+          )
+        }
         const res = await this.bambuMqtt.connect({
           connectionId: id,
           serial: String(d.bambuDeviceId || ''),
           mode,
           host: deviceHost(d) || undefined,
           region: (d.bambuRegion as 'china' | 'global') || 'global',
-          password: secret,
+          password,
           userId: d.bambuUserId ? String(d.bambuUserId) : undefined
         })
         if (!res.ok) throw new Error(res.message || 'Bambu 连接失败')
