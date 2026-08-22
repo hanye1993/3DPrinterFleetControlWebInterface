@@ -44,6 +44,9 @@ Desktop.ini
 !/assets/plugins/.gitkeep
 !/assets/plugins/.env.example
 
+# Plugin examples/source — distribute as zip only, not in git
+/assets/examples/plugin-*/
+
 # 应用市场为独立项目，不随控制台仓库发布
 /应用市场/
 
