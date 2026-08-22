@@ -1505,7 +1505,21 @@ export function AddDeviceModal({
                     showIcon
                     style={{ marginBottom: 16 }}
                     message="纵维云能力有限"
-                    description="云端可查看状态并暂停/恢复/取消；传文件与开打请用官方 App 或改局域网。网页 Token：登录 cloud.anycubic.com 后从请求头 XX-Token 复制；或粘贴切片软件的 access_token（选「切片软件」模式）。"
+                    description={
+                      <>
+                        云端可查看状态并暂停/恢复/取消；传文件与开打请用官方 App 或改局域网。网页 Token：登录{' '}
+                        <Typography.Link
+                          href="https://cloud-universe.anycubic.com"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          https://cloud-universe.anycubic.com
+                        </Typography.Link>{' '}
+                        后，在开发者工具 → Application → Local Storage 复制{' '}
+                        <Typography.Text code>XX-Token</Typography.Text>
+                        ；或粘贴切片软件的 access_token（选「切片软件」模式）。
+                      </>
+                    }
                   />
                   <Form.Item
                     name="anycubicAuthMode"

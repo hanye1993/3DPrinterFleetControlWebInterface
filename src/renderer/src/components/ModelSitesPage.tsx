@@ -35,7 +35,7 @@ const GROUPS: ModelGroup[] = [
       },
       {
         name: '纵维立方 Anycubic Cloud',
-        url: 'https://cloud.anycubic.com/',
+        url: 'https://cloud-universe.anycubic.com/',
         desc: 'Anycubic 官方云平台与模型资源。',
         tags: ['纵维', 'FDM', '光固化']
       },

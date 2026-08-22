@@ -416,7 +416,26 @@ export async function discoverCameras(opts: CameraDiscoverOpts): Promise<CameraC
       candidates.push(...commonMoonPaths(origin, host))
     }
     if (brand === 'creality' && host) {
-      candidates.push(
+      // Creality OS / Fluidd：机舱 MJPEG 多在 :4408/webcam 或 :80；:4409 常为 API/关闭，勿优先裸连
+      candidates.unshift(
+        {
+          id: 'cr-4408-webcam',
+          name: '摄像头',
+          streamUrl: `http://${host}:4408/webcam/?action=stream`,
+          snapshotUrl: `http://${host}:4408/webcam/?action=snapshot`
+        },
+        {
+          id: 'cr-4408-webcam-ns',
+          name: '摄像头',
+          streamUrl: `http://${host}:4408/webcam?action=stream`,
+          snapshotUrl: `http://${host}:4408/webcam?action=snapshot`
+        },
+        {
+          id: 'cr-80-webcam',
+          name: '摄像头',
+          streamUrl: `http://${host}/webcam/?action=stream`,
+          snapshotUrl: `http://${host}/webcam/?action=snapshot`
+        },
         {
           id: 'cr-8080',
           name: '摄像头',
@@ -424,12 +443,19 @@ export async function discoverCameras(opts: CameraDiscoverOpts): Promise<CameraC
           snapshotUrl: `http://${host}:8080/?action=snapshot`
         },
         {
-          id: 'cr-4409',
+          id: 'cr-8080-webcam',
           name: '摄像头',
-          streamUrl: `http://${host}:4409/?action=stream`,
-          snapshotUrl: `http://${host}:4409/?action=snapshot`
+          streamUrl: `http://${host}:8080/webcam/?action=stream`,
+          snapshotUrl: `http://${host}:8080/webcam/?action=snapshot`
         }
       )
+      // Low priority: legacy / odd setups only
+      candidates.push({
+        id: 'cr-4409-webcam',
+        name: '摄像头',
+        streamUrl: `http://${host}:4409/webcam/?action=stream`,
+        snapshotUrl: `http://${host}:4409/webcam/?action=snapshot`
+      })
     }
     if (brand === 'qidi' && host) {
       candidates.unshift(
@@ -457,6 +483,24 @@ export async function discoverCameras(opts: CameraDiscoverOpts): Promise<CameraC
     if (!key || seen.has(key)) continue
     seen.add(key)
     unique.push(c)
+  }
+  // Creality/Klipper: put likely MJPEG endpoints first so collapsed "chamber" picks a good primary
+  if (brand === 'creality' || brand === 'klipper' || brand === 'qidi' || !brand) {
+    const score = (url: string) => {
+      const u = String(url || '').toLowerCase()
+      let s = 0
+      if (u.includes(':4409') && !u.includes('/webcam')) s -= 50
+      if (u.includes(':7125')) s -= 40
+      if (u.includes(':4408') && u.includes('/webcam')) s += 40
+      if (u.includes('/webcam')) s += 15
+      if (u.includes(':8080')) s += 10
+      return s
+    }
+    unique.sort(
+      (a, b) =>
+        Math.max(score(b.streamUrl), score(b.snapshotUrl || '')) -
+        Math.max(score(a.streamUrl), score(a.snapshotUrl || ''))
+    )
   }
   return unique
 }

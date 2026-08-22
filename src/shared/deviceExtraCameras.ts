@@ -63,24 +63,48 @@ function isGenericChamberName(name: string): boolean {
  * discoverCameras returns many URL *candidates* (same chamber, different paths/ports).
  * Collapse those into one logical cam per distinct name so UI switch is not flooded.
  * Named Moonraker webcams (不同名称) stay separate.
+ * For the chamber group, prefer a URL that is more likely to serve MJPEG (not API ports).
  */
+function webcamUrlScore(url: string): number {
+  const u = String(url || '').toLowerCase()
+  if (!u) return -100
+  let score = 0
+  if (u.includes(':4409') && !u.includes('/webcam')) score -= 50
+  if (u.includes(':7125')) score -= 40
+  if (/:4409(\/|$|\?)/.test(u) && u.includes('/webcam')) score -= 10
+  if (u.includes(':4408') && u.includes('/webcam')) score += 40
+  if (u.includes(':80/') || /:80(\/|$|\?)/.test(u) || /^https?:\/\/[^/:]+\/webcam/.test(u))
+    score += 30
+  if (u.includes(':8080')) score += 20
+  if (u.includes('/webcam')) score += 15
+  if (u.includes('action=snapshot') || u.includes('action=stream')) score += 5
+  return score
+}
+
 export function collapseDiscoveredCameras(
   discovered: Array<{ id: string; name: string; streamUrl: string; snapshotUrl?: string }>
 ): CameraCandidate[] {
-  const groups = new Map<string, CameraCandidate>()
+  const groups = new Map<
+    string,
+    { pick: CameraCandidate; score: number }
+  >()
   for (const c of discovered || []) {
     if (!c?.streamUrl && !c?.snapshotUrl) continue
     const name = String(c.name || '').trim() || '摄像头'
     const key = isGenericChamberName(name) ? '__chamber__' : name
-    if (groups.has(key)) continue
-    groups.set(key, {
+    const streamUrl = String(c.streamUrl || c.snapshotUrl || '')
+    const snapshotUrl = c.snapshotUrl
+    const score = Math.max(webcamUrlScore(streamUrl), webcamUrlScore(String(snapshotUrl || '')))
+    const cand: CameraCandidate = {
       id: key === '__chamber__' ? 'chamber' : String(c.id || name),
       name: key === '__chamber__' ? '机舱摄像头' : name,
-      streamUrl: String(c.streamUrl || c.snapshotUrl || ''),
-      snapshotUrl: c.snapshotUrl
-    })
+      streamUrl,
+      snapshotUrl
+    }
+    const prev = groups.get(key)
+    if (!prev || score > prev.score) groups.set(key, { pick: cand, score })
   }
-  return [...groups.values()]
+  return [...groups.values()].map((g) => g.pick)
 }
 
 /** All candidate URLs for a logical (collapsed) camera — for snapshot fail-over. */

@@ -110,7 +110,27 @@ export function CameraPanel({
       }
       failRef.current += 1
       if (!aliveRef.current && failRef.current >= 3) {
+        const list = camsRef.current
+        const idx = camIdxRef.current
+        // Auto-advance to next candidate cam when current one never came alive
+        if (list.length > 1 && idx < list.length - 1) {
+          failRef.current = 0
+          setPhase('boot')
+          setErrHint('')
+          setCamIdx(idx + 1)
+          return
+        }
         setPhase('fail')
+        if ((brandHint || '').toLowerCase() === 'creality') {
+          setErrHint((prev) => {
+            const base = (prev || '').trim()
+            const tip =
+              '可试 Fluidd：http://打印机IP:4408/webcam/?action=snapshot；若新固件仅 WebRTC，请用官方 App 或添加第三方摄像头地址'
+            if (!base) return tip
+            if (/4408\/webcam|WebRTC|第三方摄像头/i.test(base)) return base
+            return `${base}。${tip}`
+          })
+        }
       }
     }
 
