@@ -1,0 +1,565 @@
+name: Build Windows EXE
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Show environment
+        shell: pwsh
+        run: |
+          Write-Host "Node:"
+          node --version
+
+          Write-Host "NPM:"
+          npm --version
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Install EXE packager
+        run: npm install --no-save @yao-pkg/pkg@6.22.0
+
+      - name: Show pkg version
+        shell: pwsh
+        run: |
+          npx pkg --version
+
+      - name: Verify fflate
+        shell: pwsh
+        run: |
+          Write-Host "================================="
+          Write-Host "VERIFY FFLATE"
+          Write-Host "================================="
+
+          if (-not (Test-Path "node_modules/fflate/package.json")) {
+            throw "fflate package.json not found"
+          }
+
+          if (-not (Test-Path "node_modules/fflate/lib/node.cjs")) {
+            throw "fflate lib/node.cjs not found"
+          }
+
+          Write-Host "fflate package exists."
+          Write-Host "fflate/lib/node.cjs exists."
+
+          Write-Host ""
+          Write-Host "fflate files:"
+
+          Get-ChildItem "node_modules/fflate" -Recurse |
+            Select-Object FullName, Length |
+            Format-Table -AutoSize
+
+      - name: Create EXE launcher
+        shell: pwsh
+        run: |
+          @'
+          const fs = require('fs')
+          const path = require('path')
+          const crypto = require('crypto')
+          const http = require('http')
+          const { execFile } = require('child_process')
+
+          const appRoot = path.dirname(process.execPath)
+
+          process.chdir(appRoot)
+
+          // 强制使用文件存储，不使用 MySQL
+          process.env.USE_MYSQL = '0'
+
+          // 数据保存到 EXE 同目录
+          const dataRoot = path.join(appRoot, 'data')
+
+          fs.mkdirSync(dataRoot, {
+            recursive: true
+          })
+
+          process.env.DATA_ROOT = dataRoot
+
+          // 固定 Secrets 加密密钥
+          if (!process.env.SECRETS_MASTER_KEY) {
+            const keyFile = path.join(
+              dataRoot,
+              '.master-key'
+            )
+
+            if (fs.existsSync(keyFile)) {
+              const existingKey = fs
+                .readFileSync(keyFile, 'utf8')
+                .trim()
+
+              if (existingKey) {
+                process.env.SECRETS_MASTER_KEY =
+                  existingKey
+              }
+            }
+
+            if (!process.env.SECRETS_MASTER_KEY) {
+              const newKey = crypto
+                .randomBytes(32)
+                .toString('hex')
+
+              fs.writeFileSync(
+                keyFile,
+                newKey,
+                'utf8'
+              )
+
+              process.env.SECRETS_MASTER_KEY =
+                newKey
+            }
+          }
+
+          const port = 17890
+
+          console.log(
+            '================================='
+          )
+
+          console.log(
+            '3D Printer Fleet Control'
+          )
+
+          console.log(
+            '================================='
+          )
+
+          console.log(
+            '[launcher] Node:',
+            process.version
+          )
+
+          console.log(
+            '[launcher] EXE:',
+            process.execPath
+          )
+
+          console.log(
+            '[launcher] App root:',
+            appRoot
+          )
+
+          console.log(
+            '[launcher] Data root:',
+            dataRoot
+          )
+
+          console.log(
+            '[launcher] Storage mode: FILE'
+          )
+
+          console.log(
+            '[launcher] Starting server...'
+          )
+
+          // 启动服务端
+          require(
+            './dist/server/server/nodeServer.js'
+          )
+
+          // GitHub Actions 测试时禁止打开浏览器
+          if (process.env.NO_AUTO_OPEN !== '1') {
+            const url =
+              `http://127.0.0.1:${port}/`
+
+            let attempts = 0
+
+            console.log(
+              '[launcher] Waiting for server:',
+              url
+            )
+
+            const timer = setInterval(() => {
+              attempts++
+
+              const req = http.get(
+                url,
+                (res) => {
+                  res.resume()
+
+                  clearInterval(timer)
+
+                  console.log(
+                    '[launcher] Server ready:',
+                    url
+                  )
+
+                  execFile(
+                    'cmd.exe',
+                    [
+                      '/c',
+                      'start',
+                      '',
+                      url
+                    ],
+                    {
+                      windowsHide: true
+                    }
+                  )
+                }
+              )
+
+              req.on(
+                'error',
+                () => {}
+              )
+
+              if (attempts >= 60) {
+                clearInterval(timer)
+
+                console.error(
+                  '[launcher] Server startup timeout'
+                )
+              }
+            }, 500)
+          }
+          '@ | Set-Content -Encoding UTF8 exe-entry.cjs
+
+      - name: Create pkg config
+        shell: pwsh
+        run: |
+          @'
+          {
+            "scripts": [
+              "dist/server/**/*.js"
+            ],
+            "assets": [
+              "node_modules/fflate/**/*"
+            ],
+            "bytecode": false,
+            "public": true,
+            "publicPackages": "*"
+          }
+          '@ | Set-Content -Encoding UTF8 .pkgrc.json
+
+          Write-Host "================================="
+          Write-Host "PKG CONFIG"
+          Write-Host "================================="
+
+          Get-Content .pkgrc.json
+
+      - name: Verify build output
+        shell: pwsh
+        run: |
+          Write-Host "================================="
+          Write-Host "VERIFY BUILD OUTPUT"
+          Write-Host "================================="
+
+          if (-not (Test-Path "dist/server/server/nodeServer.js")) {
+            throw "Server entry not found"
+          }
+
+          if (-not (Test-Path "dist/web/index.html")) {
+            throw "Web index not found"
+          }
+
+          Write-Host "Server entry OK"
+          Write-Host "Web frontend OK"
+
+      - name: Build EXE
+        shell: pwsh
+        run: |
+          New-Item `
+            -ItemType Directory `
+            -Force `
+            release |
+            Out-Null
+
+          Write-Host "================================="
+          Write-Host "BUILDING WINDOWS EXE"
+          Write-Host "================================="
+
+          npx pkg `
+            exe-entry.cjs `
+            --config .pkgrc.json `
+            --targets node22-win-x64 `
+            --output release/3DPrinterFleetControl.exe `
+            --compress GZip `
+            --no-bytecode `
+            --public `
+            --public-packages "*"
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "pkg build failed with exit code $LASTEXITCODE"
+          }
+
+          if (-not (Test-Path "release/3DPrinterFleetControl.exe")) {
+            throw "EXE was not generated"
+          }
+
+          Write-Host ""
+          Write-Host "================================="
+          Write-Host "EXE GENERATED"
+          Write-Host "================================="
+
+          Get-Item "release/3DPrinterFleetControl.exe" |
+            Select-Object FullName, Length |
+            Format-Table -AutoSize
+
+      - name: Copy runtime files
+        shell: pwsh
+        run: |
+          New-Item `
+            -ItemType Directory `
+            -Force `
+            release/dist |
+            Out-Null
+
+          New-Item `
+            -ItemType Directory `
+            -Force `
+            release/ops |
+            Out-Null
+
+          # 前端网页
+          if (Test-Path "dist/web") {
+            Copy-Item `
+              -Recurse `
+              -Force `
+              "dist/web" `
+              "release/dist/web"
+          }
+          else {
+            throw "dist/web not found"
+          }
+
+          # 插件、主题等资源
+          if (Test-Path "assets") {
+            Copy-Item `
+              -Recurse `
+              -Force `
+              "assets" `
+              "release/assets"
+          }
+
+          # 项目文档
+          if (Test-Path "ops/docs") {
+            Copy-Item `
+              -Recurse `
+              -Force `
+              "ops/docs" `
+              "release/ops/docs"
+          }
+
+          # 用于获取版本
+          Copy-Item `
+            -Force `
+            "package.json" `
+            "release/package.json"
+
+      - name: Show release structure
+        shell: pwsh
+        run: |
+          Write-Host ""
+          Write-Host "================================="
+          Write-Host "RELEASE STRUCTURE"
+          Write-Host "================================="
+
+          Get-ChildItem "release" -Recurse |
+            Select-Object FullName, Length |
+            Format-Table -AutoSize
+
+      - name: Test EXE
+        shell: pwsh
+        run: |
+          $env:NO_AUTO_OPEN = "1"
+          $env:DEBUG_PKG = "1"
+
+          $releaseDir = (
+            Resolve-Path ".\release"
+          ).Path
+
+          $exePath = Join-Path `
+            $releaseDir `
+            "3DPrinterFleetControl.exe"
+
+          $stdout = Join-Path `
+            $PWD `
+            "exe-stdout.log"
+
+          $stderr = Join-Path `
+            $PWD `
+            "exe-stderr.log"
+
+          Write-Host ""
+          Write-Host "================================="
+          Write-Host "STARTING EXE"
+          Write-Host "================================="
+
+          Write-Host "EXE:"
+          Write-Host $exePath
+
+          Write-Host ""
+          Write-Host "Working directory:"
+          Write-Host $releaseDir
+
+          $process = Start-Process `
+            -FilePath $exePath `
+            -WorkingDirectory $releaseDir `
+            -RedirectStandardOutput $stdout `
+            -RedirectStandardError $stderr `
+            -PassThru
+
+          Write-Host ""
+          Write-Host "PID: $($process.Id)"
+
+          $success = $false
+          $lastError = ""
+
+          for ($i = 0; $i -lt 60; $i++) {
+            Start-Sleep -Seconds 1
+
+            $process.Refresh()
+
+            if ($process.HasExited) {
+              Write-Host ""
+              Write-Host "================================="
+              Write-Host "EXE EXITED EARLY"
+              Write-Host "================================="
+
+              Write-Host "Exit code: $($process.ExitCode)"
+
+              break
+            }
+
+            try {
+              $response = Invoke-WebRequest `
+                "http://127.0.0.1:17890/" `
+                -UseBasicParsing `
+                -TimeoutSec 2
+
+              Write-Host "HTTP status: $($response.StatusCode)"
+
+              if ($response.StatusCode -eq 200) {
+                $success = $true
+
+                Write-Host ""
+                Write-Host "================================="
+                Write-Host "WEB SERVER READY"
+                Write-Host "================================="
+
+                break
+              }
+            }
+            catch {
+              $lastError =
+                $_.Exception.Message
+
+              Write-Host `
+                "Waiting for server... attempt $($i + 1)"
+            }
+          }
+
+          $process.Refresh()
+
+          if (-not $process.HasExited) {
+            Stop-Process `
+              -Id $process.Id `
+              -Force `
+              -ErrorAction SilentlyContinue
+
+            try {
+              $process.WaitForExit(5000)
+            }
+            catch {
+            }
+          }
+
+          Start-Sleep -Seconds 1
+
+          Write-Host ""
+          Write-Host "================================="
+          Write-Host "STDOUT"
+          Write-Host "================================="
+
+          if (Test-Path $stdout) {
+            Get-Content $stdout
+          }
+          else {
+            Write-Host "(no stdout)"
+          }
+
+          Write-Host ""
+          Write-Host "================================="
+          Write-Host "STDERR"
+          Write-Host "================================="
+
+          if (Test-Path $stderr) {
+            Get-Content $stderr
+          }
+          else {
+            Write-Host "(no stderr)"
+          }
+
+          Write-Host ""
+          Write-Host "================================="
+          Write-Host "DATA DIRECTORY"
+          Write-Host "================================="
+
+          $dataDir = Join-Path `
+            $releaseDir `
+            "data"
+
+          if (Test-Path $dataDir) {
+            Get-ChildItem $dataDir -Recurse |
+              Select-Object FullName, Length |
+              Format-Table -AutoSize
+          }
+          else {
+            Write-Host "(data directory not created)"
+          }
+
+          if (-not $success) {
+            Write-Host ""
+            Write-Host "================================="
+            Write-Host "SMOKE TEST FAILED"
+            Write-Host "================================="
+
+            Write-Host "Last HTTP error:"
+            Write-Host $lastError
+
+            throw "EXE startup smoke test failed - check STDOUT and STDERR above"
+          }
+
+          Write-Host ""
+          Write-Host "================================="
+          Write-Host "EXE SMOKE TEST PASSED"
+          Write-Host "================================="
+
+      - name: Upload EXE debug logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exe-debug-logs
+          path: |
+            exe-stdout.log
+            exe-stderr.log
+          if-no-files-found: ignore
+
+      - name: Upload Windows package
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: 3DPrinterFleetControl-Windows
+          path: release/
