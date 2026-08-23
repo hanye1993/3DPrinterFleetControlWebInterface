@@ -3,7 +3,7 @@
  * Docker：把源码写到挂载的宿主机目录（UPDATE_GIT_ROOT=/host-repo），
  * 若已挂载 docker.sock 则自动重建并切换容器（正在跑的镜像不会被 ZIP 直接覆盖）。
  */
-import { execFile } from 'child_process'
+import { execFile, spawn } from 'child_process'
 import { promisify } from 'util'
 import http from 'http'
 import {
@@ -1042,12 +1042,50 @@ async function applyViaGit(root: string, check: UpdateCheckResult): Promise<Upda
   }
 }
 
+async function maybeRunSourceRebuild(result: UpdateApplyResult): Promise<UpdateApplyResult> {
+  if (!result.ok || !result.updated || result.deployMode !== 'source' || result.rebuilding) {
+    return result
+  }
+  const script = '/home/hanye/update-hanye.sh'
+  if (!existsSync(script)) {
+    return {
+      ...result,
+      needsRebuild: true,
+      message: `${result.message} 请 SSH 到 NAS 执行 /home/hanye/update-hanye.sh（或 npm run build 后重启服务）。`
+    }
+  }
+  try {
+    const child = spawn(script, [], {
+      detached: true,
+      stdio: 'ignore',
+      env: { ...process.env, HANYE_SKIP_BOOT_SLEEP: '1' }
+    })
+    child.unref()
+    return {
+      ...result,
+      needsRebuild: false,
+      rebuilding: true,
+      message: `源码已更新到 v${result.currentVersion}，正在后台执行 update-hanye.sh 构建并重启（约 1～3 分钟）。`,
+      log: `${result.log || ''}\nspawn ${script}`.trim()
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    return {
+      ...result,
+      needsRebuild: true,
+      message: `${result.message} 未能自动执行 update-hanye.sh：${msg}`,
+      log: `${result.log || ''}\n${msg}`.trim()
+    }
+  }
+}
+
 export async function applyGithubSourceUpdate(opts?: {
   currentVersion?: string
   mirror?: string | null
 }): Promise<UpdateApplyResult> {
   const result = await applyGithubSourceUpdateCore(opts)
-  return maybeScheduleDockerRebuild(result)
+  const afterDocker = await maybeScheduleDockerRebuild(result)
+  return maybeRunSourceRebuild(afterDocker)
 }
 
 async function applyGithubSourceUpdateCore(opts?: {

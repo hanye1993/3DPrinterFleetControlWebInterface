@@ -968,7 +968,7 @@ export class ApiServer {
       try {
         const u = new URL(req.url || '/', 'http://127.0.0.1')
         const p = u.pathname.replace(/\/+$/, '') || '/'
-        if (p === '/api/v1/events') {
+        if (p === '/api/v1/events' || /^\/api\/v1\/plugins\/[^/]+\/page\/[^/]+$/.test(p)) {
           token = String(u.searchParams.get('access_token') || u.searchParams.get('token') || '').trim()
         }
       } catch {

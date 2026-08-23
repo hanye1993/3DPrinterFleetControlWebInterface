@@ -28,8 +28,34 @@ function contentTypeFor(file: string): string {
   if (e === '.png') return 'image/png'
   if (e === '.jpg' || e === '.jpeg') return 'image/jpeg'
   if (e === '.svg') return 'image/svg+xml'
+  if (e === '.wasm') return 'application/wasm'
+  if (e === '.webmanifest') return 'application/manifest+json'
   if (e === '.woff2') return 'font/woff2'
   return 'application/octet-stream'
+}
+
+function escapeAttr(s: string): string {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
+/** 插件页 HTML：注入 JWT、补全静态资源绝对路径（供 iframe src 真实 URL 加载） */
+export function preparePluginPageHtml(html: string, jwt: string, apiOrigin: string): string {
+  let page = String(html || '')
+  const safeOrigin = apiOrigin && /^https?:\/\//i.test(apiOrigin) ? apiOrigin.replace(/\/$/, '') : ''
+  const token = String(jwt || '')
+  page = page.replace(
+    /<html(\s[^>]*)?>/i,
+    (m) => m.replace(/>$/, '') + ` data-hanye-jwt="${escapeAttr(token)}" data-hanye-api="${escapeAttr(safeOrigin)}">`
+  )
+  if (safeOrigin) {
+    page = page.replace(/(src=["'])(\/api\/v1\/plugins\/)/gi, `$1${safeOrigin}$2`)
+    page = page.replace(/(href=["'])(\/api\/v1\/plugins\/)/gi, `$1${safeOrigin}$2`)
+  }
+  return page
 }
 
 function isPluginHttp(data: unknown): data is {
@@ -576,6 +602,58 @@ export async function handlePluginApi(opts: {
       sendJson(res, 400, { ok: false, message: e instanceof Error ? e.message : String(e) })
     }
     return true
+  }
+
+  // Plugin page HTML (iframe src — 真实 URL，文件选择器才能工作)
+  const pageMatch = path.match(/^\/api\/v1\/plugins\/([^/]+)\/page\/([^/]+)$/)
+  if (method === 'GET' && pageMatch) {
+    if (!pm) {
+      sendJson(res, 503, { ok: false, message: '插件系统未启动' })
+      return true
+    }
+    const user = auth && typeof auth === 'object' && (auth as { kind?: string }).kind === 'user'
+      ? (auth as { user?: { id?: string } }).user
+      : null
+    if (!user?.id) {
+      res.writeHead(401, { 'Content-Type': 'text/plain; charset=utf-8' })
+      res.end('请先登录')
+      return true
+    }
+    try {
+      const ctx: PluginRequestCtx = {
+        method: 'GET',
+        path,
+        url,
+        query: queryOf(url),
+        headers: headersOf(req),
+        auth
+      }
+      const data = await pm.runModule(decodeURIComponent(pageMatch[1]), decodeURIComponent(pageMatch[2]), ctx)
+      if (data && typeof data === 'object' && '__html' in (data as object)) {
+        const proto = String(req.headers['x-forwarded-proto'] || 'http').split(',')[0].trim()
+        const host = String(req.headers.host || 'localhost')
+        const origin = `${proto}://${host}`
+        const jwt =
+          String(req.headers.authorization || '')
+            .replace(/^bearer\s+/i, '')
+            .trim() ||
+          String(url.searchParams.get('access_token') || url.searchParams.get('token') || '')
+        const page = preparePluginPageHtml(String((data as { __html: string }).__html), jwt, origin)
+        res.writeHead(200, {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'no-store'
+        })
+        res.end(page)
+        return true
+      }
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' })
+      res.end('插件页不存在')
+      return true
+    } catch (e) {
+      res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' })
+      res.end(e instanceof Error ? e.message : String(e))
+      return true
+    }
   }
 
   // Module invoke: POST /api/v1/plugins/:id/modules/:name
