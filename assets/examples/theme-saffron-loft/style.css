@@ -595,6 +595,10 @@
   inset: 0;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
   transform: translateX(-100%);
+}
+
+[data-theme-pack='saffron_loft'] .device-card-footer.state-printing .card-progress-bar::after,
+[data-theme-pack='saffron_loft'] .device-card-footer.state-error .card-progress-bar::after {
   animation: sl-shimmer 2.2s ease-in-out infinite;
 }
 

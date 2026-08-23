@@ -95,6 +95,15 @@ export function deviceStatusLabel(st?: PrinterLiveStatus | null): string {
     return (st.message || '').trim() || '离线'
   }
 
+  if (
+    st.health === 'connecting' ||
+    norm(st.state) === 'connecting' ||
+    norm(st.state) === 'reconnecting' ||
+    norm(st.state) === 'disconnected'
+  ) {
+    return (st.message || '').trim() || '连接中…'
+  }
+
   if (isIdleStatus(st)) return '机器空闲'
 
   const file = (st.filename || '').trim()

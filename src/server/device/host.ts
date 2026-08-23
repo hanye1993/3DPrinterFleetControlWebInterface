@@ -110,6 +110,21 @@ function patchToStatus(patch: LivePatch): Record<string, unknown> {
   }
 }
 
+/** Merge live patches so MQTT reconnect does not wipe temperature / progress. */
+function mergeStatusPatch(
+  prev: Record<string, unknown> | undefined,
+  patch: LivePatch
+): Record<string, unknown> {
+  const next = patchToStatus(patch)
+  if (!prev) return next
+  const merged: Record<string, unknown> = { ...prev }
+  for (const [k, v] of Object.entries(next)) {
+    if (v !== undefined && v !== null) merged[k] = v
+  }
+  merged.updatedAt = next.updatedAt
+  return merged
+}
+
 function canBatchPrint(d: DeviceRow): boolean {
   if (d.tech === 'resin') return false
   const brand = String(d.brand || '')
@@ -166,7 +181,8 @@ export class DeviceHost {
   private applyPatch(patch: LivePatch): void {
     const id = patch.connectionId
     if (!id) return
-    this.statuses[id] = patchToStatus(patch)
+    const prev = this.statuses[id] as Record<string, unknown> | undefined
+    this.statuses[id] = mergeStatusPatch(prev, patch)
   }
 
   private setStatus(deviceId: string, partial: Record<string, unknown>): void {

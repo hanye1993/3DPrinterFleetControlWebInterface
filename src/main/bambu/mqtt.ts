@@ -144,6 +144,7 @@ export function createBambuMqttBridge(
     }
 
     const url = `mqtts://${host}:8883`
+    const CONNECT_DEADLINE_MS = 20000
 
     return await new Promise((resolve) => {
       let settled = false
@@ -164,7 +165,52 @@ export function createBambuMqttBridge(
       const done = (ok: boolean, message?: string) => {
         if (settled) return
         settled = true
+        clearTimeout(deadline)
         resolve({ ok, message })
+      }
+
+      const deadline = setTimeout(() => {
+        if (settled) return
+        try {
+          client.end(true)
+        } catch {
+          /* ignore */
+        }
+        sessions.delete(opts.connectionId)
+        emit({
+          connectionId: opts.connectionId,
+          health: 'error',
+          state: 'error',
+          progress: 0,
+          message: 'MQTT 连接超时，请检查打印机 IP、访问码与局域网',
+          updatedAt: new Date().toISOString()
+        })
+        done(false, 'MQTT 连接超时')
+      }, CONNECT_DEADLINE_MS)
+
+      const emitFromSession = (
+        health: BambuLivePatch['health'],
+        state: string,
+        message: string
+      ) => {
+        const s = sessions.get(opts.connectionId)
+        const base =
+          s && Object.keys(s.print).length
+            ? mapPrintToPatch(opts.connectionId, s.print, isLan)
+            : {
+                connectionId: opts.connectionId,
+                health,
+                state,
+                progress: 0,
+                updatedAt: new Date().toISOString()
+              }
+        emit({
+          ...base,
+          health,
+          state,
+          message,
+          updatedAt: new Date().toISOString()
+        })
       }
 
       client.on('connect', () => {
@@ -239,26 +285,12 @@ export function createBambuMqttBridge(
 
       client.on('close', () => {
         if (sessions.get(opts.connectionId)?.client === client) {
-          emit({
-            connectionId: opts.connectionId,
-            health: 'warning',
-            state: 'disconnected',
-            progress: 0,
-            message: 'MQTT 已断开，重连中…',
-            updatedAt: new Date().toISOString()
-          })
+          emitFromSession('warning', 'disconnected', 'MQTT 已断开，重连中…')
         }
       })
 
       client.on('reconnect', () => {
-        emit({
-          connectionId: opts.connectionId,
-          health: 'connecting',
-          state: 'reconnecting',
-          progress: 0,
-          message: 'MQTT 重连中…',
-          updatedAt: new Date().toISOString()
-        })
+        emitFromSession('warning', 'reconnecting', 'MQTT 重连中…')
       })
     })
   }
