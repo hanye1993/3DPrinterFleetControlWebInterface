@@ -1,0 +1,128 @@
+#!/bin/bash
+# hanye 监控台 — 飞牛 fnOS 原生启停（Node 直装，无 Docker）
+set -u
+
+resolve_node_path() {
+  local cand
+  for cand in \
+    /var/apps/nodejs_v22/target/bin \
+    /var/apps/nodejs_v20/target/bin \
+    /var/apps/nodejs/target/bin; do
+    if [ -x "$cand/node" ]; then
+      export PATH="$cand:$PATH"
+      return 0
+    fi
+  done
+  return 1
+}
+resolve_node_path || true
+
+LOG_FILE="${TRIM_PKGVAR}/app.log"
+PID_FILE="${TRIM_PKGVAR}/app.pid"
+APP_DIR="${TRIM_APPDEST}/server"
+ENTRY="${APP_DIR}/dist/server/server/nodeServer.js"
+ENV_FILE="${TRIM_PKGETC}/app.env"
+
+log_msg() {
+  echo "$(date '+%Y-%m-%d %H:%M:%S') - $*" >>"$LOG_FILE"
+}
+
+load_env() {
+  if [ -f "$ENV_FILE" ]; then
+    set -a
+    # shellcheck disable=SC1090
+    source "$ENV_FILE"
+    set +a
+  fi
+  export PORT="${TRIM_SERVICE_PORT:-${PORT:-17890}}"
+  if [ -n "${TRIM_DATA_SHARE_PATHS:-}" ]; then
+    export DATA_ROOT="${TRIM_DATA_SHARE_PATHS%%:*}"
+  else
+    export DATA_ROOT="${DATA_ROOT:-${TRIM_PKGVAR}/data}"
+  fi
+  export USE_MYSQL="${USE_MYSQL:-0}"
+  mkdir -p "$DATA_ROOT" "${TRIM_PKGVAR}"
+}
+
+check_process() {
+  local pid="$1"
+  [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null
+}
+
+status_app() {
+  if [ -f "$PID_FILE" ]; then
+    local pid
+    pid="$(head -n 1 "$PID_FILE" | tr -d '[:space:]')"
+    if check_process "$pid"; then
+      return 0
+    fi
+    rm -f "$PID_FILE"
+  fi
+  return 1
+}
+
+start_app() {
+  load_env
+  if status_app; then
+    return 0
+  fi
+  if [ ! -f "$ENTRY" ]; then
+    echo "Missing server entry: $ENTRY" >"${TRIM_TEMP_LOGFILE:-/dev/null}"
+    log_msg "ERROR missing $ENTRY"
+    exit 1
+  fi
+  log_msg "Starting hanye-printer-monitor on port $PORT data=$DATA_ROOT"
+  cd "$APP_DIR" || exit 1
+  nohup node "$ENTRY" >>"$LOG_FILE" 2>&1 &
+  echo "$!" >"$PID_FILE"
+  sleep 2
+  if ! status_app; then
+    echo "Process exited after start. See $LOG_FILE" >"${TRIM_TEMP_LOGFILE:-/dev/null}"
+    log_msg "ERROR process exited after start"
+    exit 1
+  fi
+}
+
+stop_app() {
+  log_msg "Stopping hanye-printer-monitor..."
+  if [ ! -f "$PID_FILE" ]; then
+    return 0
+  fi
+  local pid
+  pid="$(head -n 1 "$PID_FILE" | tr -d '[:space:]')"
+  if [ -z "$pid" ] || ! check_process "$pid"; then
+    rm -f "$PID_FILE"
+    return 0
+  fi
+  kill -TERM "$pid" 2>>"$LOG_FILE" || true
+  local count=0
+  while check_process "$pid" && [ "$count" -lt 15 ]; do
+    sleep 1
+    count=$((count + 1))
+  done
+  if check_process "$pid"; then
+    kill -KILL "$pid" 2>>"$LOG_FILE" || true
+  fi
+  rm -f "$PID_FILE"
+}
+
+case "${1:-}" in
+  start)
+    start_app
+    exit 0
+    ;;
+  stop)
+    stop_app
+    exit 0
+    ;;
+  status)
+    if status_app; then
+      exit 0
+    fi
+    exit 3
+    ;;
+  *)
+    echo "Unknown command: ${1:-}" >"${TRIM_TEMP_LOGFILE:-/dev/null}"
+    exit 1
+    ;;
+esac

@@ -1,0 +1,17 @@
+[
+  {
+    "stepTitle": "卸载选项",
+    "items": [
+      {
+        "type": "radio",
+        "field": "wizard_keep_data",
+        "label": "应用数据",
+        "initValue": "keep",
+        "options": [
+          {"label": "保留运行数据", "value": "keep"},
+          {"label": "删除全部数据", "value": "delete"}
+        ]
+      }
+    ]
+  }
+]

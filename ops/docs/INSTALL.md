@@ -44,6 +44,18 @@ LAN_SCAN_SUBNETS=192.168.1    # 改成你的网段，如 192.168.10
 
 ### Windows
 
+**推荐：一键安装包（无需单独装 Node）**
+
+1. 双击 `packages/windows-4.2.0-amd64.exe`
+2. 按向导完成（自动注册 Windows 服务；控制面板可启停）
+3. 访问 http://127.0.0.1:17890/ ，默认 **admin / admin123**
+
+开发者打包：`npm run pack:win`（产物在 `packages/`）。详见 [packages-src/win/README.md](../packages-src/win/README.md)。
+
+---
+
+**手动 Node 直装（开发调试）**
+
 1. 安装 [Node.js 20 LTS](https://nodejs.org/)（勾选 Add to PATH）
 2. 解压源码到例如 `D:\hanye-printer-monitor`
 3. **PowerShell** 或 **CMD**：
@@ -67,6 +79,22 @@ npm start
 ---
 
 ### macOS
+
+**推荐：一键安装包（无需单独装 Node）**
+
+| 芯片 | 安装包 |
+|------|--------|
+| Apple Silicon（M 系列） | `packages/macos-4.2.0-arm64.dmg` |
+| Intel | `packages/macos-4.2.0-amd64.dmg` |
+
+1. 打开对应 DMG，双击 `install.command`
+2. 浏览器访问 http://127.0.0.1:17890/ ，默认 **admin / admin123**
+
+开发者打包：`npm run pack:mac`（同时产出 arm64 + x64）。详见 [packages-src/mac/README.md](../packages-src/mac/README.md)。
+
+---
+
+**手动 Node 直装（开发调试）**
 
 1. 安装 Node：`brew install node@20` 或从 [nodejs.org](https://nodejs.org/) 安装
 2. 终端进入项目目录：
@@ -94,6 +122,22 @@ pm2 startup    # 按提示执行一条 sudo 命令
 ---
 
 ### Linux（云服务器 / 台式机）
+
+**推荐：一键安装包（无需单独装 Node）**
+
+| 系统 | 安装包 | 安装命令 |
+|------|--------|----------|
+| Ubuntu / Debian（x86_64） | `ubuntu-4.2.0-amd64.deb` | `sudo dpkg -i ubuntu-*-amd64.deb` |
+| CentOS / RHEL / Rocky（x86_64） | `centos-4.2.0-amd64.rpm` | `sudo yum install ./centos-*-amd64.rpm` |
+| ARM64 服务器 | 文件名带 `arm64` 的 deb/rpm | 同上 |
+
+安装后访问 http://127.0.0.1:17890/ ，默认 **admin / admin123**。服务名 `hanyemonitor`，配置 `/opt/hanye-printer-monitor/app.env`。
+
+开发者打包：`npm run pack:linux`。详见 [packages-src/linux/README.md](../packages-src/linux/README.md)。
+
+---
+
+**手动 Node 直装（开发调试）**
 
 1. 安装 Node 20+（发行版包管理或 [nvm](https://github.com/nvm-sh/nvm)）
 2. 部署源码：
@@ -128,10 +172,18 @@ pm2 startup
 
 #### 1. 安装 Node.js
 
-- **飞牛：** 应用中心安装 **Node.js v20**
-- **群晖：** 套件中心安装 **Node.js**（或 Entware）
+- **飞牛：** 应用中心安装 **Node.js v20** → 手动安装对应架构 `.fpk`（x86 NAS 用 `*-x86.fpk`，ARM/R 系列用 `*-arm.fpk`；见 `packages-src/fnos/README.md`，`npm run pack:fnos`）
+- **群晖：** 套件中心安装 **Node.js 20/22** → 可用手动安装 `.spk`（见 `packages-src/syno/README.md`，`npm run pack:syno`）
 
-#### 2. 上传并解压源码
+#### 群晖 DSM 套件（`.spk`）
+
+1. 套件中心先装 **Node.js 20** 或 **22**
+2. 本机打包：`npm run pack:syno`（ARM 机型：`SPK_ARCH=aarch64 bash ops/scripts/pack-syno-spk.sh`）
+3. DSM → 套件中心 → **手动安装** → 选 `packages/syno-4.2.0-x86_64.spk`（或对应架构）
+4. 启动套件后访问 `http://NAS:17890`，默认 **admin / admin123**
+5. 网段等配置：`/var/packages/hanyemonitor/etc/app.env` 里改 `LAN_SCAN_SUBNETS`
+
+#### 2. 上传并解压源码（Node 直装，非 SPK）
 
 例如：`/vol2/1000/3d/hanye-printer-monitor-4.0.10`
 

@@ -1,0 +1,44 @@
+#!/bin/bash
+# 安装文件落盘、向导提交后执行
+
+log_fail() {
+  if [ -n "${TRIM_TEMP_LOGFILE:-}" ]; then
+    echo "$1" >"$TRIM_TEMP_LOGFILE"
+  fi
+  echo "$1" >&2
+}
+
+ETC="${TRIM_PKGETC:-}"
+VAR="${TRIM_PKGVAR:-}"
+
+if [ -z "$ETC" ] || [ -z "$VAR" ]; then
+  log_fail "缺少 TRIM_PKGETC 或 TRIM_PKGVAR，无法写入 app.env"
+  exit 1
+fi
+
+if ! mkdir -p "$ETC" "$VAR/data"; then
+  log_fail "无法创建配置目录: $ETC 或数据目录: $VAR/data"
+  exit 1
+fi
+
+LAN="${wizard_lan_subnet:-192.168.1}"
+if command -v openssl >/dev/null 2>&1; then
+  SECRETS_KEY="$(openssl rand -hex 24)"
+else
+  SECRETS_KEY="hanye$(date +%s)"
+fi
+
+ENV_FILE="$ETC/app.env"
+cat >"$ENV_FILE" <<EOF
+PORT=17890
+USE_MYSQL=0
+DATA_ROOT=${VAR}/data
+LAN_SCAN_SUBNETS=${LAN}
+SECRETS_MASTER_KEY=${SECRETS_KEY}
+LICENSE_REQUIRED=0
+NODE_ENV=production
+EOF
+
+chmod 600 "$ENV_FILE" || true
+echo "Prepared app.env (LAN=${LAN})"
+exit 0

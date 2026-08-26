@@ -1,0 +1,14 @@
+{
+  ".url": {
+    "hanyemonitor.application": {
+      "title": "hanye Printer Monitor",
+      "desc": "3D printer monitor",
+      "icon": "images/icon_256.png",
+      "type": "url",
+      "protocol": "http",
+      "port": "17890",
+      "url": "/",
+      "allUsers": true
+    }
+  }
+}

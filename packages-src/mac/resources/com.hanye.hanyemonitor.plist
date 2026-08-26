@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.hanye.hanyemonitor</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>__NODE_BIN__</string>
+    <string>__ENTRY__</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>__APP_DIR__</string>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>ThrottleInterval</key>
+  <integer>3</integer>
+  <key>StandardOutPath</key>
+  <string>__DATA_ROOT__/service.log</string>
+  <key>StandardErrPath</key>
+  <string>__DATA_ROOT__/service-error.log</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PORT</key>
+    <string>__PORT__</string>
+    <key>DATA_ROOT</key>
+    <string>__DATA_ROOT__</string>
+    <key>USE_MYSQL</key>
+    <string>0</string>
+    <key>NODE_ENV</key>
+    <string>production</string>
+    <key>LICENSE_REQUIRED</key>
+    <string>0</string>
+    <key>LAN_SCAN_SUBNETS</key>
+    <string>__LAN_SCAN_SUBNETS__</string>
+  </dict>
+</dict>
+</plist>

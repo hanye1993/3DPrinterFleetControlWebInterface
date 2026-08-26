@@ -1,0 +1,26 @@
+#!/bin/sh
+# 安装后：写入默认 app.env（可在 /var/packages/hanyemonitor/etc/app.env 修改）
+ETC="${SYNOPKG_PKGETC}"
+VAR="${SYNOPKG_PKGVAR}"
+
+mkdir -p "$ETC" "$VAR/data" || exit 1
+
+if [ ! -f "$ETC/app.env" ]; then
+  if command -v openssl >/dev/null 2>&1; then
+    SECRETS_KEY="$(openssl rand -hex 24)"
+  else
+    SECRETS_KEY="hanye$(date +%s)"
+  fi
+  cat >"$ETC/app.env" <<EOF
+PORT=17890
+USE_MYSQL=0
+DATA_ROOT=${VAR}/data
+LAN_SCAN_SUBNETS=192.168.1
+SECRETS_MASTER_KEY=${SECRETS_KEY}
+LICENSE_REQUIRED=0
+NODE_ENV=production
+EOF
+  chmod 600 "$ETC/app.env" || true
+fi
+
+exit 0

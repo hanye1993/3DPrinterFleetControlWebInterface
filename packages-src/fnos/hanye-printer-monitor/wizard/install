@@ -1,0 +1,22 @@
+[
+  {
+    "stepTitle": "基本设置",
+    "items": [
+      {
+        "type": "tips",
+        "helpText": "安装后请用浏览器打开桌面图标。默认账号 admin / admin123，请立刻修改密码。"
+      },
+      {
+        "type": "text",
+        "field": "wizard_lan_subnet",
+        "label": "打印机扫描网段前缀",
+        "initValue": "192.168.1",
+        "helpText": "例如网段是 192.168.10.x，填 192.168.10",
+        "rules": [
+          {"required": true, "message": "请填写网段前缀"},
+          {"pattern": "^[0-9]{1,3}(\\.[0-9]{1,3}){0,2}$", "message": "格式如 192.168.1"}
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,24 @@
+[Unit]
+Description=hanye Printer Monitor
+Documentation=https://example.com
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/hanye-printer-monitor/app
+EnvironmentFile=-/opt/hanye-printer-monitor/app.env
+Environment=PORT=17890
+Environment=DATA_ROOT=/opt/hanye-printer-monitor/data
+Environment=USE_MYSQL=0
+Environment=NODE_ENV=production
+Environment=LAN_SCAN_SUBNETS=192.168.1
+ExecStart=/opt/hanye-printer-monitor/node/bin/node /opt/hanye-printer-monitor/app/dist/server/server/nodeServer.js
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/opt/hanye-printer-monitor/data/service.log
+StandardError=append:/opt/hanye-printer-monitor/data/service-error.log
+
+[Install]
+WantedBy=multi-user.target

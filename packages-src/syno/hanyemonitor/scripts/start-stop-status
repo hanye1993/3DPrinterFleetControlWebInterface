@@ -1,0 +1,129 @@
+#!/bin/bash
+# hanye Printer Monitor — Synology DSM 启停
+
+LOG_FILE="${SYNOPKG_PKGVAR}/app.log"
+PID_FILE="${SYNOPKG_PKGVAR}/app.pid"
+APP_DIR="${SYNOPKG_PKGDEST}/server"
+ENTRY="${APP_DIR}/dist/server/server/nodeServer.js"
+ENV_FILE="${SYNOPKG_PKGETC}/app.env"
+
+log_msg() {
+  echo "$(date '+%Y-%m-%d %H:%M:%S') - $*" >>"$LOG_FILE"
+}
+
+resolve_node() {
+  local p
+  for p in \
+    /var/packages/Node.js_v22/target/usr/local/bin/node \
+    /var/packages/Node.js_v20/target/usr/local/bin/node \
+    /var/packages/Node.js_v18/target/usr/local/bin/node; do
+    if [ -x "$p" ]; then
+      export NODE_BIN="$p"
+      return 0
+    fi
+  done
+  return 1
+}
+
+load_env() {
+  export PORT=17890
+  export DATA_ROOT="${SYNOPKG_PKGVAR}/data"
+  export USE_MYSQL=0
+  if [ -f "$ENV_FILE" ]; then
+    set -a
+    # shellcheck disable=SC1090
+    . "$ENV_FILE"
+    set +a
+  fi
+  mkdir -p "$DATA_ROOT" "${SYNOPKG_PKGVAR}" 2>/dev/null || true
+}
+
+check_pid() {
+  local pid="$1"
+  [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null
+}
+
+status_app() {
+  if [ -f "$PID_FILE" ]; then
+    local pid
+    pid="$(head -n 1 "$PID_FILE" | tr -d '[:space:]')"
+    if check_pid "$pid"; then
+      return 0
+    fi
+    rm -f "$PID_FILE"
+  fi
+  return 1
+}
+
+start_app() {
+  if ! resolve_node; then
+    echo "未找到 Node.js。请安装套件 Node.js 20 或 22。" >"${SYNOPKG_TEMP_LOGFILE:-/dev/null}"
+    return 1
+  fi
+  load_env
+  if status_app; then
+    return 0
+  fi
+  if [ ! -f "$ENTRY" ]; then
+    echo "缺少程序文件: $ENTRY" >"${SYNOPKG_TEMP_LOGFILE:-/dev/null}"
+    log_msg "ERROR missing $ENTRY"
+    return 1
+  fi
+  log_msg "Starting on port $PORT data=$DATA_ROOT node=$NODE_BIN"
+  cd "$APP_DIR" || return 1
+  nohup "$NODE_BIN" "$ENTRY" >>"$LOG_FILE" 2>&1 &
+  echo "$!" >"$PID_FILE"
+  sleep 2
+  if ! status_app; then
+    echo "进程启动后退出，见日志 $LOG_FILE" >"${SYNOPKG_TEMP_LOGFILE:-/dev/null}"
+    log_msg "ERROR exited after start"
+    return 1
+  fi
+  return 0
+}
+
+stop_app() {
+  log_msg "Stopping..."
+  if [ ! -f "$PID_FILE" ]; then
+    return 0
+  fi
+  local pid
+  pid="$(head -n 1 "$PID_FILE" | tr -d '[:space:]')"
+  if [ -z "$pid" ] || ! check_pid "$pid"; then
+    rm -f "$PID_FILE"
+    return 0
+  fi
+  kill -TERM "$pid" 2>>"$LOG_FILE" || true
+  local n=0
+  while check_pid "$pid" && [ "$n" -lt 15 ]; do
+    sleep 1
+    n=$((n + 1))
+  done
+  if check_pid "$pid"; then
+    kill -KILL "$pid" 2>>"$LOG_FILE" || true
+  fi
+  rm -f "$PID_FILE"
+  return 0
+}
+
+case "$1" in
+  start)
+    start_app
+    ;;
+  stop)
+    stop_app
+    ;;
+  status)
+    if status_app; then
+      exit 0
+    fi
+    exit 3
+    ;;
+  log)
+    echo "$LOG_FILE"
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|status|log}" >&2
+    exit 1
+    ;;
+esac

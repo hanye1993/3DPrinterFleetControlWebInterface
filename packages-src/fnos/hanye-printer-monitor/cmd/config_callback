@@ -1,0 +1,15 @@
+#!/bin/bash
+ETC="${TRIM_PKGETC:-}"
+LAN="${wizard_lan_subnet:-}"
+ENV_FILE="${ETC}/app.env"
+
+if [ -z "$ETC" ] || [ -z "$LAN" ] || [ ! -f "$ENV_FILE" ]; then
+  exit 0
+fi
+
+if grep -q '^LAN_SCAN_SUBNETS=' "$ENV_FILE"; then
+  sed -i "s|^LAN_SCAN_SUBNETS=.*|LAN_SCAN_SUBNETS=${LAN}|" "$ENV_FILE" || true
+else
+  echo "LAN_SCAN_SUBNETS=${LAN}" >>"$ENV_FILE"
+fi
+exit 0

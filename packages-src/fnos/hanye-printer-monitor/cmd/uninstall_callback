@@ -1,0 +1,3 @@
+#!/bin/bash
+# wizard_keep_data=keep|delete — 数据目录由向导与系统处理
+exit 0

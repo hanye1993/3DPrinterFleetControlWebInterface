@@ -61,3 +61,28 @@ Desktop.ini
 # 本机应急关扩展页（Discuz 风格），勿提交/勿上传
 /close_extensions.mjs
 /close_extensions.html
+
+# 安装包统一输出目录（勿提交大文件）
+/packages/*
+!/packages/.gitkeep
+
+# 各平台安装包源码在 packages-src/（跟踪源码；忽略构建缓存）
+/packages-src/**/cache/
+/packages-src/win/staging/
+/packages-src/win/installer-go/staging.zip
+/packages-src/mac/staging-*/
+/packages-src/mac/dmg-*/
+/packages-src/linux/staging-*/
+/packages-src/linux/nfpm-work-*/
+/packages-src/fnos/**/app/server/
+/packages-src/fnos/**/app/docker/
+/packages-src/fnos/**/*.fpk
+/packages-src/syno/**/server/
+/packages-src/syno/**/*.spk
+
+*.fpk
+*.spk
+*.exe
+*.dmg
+*.deb
+*.rpm

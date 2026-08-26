@@ -1,0 +1,9 @@
+#!/bin/sh
+# 安装前检查：需要套件中心已装 Node.js
+for pkg in Node.js_v22 Node.js_v20 Node.js_v18; do
+  if [ -x "/var/packages/${pkg}/target/usr/local/bin/node" ]; then
+    exit 0
+  fi
+done
+echo "请先安装 Synology 套件「Node.js 20」或「Node.js 22」。" >"$SYNOPKG_TEMP_LOGFILE"
+exit 1

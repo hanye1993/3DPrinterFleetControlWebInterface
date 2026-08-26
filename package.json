@@ -1,6 +1,6 @@
 {
   "name": "printer-monitor",
-  "version": "4.1.12",
+  "version": "4.2.0",
   "description": "hanye 3D printer monitor — web only",
   "author": "printer-monitor",
   "license": "MIT",
@@ -20,7 +20,22 @@
     "docker:import": "docker compose -f docker/docker-compose.yml --project-directory docker exec -e IMPORT_FORCE=1 -e AUTO_IMPORT=1 app sh -c \"rm -f /app/data/.mysql-imported; node /app/ops/scripts/import-mysql.mjs; touch /app/data/.mysql-imported\"",
     "typecheck": "tsc --noEmit -p config/tsconfig.web.json && tsc --noEmit -p config/tsconfig.node.json && tsc --noEmit -p config/tsconfig.server.json",
     "test:smoke": "node --test ops/scripts/permissions.smoke.test.mjs",
-    "pack:source": "node ops/scripts/pack-console-source.mjs"
+    "pack:source": "node ops/scripts/pack-console-source.mjs",
+    "pack:fnos": "bash ops/scripts/pack-fnos-fpk.sh",
+    "pack:fnos:x86": "FPK_ARCH=x86 bash ops/scripts/pack-fnos-fpk.sh",
+    "pack:fnos:arm": "FPK_ARCH=arm bash ops/scripts/pack-fnos-fpk.sh",
+    "pack:syno": "bash ops/scripts/pack-syno-spk.sh",
+    "pack:syno:all": "SPK_ARCH=x86_64 bash ops/scripts/pack-syno-spk.sh && SPK_ARCH=aarch64 bash ops/scripts/pack-syno-spk.sh",
+    "pack:mac": "bash ops/scripts/pack-mac-installer.sh",
+    "pack:mac:arm64": "MAC_ARCH=arm64 bash ops/scripts/pack-mac-installer.sh",
+    "pack:mac:x64": "MAC_ARCH=x64 bash ops/scripts/pack-mac-installer.sh",
+    "pack:linux": "bash ops/scripts/pack-linux-installer.sh",
+    "pack:linux:amd64": "LINUX_ARCH=amd64 bash ops/scripts/pack-linux-installer.sh",
+    "pack:linux:arm64": "LINUX_ARCH=arm64 bash ops/scripts/pack-linux-installer.sh",
+    "pack:win": "bash ops/scripts/pack-win-installer.sh",
+    "pack:win:staging": "bash ops/scripts/pack-win-installer.sh --staging-only",
+    "pack:installer-src": "bash ops/scripts/pack-installer-src.sh",
+    "push:mirrors": "bash ops/scripts/push-all-mirrors.sh"
   },
   "dependencies": {
     "@ant-design/icons": "^5.6.1",
