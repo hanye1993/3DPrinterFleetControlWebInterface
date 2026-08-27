@@ -21,8 +21,7 @@
 3. [Docker 安装](#3-docker-安装)
 4. [功能与品牌](#4-功能与品牌)
 5. [项目结构](#5-项目结构)
-6. [常用命令](#6-常用命令)
-7. [文档](#7-文档)
+6. [文档](#6-文档)
 
 **代码仓库（三端同步）**
 
@@ -223,22 +222,7 @@ NAS 上若需扫局域网打印机，优先用 **Node 直装** 或 **一键 fpk/
 
 ---
 
-## 6. 常用命令
-
-| 命令 | 说明 |
-|------|------|
-| `npm run build` | 构建 web + server |
-| `npm start` | 启动 17890 |
-| `npm run dev` | 构建并启动 |
-| `npm run pack:win` / `pack:mac` / `pack:linux` / `pack:fnos` / `pack:syno` | 打一键安装包 → `packages/` |
-| `npm run pack:installer-src` | 打安装包源码 zip |
-| `npm run push:mirrors` | 推送到 GitHub / Gitee / GitCode |
-| `npm run docker:up` | Compose 构建启动 |
-| `npm run setup:mysql` | 本机 MySQL 辅助 |
-
----
-
-## 7. 文档
+## 6. 文档
 
 | 文档 | 内容 |
 |------|------|
