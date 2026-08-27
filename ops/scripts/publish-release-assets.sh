@@ -110,15 +110,11 @@ gitee_release_id() {
     | node -p "try{String(JSON.parse(require('fs').readFileSync(0,'utf8')).id||'')}catch(e){''}" || true
 }
 
-upload_gitee_like() {
-  local platform="$1" owner="$2" token="$3"
-  local base web
-  case "$platform" in
-    gitee) base="https://gitee.com/api/v5"; web="https://gitee.com/${owner}/${REPO}/releases/tag/${TAG}" ;;
-    gitcode) base="https://gitcode.com/api/v5"; web="https://gitcode.com/${owner}/${REPO}/releases/tag/${TAG}" ;;
-    *) return 1 ;;
-  esac
-  echo "=== ${platform} ${TAG} ==="
+upload_gitee() {
+  local owner="$1" token="$2"
+  local base="https://gitee.com/api/v5"
+  local web="https://gitee.com/${owner}/${REPO}/releases/tag/${TAG}"
+  echo "=== gitee ${TAG} ==="
   local rel_id
   rel_id="$(gitee_release_id "$base" "$owner" "$token")"
   if [ -z "$rel_id" ]; then
@@ -126,13 +122,36 @@ upload_gitee_like() {
       --data-urlencode "tag_name=${TAG}" \
       --data-urlencode "name=${TAG}" \
       --data-urlencode "body=${NOTES}" \
+      --data-urlencode "target_commitish=main" \
       | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).id")"
   fi
   echo "release id: $rel_id"
   for f in "${ASSETS[@]}"; do
     echo "  upload $f ($(du -h "$PKG/$f" | awk '{print $1}'))"
-    curl -fsSL -X POST "${base}/repos/${owner}/${REPO}/releases/${rel_id}/attach_files?access_token=${token}" \
-      -F "file=@${PKG}/${f}" >/dev/null
+    if ! curl -fsSL -X POST "${base}/repos/${owner}/${REPO}/releases/${rel_id}/attach_files?access_token=${token}" \
+      -F "file=@${PKG}/${f}" >/dev/null 2>&1; then
+      echo "  [warn] Gitee 上传失败（单文件可能 >100MB，如 macOS dmg）：$f" >&2
+    fi
+  done
+  echo "OK ${web}"
+}
+
+upload_gitcode() {
+  local owner="$1" token="$2"
+  local web="https://gitcode.com/${owner}/${REPO}/releases/tag/${TAG}"
+  local base="https://gitcode.com/api/v5"
+  echo "=== gitcode ${TAG} ==="
+  if ! curl -fsSL "${base}/repos/${owner}/${REPO}/releases/tags/${TAG}?access_token=${token}" >/dev/null 2>&1; then
+    curl -fsSL -X POST "${base}/repos/${owner}/${REPO}/releases?access_token=${token}" \
+      --data-urlencode "tag_name=${TAG}" \
+      --data-urlencode "name=${TAG}" \
+      --data-urlencode "body=${NOTES}" \
+      --data-urlencode "target_commitish=main" >/dev/null
+  fi
+  local helper="$ROOT/ops/scripts/upload-gitcode-asset.mjs"
+  for f in "${ASSETS[@]}"; do
+    echo "  upload $f ($(du -h "$PKG/$f" | awk '{print $1}'))"
+    node "$helper" "$owner" "$REPO" "$TAG" "$PKG/$f" "$token"
   done
   echo "OK ${web}"
 }
@@ -147,13 +166,13 @@ else
 fi
 
 if [ -n "${GITEE_TOKEN:-}" ]; then
-  if upload_gitee_like gitee hanye11 "$GITEE_TOKEN"; then ok=$((ok+1)); else echo "[fail] Gitee" >&2; fail=$((fail+1)); fi
+  if upload_gitee hanye11 "$GITEE_TOKEN"; then ok=$((ok+1)); else echo "[fail] Gitee" >&2; fail=$((fail+1)); fi
 else
   echo "[skip] GITEE_TOKEN 未设置"; fail=$((fail+1))
 fi
 
 if [ -n "${GITCODE_TOKEN:-}" ]; then
-  if upload_gitee_like gitcode hanye6666 "$GITCODE_TOKEN"; then ok=$((ok+1)); else echo "[fail] GitCode" >&2; fail=$((fail+1)); fi
+  if upload_gitcode hanye6666 "$GITCODE_TOKEN"; then ok=$((ok+1)); else echo "[fail] GitCode" >&2; fail=$((fail+1)); fi
 else
   echo "[skip] GITCODE_TOKEN 未设置"; fail=$((fail+1))
 fi

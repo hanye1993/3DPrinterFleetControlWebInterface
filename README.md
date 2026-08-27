@@ -45,7 +45,7 @@
 | 平台 | 文件 | 说明 |
 |------|------|------|
 | **Windows** | `windows-4.2.0-amd64.exe` | 双击安装，可选目录；Win10/11 64 位，需管理员 |
-| **macOS Apple Silicon** | `macos-4.2.0-arm64.dmg` | 打开 DMG → 运行 `install.command` |
+| **macOS Apple Silicon** | `macos-4.2.0-arm64.dmg` | 打开 DMG → 运行 `install.command`（Gitee 单文件 ≤100MB，请从 **GitHub / GitCode** 下载） |
 | **macOS Intel** | `macos-4.2.0-amd64.dmg` | 同上 |
 | **Ubuntu / Debian x64** | `ubuntu-4.2.0-amd64.deb` / `debian-4.2.0-amd64.deb` | `sudo dpkg -i xxx.deb` |
 | **Ubuntu / Debian arm64** | `ubuntu-4.2.0-arm64.deb` / `debian-4.2.0-arm64.deb` | 同上 |
