@@ -58,8 +58,23 @@ if [ "$NEED_BUILD" -eq 1 ]; then
   (
     cd "$STAGING/app"
     npm config set registry https://registry.npmmirror.com
-    npm ci --omit=dev --platform=win32 --arch=x64
+    export npm_config_platform=win32
+    export npm_config_arch=x64
+    export npm_config_target_platform=win32
+    export npm_config_target_arch=x64
+    npm ci --omit=dev --os=win32 --cpu=x64
   )
+
+  if [ ! -d "$STAGING/app/node_modules/@esbuild/win32-x64" ]; then
+    echo "==> 补装 @esbuild/win32-x64"
+    (
+      cd "$STAGING/app"
+      export npm_config_platform=win32
+      export npm_config_arch=x64
+      npm install --omit=dev --os=win32 --cpu=x64 "@esbuild/win32-x64@*"
+    )
+  fi
+  rm -rf "$STAGING/app/node_modules/@esbuild/darwin-arm64" "$STAGING/app/node_modules/@esbuild/darwin-x64" 2>/dev/null || true
 
   if [ ! -f "$STAGING/app/dist/server/server/nodeServer.js" ]; then
     echo "构建失败：缺少 nodeServer.js" >&2

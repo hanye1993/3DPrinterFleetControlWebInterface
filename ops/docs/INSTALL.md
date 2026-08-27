@@ -46,9 +46,10 @@ LAN_SCAN_SUBNETS=192.168.1    # 改成你的网段，如 192.168.10
 
 **推荐：一键安装包（无需单独装 Node）**
 
-1. 双击 `packages/windows-4.2.0-amd64.exe`
-2. 按向导完成（自动注册 Windows 服务；控制面板可启停）
-3. 访问 http://127.0.0.1:17890/ ，默认 **admin / admin123**
+1. 双击 `packages/windows-4.2.0-amd64.exe`（需管理员权限；Win10/11 64 位）
+2. 选择安装目录（默认 `C:\Program Files\HanyeMonitor`，可改到 D 盘等）
+3. 确认后开始安装；控制面板可启停服务
+4. 访问 http://127.0.0.1:17890/ ，默认 **admin / admin123**
 
 开发者打包：`npm run pack:win`（产物在 `packages/`）。详见 [packages-src/win/README.md](../packages-src/win/README.md)。
 

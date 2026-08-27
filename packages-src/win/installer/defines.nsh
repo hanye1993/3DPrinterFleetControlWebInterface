@@ -1,2 +1,2 @@
-!define APP_VERSION "4.1.15"
-!define OUTFILE_NAME "hanyemonitor-setup-4.1.15-x64.exe"
+!define APP_VERSION "4.2.0"
+!define OUTFILE_NAME "windows-4.2.0-amd64.exe"

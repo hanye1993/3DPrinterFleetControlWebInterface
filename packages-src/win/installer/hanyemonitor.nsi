@@ -13,7 +13,7 @@
 
 Name "${APP_NAME}"
 OutFile "..\\..\\..\\packages\\${OUTFILE_NAME}"
-InstallDir "$PROGRAMFILES64\\hanye Printer Monitor"
+InstallDir "$PROGRAMFILES64\\HanyeMonitor"
 InstallDirRegKey HKLM "Software\\${APP_PUBLISHER}\\HanyeMonitor" "InstallDir"
 RequestExecutionLevel admin
 ShowInstDetails show

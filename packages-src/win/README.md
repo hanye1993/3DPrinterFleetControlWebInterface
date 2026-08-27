@@ -5,7 +5,8 @@
 ## 用户怎么用
 
 1. 双击 `windows-4.2.0-amd64.exe`（需管理员权限）完成安装  
-2. 桌面会出现 **hanye Printer Monitor** 图标  
+2. **选择安装目录**（默认 `C:\Program Files\HanyeMonitor`，可改到其他盘）  
+3. 桌面会出现 **hanye Printer Monitor** 图标  
 3. 打开后是控制面板，三个按钮：
 
 | 按钮 | 作用 |
@@ -20,10 +21,11 @@
 
 | 项 | 说明 |
 |----|------|
-| 程序目录 | `C:\Program Files\hanye Printer Monitor` |
+| 程序目录 | 安装时自选（默认 `C:\Program Files\HanyeMonitor`） |
+| 数据目录 | 装到 Program Files 时：`C:\ProgramData\HanyeMonitor\data`；其他目录：`安装目录\data` |
 | 控制面板 | `HanyeMonitorControl.exe`（带托盘） |
 | 配置 | `app.env` |
-| 日志 | `data\service.log` |
+| 日志 | `C:\ProgramData\HanyeMonitor\data\service.log` |
 | 卸载 | 开始菜单 → hanye → 卸载 |
 
 ## 开发者打包

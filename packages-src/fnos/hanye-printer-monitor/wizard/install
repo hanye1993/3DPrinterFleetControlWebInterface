@@ -4,7 +4,7 @@
     "items": [
       {
         "type": "tips",
-        "helpText": "安装后请用浏览器打开桌面图标。默认账号 admin / admin123，请立刻修改密码。"
+        "helpText": "请先在应用中心安装 Node.js 22（或 20）。安装后打开桌面图标，默认账号 admin / admin123，请立刻改密。若启用失败，请查看 /vol*/@appdata/hanyemonitor/app.log"
       },
       {
         "type": "text",

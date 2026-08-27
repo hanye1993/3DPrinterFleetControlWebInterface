@@ -8,7 +8,7 @@
     <AssemblyName>HanyeMonitorControl</AssemblyName>
     <RootNamespace>HanyeMonitorControl</RootNamespace>
     <ApplicationIcon Condition="Exists('app-icon.ico')">app-icon.ico</ApplicationIcon>
-    <Version>4.1.15</Version>
+    <Version>4.2.0</Version>
     <Product>hanye Printer Monitor</Product>
     <Company>hanye</Company>
     <PublishSingleFile>true</PublishSingleFile>

@@ -2,29 +2,56 @@
 # hanye 监控台 — 飞牛 fnOS 原生启停（Node 直装，无 Docker）
 set -u
 
-resolve_node_path() {
-  local cand
-  for cand in \
-    /var/apps/nodejs_v22/target/bin \
-    /var/apps/nodejs_v20/target/bin \
-    /var/apps/nodejs/target/bin; do
-    if [ -x "$cand/node" ]; then
-      export PATH="$cand:$PATH"
-      return 0
-    fi
-  done
-  return 1
-}
-resolve_node_path || true
-
 LOG_FILE="${TRIM_PKGVAR}/app.log"
 PID_FILE="${TRIM_PKGVAR}/app.pid"
 APP_DIR="${TRIM_APPDEST}/server"
 ENTRY="${APP_DIR}/dist/server/server/nodeServer.js"
 ENV_FILE="${TRIM_PKGETC}/app.env"
+NODE_BIN=""
+
+fail_ui() {
+  local msg="$1"
+  if [ -n "${TRIM_TEMP_LOGFILE:-}" ]; then
+    echo "$msg" >"$TRIM_TEMP_LOGFILE"
+  fi
+  log_msg "ERROR $msg"
+}
 
 log_msg() {
-  echo "$(date '+%Y-%m-%d %H:%M:%S') - $*" >>"$LOG_FILE"
+  mkdir -p "${TRIM_PKGVAR}" 2>/dev/null || true
+  echo "$(date '+%Y-%m-%d %H:%M:%S') - $*" >>"$LOG_FILE" 2>/dev/null || true
+}
+
+resolve_node() {
+  local cand
+  for cand in \
+    /var/apps/nodejs_v22/target/bin/node \
+    /var/apps/nodejs_v20/target/bin/node \
+    /var/apps/nodejs/target/bin/node \
+    /usr/local/bin/node \
+    /usr/bin/node; do
+    if [ -x "$cand" ]; then
+      NODE_BIN="$cand"
+      export PATH="$(dirname "$cand"):${PATH:-}"
+      return 0
+    fi
+  done
+  # 兼容仅有目录、无绝对路径探测的旧环境
+  for cand in \
+    /var/apps/nodejs_v22/target/bin \
+    /var/apps/nodejs_v20/target/bin \
+    /var/apps/nodejs/target/bin; do
+    if [ -x "$cand/node" ]; then
+      NODE_BIN="$cand/node"
+      export PATH="$cand:${PATH:-}"
+      return 0
+    fi
+  done
+  if command -v node >/dev/null 2>&1; then
+    NODE_BIN="$(command -v node)"
+    return 0
+  fi
+  return 1
 }
 
 load_env() {
@@ -35,13 +62,28 @@ load_env() {
     set +a
   fi
   export PORT="${TRIM_SERVICE_PORT:-${PORT:-17890}}"
-  if [ -n "${TRIM_DATA_SHARE_PATHS:-}" ]; then
-    export DATA_ROOT="${TRIM_DATA_SHARE_PATHS%%:*}"
-  else
-    export DATA_ROOT="${DATA_ROOT:-${TRIM_PKGVAR}/data}"
+  # 优先用 app.env / 包数据目录；勿被空 DATA_ROOT 覆盖
+  if [ -z "${DATA_ROOT:-}" ]; then
+    if [ -n "${TRIM_DATA_SHARE_PATHS:-}" ]; then
+      # 若有多个共享路径，优先选名称含 /data 的
+      local p first=""
+      first="${TRIM_DATA_SHARE_PATHS%%:*}"
+      DATA_ROOT="$first"
+      IFS=':' read -r -a _shares <<< "${TRIM_DATA_SHARE_PATHS}"
+      for p in "${_shares[@]}"; do
+        case "$p" in
+          */data|*/data/) DATA_ROOT="$p"; break ;;
+        esac
+      done
+    else
+      DATA_ROOT="${TRIM_PKGVAR}/data"
+    fi
   fi
+  export DATA_ROOT
   export USE_MYSQL="${USE_MYSQL:-0}"
-  mkdir -p "$DATA_ROOT" "${TRIM_PKGVAR}"
+  export LICENSE_REQUIRED="${LICENSE_REQUIRED:-0}"
+  export NODE_ENV="${NODE_ENV:-production}"
+  mkdir -p "$DATA_ROOT" "${TRIM_PKGVAR}" 2>/dev/null || true
 }
 
 check_process() {
@@ -61,26 +103,60 @@ status_app() {
   return 1
 }
 
+tail_log_hint() {
+  if [ -f "$LOG_FILE" ]; then
+    echo ""
+    echo "—— app.log 末尾 ——"
+    tail -n 20 "$LOG_FILE" 2>/dev/null || true
+  fi
+}
+
 start_app() {
+  if ! resolve_node; then
+    fail_ui "未找到 Node.js。请先在「应用中心」安装 Node.js 20 或 22，再启用本应用。"
+    exit 1
+  fi
   load_env
   if status_app; then
     return 0
   fi
   if [ ! -f "$ENTRY" ]; then
-    echo "Missing server entry: $ENTRY" >"${TRIM_TEMP_LOGFILE:-/dev/null}"
-    log_msg "ERROR missing $ENTRY"
+    fail_ui "缺少程序入口: $ENTRY（安装包不完整，请重新安装对应架构的 .fpk）"
     exit 1
   fi
-  log_msg "Starting hanye-printer-monitor on port $PORT data=$DATA_ROOT"
-  cd "$APP_DIR" || exit 1
-  nohup node "$ENTRY" >>"$LOG_FILE" 2>&1 &
+  if [ ! -d "$APP_DIR/node_modules" ]; then
+    fail_ui "缺少 node_modules: $APP_DIR（安装包不完整，请重新安装）"
+    exit 1
+  fi
+
+  log_msg "Starting hanye-printer-monitor on port $PORT data=$DATA_ROOT node=$NODE_BIN"
+  cd "$APP_DIR" || {
+    fail_ui "无法进入目录: $APP_DIR"
+    exit 1
+  }
+
+  # 先清掉可能残留的同名进程 pid 文件
+  rm -f "$PID_FILE"
+  nohup "$NODE_BIN" "$ENTRY" >>"$LOG_FILE" 2>&1 &
   echo "$!" >"$PID_FILE"
-  sleep 2
-  if ! status_app; then
-    echo "Process exited after start. See $LOG_FILE" >"${TRIM_TEMP_LOGFILE:-/dev/null}"
-    log_msg "ERROR process exited after start"
-    exit 1
-  fi
+
+  # NAS 上冷启动可能稍慢，多等几秒并检查进程
+  local i
+  for i in 1 2 3 4 5 6; do
+    sleep 1
+    if status_app; then
+      log_msg "Started OK pid=$(head -n 1 "$PID_FILE" | tr -d '[:space:]')"
+      return 0
+    fi
+  done
+
+  {
+    echo "进程启动后退出。常见原因：未装 Node.js、端口 ${PORT} 被占用、数据目录无写权限。"
+    echo "日志: $LOG_FILE"
+    tail_log_hint
+  } >"${TRIM_TEMP_LOGFILE:-/dev/null}"
+  log_msg "ERROR process exited after start (node=$NODE_BIN entry=$ENTRY)"
+  exit 1
 }
 
 stop_app() {

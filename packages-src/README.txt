@@ -1,5 +1,5 @@
 hanye Printer Monitor — 各平台安装包源码
-版本: 4.1.15
+版本: 4.2.0
 目录: packages-src/
 
   mac/     macOS DMG

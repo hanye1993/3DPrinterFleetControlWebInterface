@@ -10,9 +10,18 @@ try {
 
 $InstallDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $NssmPath = Join-Path $InstallDir 'nssm.exe'
+$NodePath = Join-Path $InstallDir 'node\node.exe'
+$EntryPath = Join-Path $InstallDir 'app\dist\server\server\nodeServer.js'
 $ServiceName = 'HanyeMonitor'
 $WebUrl = 'http://127.0.0.1:17890/'
 $IconPath = Join-Path $InstallDir 'app-icon.ico'
+$EnvFile = Join-Path $InstallDir 'app.env'
+$DataRoot = Join-Path $env:ProgramData 'HanyeMonitor\data'
+if (Test-Path $EnvFile) {
+  Get-Content $EnvFile | ForEach-Object {
+    if ($_ -match '^\s*DATA_ROOT\s*=\s*(.+)\s*$') { $DataRoot = $Matches[1].Trim() }
+  }
+}
 $script:Exiting = $false
 
 function Show-Error([string]$text) {
@@ -135,8 +144,34 @@ function Set-Busy([bool]$busy) {
   $form.UseWaitCursor = $busy
 }
 
+function Start-NodeDirect {
+  if (-not (Test-Path $NodePath) -or -not (Test-Path $EntryPath)) {
+    return $false
+  }
+  $appDir = Join-Path $InstallDir 'app'
+  $stdout = Join-Path $DataRoot 'service.log'
+  $stderr = Join-Path $DataRoot 'service-error.log'
+  New-Item -ItemType Directory -Force -Path $DataRoot | Out-Null
+  $env:PORT = '17890'
+  $env:DATA_ROOT = $DataRoot
+  $env:USE_MYSQL = '0'
+  $env:NODE_ENV = 'production'
+  $env:LICENSE_REQUIRED = '0'
+  Start-Process -FilePath $NodePath -ArgumentList @($EntryPath) `
+    -WorkingDirectory $appDir -WindowStyle Hidden `
+    -RedirectStandardOutput $stdout -RedirectStandardError $stderr | Out-Null
+  return $true
+}
+
 function Invoke-ServiceAction([string]$action) {
   if (-not (Test-Path $NssmPath)) {
+    if ($action -eq 'start' -or $action -eq 'restart') {
+      if (Start-NodeDirect) {
+        Start-Sleep -Seconds 2
+        Update-Status
+        if (Test-PortOpen) { Open-Web; return }
+      }
+    }
     Show-Error '未找到 nssm.exe，请重新安装。'
     return
   }
@@ -149,22 +184,41 @@ function Invoke-ServiceAction([string]$action) {
     }
     [System.Windows.Forms.Application]::DoEvents()
 
-    Start-Process -FilePath $NssmPath -ArgumentList @($action, $ServiceName) `
-      -WorkingDirectory $InstallDir -WindowStyle Hidden -Wait | Out-Null
+    if ($action -eq 'restart') {
+      Start-Process -FilePath $NssmPath -ArgumentList @('stop', $ServiceName) `
+        -WorkingDirectory $InstallDir -WindowStyle Hidden -Wait | Out-Null
+      Start-Sleep -Milliseconds 800
+      $action = 'start'
+    }
 
-    if ($action -eq 'start' -or $action -eq 'restart') {
+    if ($action -eq 'stop') {
+      Start-Process -FilePath $NssmPath -ArgumentList @('stop', $ServiceName) `
+        -WorkingDirectory $InstallDir -WindowStyle Hidden -Wait | Out-Null
+    } else {
+      Start-Process -FilePath $NssmPath -ArgumentList @('start', $ServiceName) `
+        -WorkingDirectory $InstallDir -WindowStyle Hidden -Wait | Out-Null
+    }
+
+    if ($action -eq 'start') {
       $ok = $false
-      for ($i = 0; $i -lt 30; $i++) {
+      for ($i = 0; $i -lt 40; $i++) {
         Start-Sleep -Milliseconds 500
         if (Test-PortOpen) { $ok = $true; break }
         [System.Windows.Forms.Application]::DoEvents()
+      }
+      if (-not $ok) {
+        Start-NodeDirect | Out-Null
+        for ($i = 0; $i -lt 20; $i++) {
+          Start-Sleep -Milliseconds 500
+          if (Test-PortOpen) { $ok = $true; break }
+        }
       }
       Update-Status
       if ($ok) {
         Open-Web
         $tray.ShowBalloonTip(1500, 'hanye', '服务已启动', [System.Windows.Forms.ToolTipIcon]::Info)
       } else {
-        $errLog = Join-Path $InstallDir 'data\service-error.log'
+        $errLog = Join-Path $DataRoot 'service-error.log'
         $hint = if (Test-Path $errLog) { Get-Content $errLog -Tail 20 -ErrorAction SilentlyContinue | Out-String } else { '' }
         Show-Error "服务启动后仍无法访问 17890 端口。`n请运行 diagnose.cmd 查看日志。`n`n$hint"
       }

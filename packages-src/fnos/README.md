@@ -20,9 +20,22 @@
 
 ## 安装
 
-1. 应用中心先装好 **Node.js 22**（或 20；启停脚本会自动探测）
-2. 手动安装对应架构的 `.fpk`
+1. 应用中心先装好 **Node.js 22**（推荐；或 20。启停脚本会自动探测 `/var/apps/nodejs_v22|v20/...`）
+2. 手动安装对应架构的 `.fpk`（Intel 用 `*-x86.fpk`，ARM 用 `*-arm.fpk`）
 3. 打开桌面图标，默认 **admin / admin123**，立刻改密
+
+## 启用失败：`Process exited after start`
+
+弹窗指向 `/vol*/@appdata/hanyemonitor/app.log`。最常见原因：
+
+| 原因 | 处理 |
+|------|------|
+| **未装 Node.js** | 应用中心安装 Node.js 22 或 20 后再启用 |
+| 装了 Node 但路径不同 | SSH：`ls /var/apps \| grep node`，确认有 `nodejs_v20` / `nodejs_v22` |
+| 端口 17890 被占用 | 停掉占用进程，或改 `etc/app.env` 里的 `PORT` |
+| 装错架构包 | x86 NAS 不要装 arm 包 |
+
+新版启用失败时，弹窗会直接提示「未找到 Node.js」或附带 `app.log` 末尾。
 
 ## 打包
 

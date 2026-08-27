@@ -62,9 +62,10 @@ Desktop.ini
 /close_extensions.mjs
 /close_extensions.html
 
-# 安装包统一输出目录（勿提交大文件）
+# 安装包统一输出目录（勿提交大文件；installer-src zip 可跟踪）
 /packages/*
 !/packages/.gitkeep
+!/packages/installer-src-*.zip
 
 # 各平台安装包源码在 packages-src/（跟踪源码；忽略构建缓存）
 /packages-src/**/cache/

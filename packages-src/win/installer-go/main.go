@@ -3,6 +3,7 @@ package main
 import (
 	"archive/zip"
 	"bytes"
+	"errors"
 	_ "embed"
 	"fmt"
 	"io"
@@ -23,21 +24,23 @@ var stagingZip []byte
 var versionText []byte
 
 const (
-	appName     = "hanye Printer Monitor"
-	serviceName = "HanyeMonitor"
-	controlExe  = "HanyeMonitorControl.exe"
-	webHostPort = "127.0.0.1:17890"
-	webURL      = "http://127.0.0.1:17890/"
+	appName       = "hanye Printer Monitor"
+	installFolder = "HanyeMonitor"
+	serviceName   = "HanyeMonitor"
+	controlExe    = "HanyeMonitorControl.exe"
+	webHostPort   = "127.0.0.1:17890"
+	webURL        = "http://127.0.0.1:17890/"
 )
 
 func main() {
 	if !isAdmin() {
-		_ = runAsAdmin()
+		if err := runAsAdmin(); err != nil {
+			showMsg("需要管理员权限才能安装。\n\n请右键安装包 →「以管理员身份运行」。\n\n"+err.Error(), true)
+		}
 		return
 	}
 
 	version := strings.TrimSpace(string(versionText))
-	installDir := filepath.Join(os.Getenv("ProgramFiles"), appName)
 	logPath := filepath.Join(os.TempDir(), "hanye-install.log")
 
 	logf := func(format string, args ...interface{}) {
@@ -50,14 +53,33 @@ func main() {
 	}
 
 	showMsg(fmt.Sprintf(
-		"即将安装 %s %s\n\n安装目录：\n%s\n\n安装后可用「启动 / 重启 / 关闭」控制面板，并可最小化到系统托盘。",
-		appName, version, installDir,
+		"欢迎安装 %s %s\n\n点击「确定」后请选择安装目录。",
+		appName, version,
 	), false)
 
-	_ = os.Remove(logPath)
-	logf("install start version=%s dir=%s", version, installDir)
+	defaultDir := defaultInstallDir()
+	installDir, err := pickInstallDir(defaultDir)
+	if err != nil {
+		if err == errPickCancelled {
+			showMsg("已取消安装。", false)
+			return
+		}
+		showMsg("无法选择安装目录：\n"+err.Error(), true)
+		os.Exit(1)
+	}
+	installDir = filepath.Clean(installDir)
+	dataDir := resolveDataDir(installDir)
 
-	if err := doInstall(installDir, version, logf); err != nil {
+	if !confirmInstall(installDir, dataDir, version) {
+		showMsg("已取消安装。", false)
+		return
+	}
+
+	_ = os.Remove(logPath)
+	logf("install start version=%s dir=%s data=%s", version, installDir, dataDir)
+
+	warn, err := doInstall(installDir, dataDir, version, logf)
+	if err != nil {
 		logf("FAIL: %v", err)
 		showMsg("安装失败：\n"+err.Error()+"\n\n详细日志：\n"+logPath, true)
 		os.Exit(1)
@@ -68,42 +90,52 @@ func main() {
 	time.Sleep(800 * time.Millisecond)
 	_ = openURL(webURL)
 
-	showMsg("安装完成！\n\n控制面板已打开（启动 / 重启 / 关闭）\n关闭窗口后会收到系统托盘。\n\n网页："+webURL+"\n默认账号 admin / admin123\n\n若网页打不开，请在控制面板点「启动」，或运行安装目录下的 diagnose.cmd。", false)
+	msg := "安装完成！\n\n控制面板已打开（启动 / 重启 / 关闭）\n关闭窗口后会收到系统托盘。\n\n网页：" + webURL + "\n默认账号 admin / admin123"
+	if warn != "" {
+		msg += "\n\n注意：\n" + warn + "\n\n可在控制面板点「启动」，或运行安装目录下的 diagnose.cmd。"
+	} else {
+		msg += "\n\n若网页打不开，请在控制面板点「启动」，或运行 diagnose.cmd。"
+	}
+	showMsg(msg, false)
 }
 
-func doInstall(installDir, version string, logf func(string, ...interface{})) error {
+func doInstall(installDir, dataDir, version string, logf func(string, ...interface{})) (warn string, err error) {
+	cleanupLegacy(installDir, logf)
+
 	nssmOld := filepath.Join(installDir, "nssm.exe")
-	if _, err := os.Stat(nssmOld); err == nil {
+	if _, statErr := os.Stat(nssmOld); statErr == nil {
 		_ = runHidden(nssmOld, "stop", serviceName)
 		_ = runHidden(nssmOld, "remove", serviceName, "confirm")
 	}
 
 	_ = os.RemoveAll(installDir)
-	if err := os.MkdirAll(installDir, 0755); err != nil {
-		return fmt.Errorf("创建目录失败: %w", err)
+	if err = os.MkdirAll(installDir, 0755); err != nil {
+		return "", fmt.Errorf("创建程序目录失败: %w", err)
 	}
-	if err := extractZip(stagingZip, installDir); err != nil {
-		return fmt.Errorf("解压失败: %w", err)
+	if err = os.MkdirAll(dataDir, 0755); err != nil {
+		return "", fmt.Errorf("创建数据目录失败: %w", err)
+	}
+	if err = extractZip(stagingZip, installDir); err != nil {
+		return "", fmt.Errorf("解压失败: %w", err)
 	}
 	logf("extracted ok")
 
-	dataDir := filepath.Join(installDir, "data")
-	_ = os.MkdirAll(dataDir, 0755)
-
-	envExample := filepath.Join(installDir, "app.env.example")
-	envFile := filepath.Join(installDir, "app.env")
-	if _, err := os.Stat(envFile); err != nil {
-		_ = copyFile(envExample, envFile)
+	if err = writeAppEnv(installDir, dataDir); err != nil {
+		return "", err
 	}
-	_ = copyFile(envFile, filepath.Join(installDir, "app", ".env"))
 
 	nssm := filepath.Join(installDir, "nssm.exe")
 	node := filepath.Join(installDir, "node", "node.exe")
 	entry := filepath.Join(installDir, "app", "dist", "server", "server", "nodeServer.js")
 	for _, p := range []string{nssm, node, entry, filepath.Join(installDir, controlExe)} {
-		if _, err := os.Stat(p); err != nil {
-			return fmt.Errorf("缺少文件: %s", p)
+		if _, statErr := os.Stat(p); statErr != nil {
+			return "", fmt.Errorf("缺少文件: %s", p)
 		}
+	}
+
+	if busy, pid := portInUse(17890); busy {
+		logf("warn port 17890 in use pid=%s", pid)
+		warn = fmt.Sprintf("端口 17890 已被占用（PID %s）。\n请关闭占用程序后，在控制面板点「启动」。", pid)
 	}
 
 	appDir := filepath.Join(installDir, "app")
@@ -112,53 +144,61 @@ func doInstall(installDir, version string, logf func(string, ...interface{})) er
 
 	_ = runHidden(nssm, "stop", serviceName)
 	_ = runHidden(nssm, "remove", serviceName, "confirm")
-	if err := runHidden(nssm, "install", serviceName, node, entry); err != nil {
-		return fmt.Errorf("注册服务失败: %w", err)
+	if err = runHidden(nssm, "install", serviceName, node, entry); err != nil {
+		return warn, fmt.Errorf("注册 Windows 服务失败（部分电脑需关闭安全软件后重试）: %w", err)
 	}
 	logf("service installed")
 
+	_ = runHidden(nssm, "set", serviceName, "Application", node)
+	_ = runHidden(nssm, "set", serviceName, "AppParameters", entry)
 	_ = runHidden(nssm, "set", serviceName, "AppDirectory", appDir)
 	_ = runHidden(nssm, "set", serviceName, "AppStdout", stdoutLog)
 	_ = runHidden(nssm, "set", serviceName, "AppStderr", stderrLog)
 	_ = runHidden(nssm, "set", serviceName, "AppRotateFiles", "1")
 	_ = runHidden(nssm, "set", serviceName, "AppRotateBytes", "2097152")
-
-	envBlock := strings.Join([]string{
-		"PORT=17890",
-		"DATA_ROOT=" + dataDir,
-		"USE_MYSQL=0",
-		"NODE_ENV=production",
-		"LAN_SCAN_SUBNETS=192.168.1",
-		"LICENSE_REQUIRED=0",
-	}, "\r\n")
-	_ = runHidden(nssm, "set", serviceName, "AppEnvironmentExtra", envBlock)
 	_ = runHidden(nssm, "set", serviceName, "DisplayName", appName)
 	_ = runHidden(nssm, "set", serviceName, "Description", "hanye 3D printer monitor")
 	_ = runHidden(nssm, "set", serviceName, "Start", "SERVICE_AUTO_START")
-	_ = runHidden(nssm, "set", serviceName, "AppExit", "Default", "Restart")
-	_ = runHidden(nssm, "set", serviceName, "AppRestartDelay", "3000")
+	_ = runHidden(nssm, "set", serviceName, "ObjectName", "LocalSystem")
+	_ = runHidden(nssm, "set", serviceName, "AppThrottle", "1500")
+	_ = runHidden(nssm, "set", serviceName, "AppRestartDelay", "5000")
 
-	if err := runHidden(nssm, "start", serviceName); err != nil {
+	if err = setServiceEnv(nssm, serviceName, dataDir); err != nil {
+		logf("warn set env: %v", err)
+	}
+
+	ensureFirewallRule(logf)
+
+	if err = runHidden(nssm, "start", serviceName); err != nil {
 		logf("nssm start err: %v", err)
 	}
 
-	if !waitServiceRunning(15 * time.Second) {
+	if !waitServiceRunning(20 * time.Second) {
 		logf("service not running, trying direct node fallback")
-		_ = startDetached(node, appDir, entry)
+		_ = startNodeDirect(node, appDir, dataDir, stdoutLog, stderrLog)
 	}
 
-	if !waitPort(webHostPort, 45*time.Second) {
+	if !waitPort(webHostPort, 60*time.Second) {
 		tail := readTail(stderrLog, 1800)
 		if tail == "" {
 			tail = readTail(stdoutLog, 1800)
 		}
 		if tail == "" {
-			tail = "（无服务日志，可能 node 未能启动）"
+			tail = "（无服务日志，可能 node 未能启动或被安全软件拦截）"
 		}
-		return fmt.Errorf("服务未能在 45 秒内监听 %s\n\n请查看：\n%s\n%s\n\n日志摘要：\n%s",
-			webHostPort, stdoutLog, stderrLog, tail)
+		portWarn := fmt.Sprintf(
+			"服务未在 60 秒内监听 %s（不影响文件已安装）。\n日志摘要：\n%s",
+			webHostPort, tail,
+		)
+		if warn != "" {
+			warn += "\n\n" + portWarn
+		} else {
+			warn = portWarn
+		}
+		logf("warn port not ready: %s", tail)
+	} else {
+		logf("port %s ready", webHostPort)
 	}
-	logf("port %s ready", webHostPort)
 
 	controlPath := filepath.Join(installDir, controlExe)
 	iconPath := filepath.Join(installDir, "app-icon.ico")
@@ -173,19 +213,98 @@ func doInstall(installDir, version string, logf func(string, ...interface{})) er
 		"/v", "HanyeMonitorControl", "/t", "REG_SZ", "/d", controlPath, "/f")
 
 	uninst := filepath.Join(installDir, "uninstall.cmd")
-	_ = os.WriteFile(uninst, []byte(uninstallScript(installDir)), 0644)
+	_ = os.WriteFile(uninst, []byte(uninstallScript(installDir, dataDir)), 0644)
 	_ = createShortcut(filepath.Join(startMenu, "卸载 "+appName+".lnk"), uninst, iconPath, installDir)
-	_ = os.WriteFile(filepath.Join(installDir, "diagnose.cmd"), []byte(diagnoseScript()), 0644)
+	_ = os.WriteFile(filepath.Join(installDir, "diagnose.cmd"), []byte(diagnoseScript(dataDir)), 0644)
 
 	key := `HKLM\Software\Microsoft\Windows\CurrentVersion\Uninstall\HanyeMonitor`
 	_ = runHidden("reg", "add", key, "/v", "DisplayName", "/t", "REG_SZ", "/d", appName, "/f")
 	_ = runHidden("reg", "add", key, "/v", "UninstallString", "/t", "REG_SZ", "/d", uninst, "/f")
 	_ = runHidden("reg", "add", key, "/v", "Publisher", "/t", "REG_SZ", "/d", "hanye", "/f")
 	_ = runHidden("reg", "add", key, "/v", "DisplayVersion", "/t", "REG_SZ", "/d", version, "/f")
-	if _, err := os.Stat(iconPath); err == nil {
+	_ = runHidden("reg", "add", key, "/v", "InstallLocation", "/t", "REG_SZ", "/d", installDir, "/f")
+	if _, statErr := os.Stat(iconPath); statErr == nil {
 		_ = runHidden("reg", "add", key, "/v", "DisplayIcon", "/t", "REG_SZ", "/d", iconPath, "/f")
 	}
-	return nil
+	return warn, nil
+}
+
+func cleanupLegacy(installDir string, logf func(string, ...interface{})) {
+	legacyDirs := []string{
+		filepath.Join(os.Getenv("ProgramFiles"), "hanye Printer Monitor"),
+	}
+	for _, d := range legacyDirs {
+		if d == installDir {
+			continue
+		}
+		if _, err := os.Stat(d); err != nil {
+			continue
+		}
+		logf("cleanup legacy dir %s", d)
+		if nssm := filepath.Join(d, "nssm.exe"); fileExists(nssm) {
+			_ = runHidden(nssm, "stop", serviceName)
+			_ = runHidden(nssm, "remove", serviceName, "confirm")
+		}
+		_ = os.RemoveAll(d)
+	}
+}
+
+func writeAppEnv(installDir, dataDir string) error {
+	envExample := filepath.Join(installDir, "app.env.example")
+	envFile := filepath.Join(installDir, "app.env")
+	content := fmt.Sprintf(
+		"PORT=17890\r\nDATA_ROOT=%s\r\nUSE_MYSQL=0\r\nNODE_ENV=production\r\nLAN_SCAN_SUBNETS=192.168.1\r\nLICENSE_REQUIRED=0\r\n",
+		dataDir,
+	)
+	if err := os.WriteFile(envFile, []byte(content), 0644); err != nil {
+		return fmt.Errorf("写入 app.env 失败: %w", err)
+	}
+	_ = copyFile(envExample, envFile+".bak")
+	return os.WriteFile(filepath.Join(installDir, "app", ".env"), []byte(content), 0644)
+}
+
+func setServiceEnv(nssm, service, dataDir string) error {
+	// 数据放 ProgramData，避免 Program Files 空格路径 + 服务写权限问题
+	block := strings.Join([]string{
+		":PORT=17890",
+		"DATA_ROOT=" + dataDir,
+		"USE_MYSQL=0",
+		"NODE_ENV=production",
+		"LAN_SCAN_SUBNETS=192.168.1",
+		"LICENSE_REQUIRED=0",
+	}, "\r\n")
+	return runHidden(nssm, "set", service, "AppEnvironmentExtra", block)
+}
+
+func ensureFirewallRule(logf func(string, ...interface{})) {
+	err := runHidden("netsh", "advfirewall", "firewall", "add", "rule",
+		"name=HanyeMonitor Web",
+		"dir=in", "action=allow", "protocol=TCP", "localport=17890",
+		"profile=private,domain", "enable=yes")
+	if err != nil {
+		logf("firewall rule skip: %v", err)
+	}
+}
+
+func portInUse(port int) (bool, string) {
+	cmd := exec.Command("netstat", "-ano")
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	out, err := cmd.Output()
+	if err != nil {
+		return false, ""
+	}
+	suffix := fmt.Sprintf(":%d", port)
+	for _, line := range strings.Split(string(out), "\n") {
+		if !strings.Contains(line, suffix) || !strings.Contains(strings.ToUpper(line), "LISTENING") {
+			continue
+		}
+		fields := strings.Fields(line)
+		if len(fields) > 0 {
+			return true, fields[len(fields)-1]
+		}
+		return true, "?"
+	}
+	return false, ""
 }
 
 func waitServiceRunning(timeout time.Duration) bool {
@@ -226,41 +345,62 @@ func readTail(path string, max int) string {
 	return strings.TrimSpace(string(b))
 }
 
+func startNodeDirect(node, appDir, dataDir, stdoutLog, stderrLog string) error {
+	stdout, _ := os.OpenFile(stdoutLog, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	stderr, _ := os.OpenFile(stderrLog, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	cmd := exec.Command(node, filepath.Join(appDir, "dist", "server", "server", "nodeServer.js"))
+	cmd.Dir = appDir
+	cmd.Env = []string{
+		"PORT=17890",
+		"DATA_ROOT=" + dataDir,
+		"USE_MYSQL=0",
+		"NODE_ENV=production",
+		"LAN_SCAN_SUBNETS=192.168.1",
+		"LICENSE_REQUIRED=0",
+		"SystemRoot=" + os.Getenv("SystemRoot"),
+		"PATH=" + os.Getenv("PATH"),
+	}
+	if stdout != nil {
+		cmd.Stdout = stdout
+	}
+	if stderr != nil {
+		cmd.Stderr = stderr
+	}
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x00000008} // DETACHED_PROCESS
+	return cmd.Start()
+}
+
 func startDetached(exe, dir string, args ...string) error {
 	cmd := exec.Command(exe, args...)
 	cmd.Dir = dir
-	cmd.Env = append(os.Environ(),
-		"PORT=17890",
-		"DATA_ROOT="+filepath.Join(filepath.Dir(dir), "data"),
-		"USE_MYSQL=0",
-		"NODE_ENV=production",
-		"LICENSE_REQUIRED=0",
-	)
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	return cmd.Start()
 }
 
-func uninstallScript(installDir string) string {
+func uninstallScript(installDir, dataDir string) string {
 	return "@echo off\r\n" +
 		"cd /d \"%~dp0\"\r\n" +
 		"nssm.exe stop HanyeMonitor >nul 2>&1\r\n" +
 		"nssm.exe remove HanyeMonitor confirm >nul 2>&1\r\n" +
 		"reg delete \"HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\" /v HanyeMonitorControl /f >nul 2>&1\r\n" +
 		"reg delete \"HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\HanyeMonitor\" /f >nul 2>&1\r\n" +
+		"netsh advfirewall firewall delete rule name=\"HanyeMonitor Web\" >nul 2>&1\r\n" +
 		"del \"%PUBLIC%\\Desktop\\hanye Printer Monitor.lnk\" >nul 2>&1\r\n" +
 		"rmdir /s /q \"%ProgramData%\\Microsoft\\Windows\\Start Menu\\Programs\\hanye\" >nul 2>&1\r\n" +
 		"cd /d \"%TEMP%\"\r\n" +
+		"rmdir /s /q \"" + dataDir + "\" >nul 2>&1\r\n" +
 		"rmdir /s /q \"" + installDir + "\"\r\n" +
 		"echo Uninstalled.\r\n" +
 		"pause\r\n"
 }
 
-func diagnoseScript() string {
+func diagnoseScript(dataDir string) string {
 	return "@echo off\r\nchcp 65001 >nul\r\ncd /d \"%~dp0\"\r\n" +
 		"echo ==== service ====\r\nsc query HanyeMonitor\r\n" +
 		"echo ==== port 17890 ====\r\nnetstat -ano | findstr :17890\r\n" +
-		"echo ==== service-error.log ====\r\ntype data\\service-error.log 2>nul\r\n" +
-		"echo ==== service.log (tail) ====\r\npowershell -NoP -Command \"if(Test-Path data\\service.log){Get-Content data\\service.log -Tail 40}\"\r\n" +
+		"echo ==== app.env ====\r\ntype app.env 2>nul\r\n" +
+		"echo ==== service-error.log ====\r\ntype \"" + dataDir + "\\service-error.log\" 2>nul\r\n" +
+		"echo ==== service.log (tail) ====\r\npowershell -NoP -Command \"if(Test-Path '" + dataDir + "\\service.log'){Get-Content '" + dataDir + "\\service.log' -Tail 40}\"\r\n" +
 		"pause\r\n"
 }
 
@@ -344,6 +484,75 @@ func copyFile(src, dst string) error {
 	defer out.Close()
 	_, err = io.Copy(out, in)
 	return err
+}
+
+func fileExists(p string) bool {
+	_, err := os.Stat(p)
+	return err == nil
+}
+
+var errPickCancelled = errors.New("cancelled")
+
+func defaultInstallDir() string {
+	if pf := os.Getenv("ProgramFiles"); pf != "" {
+		return filepath.Join(pf, installFolder)
+	}
+	return filepath.Join(`C:\Program Files`, installFolder)
+}
+
+func resolveDataDir(installDir string) string {
+	lower := strings.ToLower(filepath.Clean(installDir))
+	if strings.Contains(lower, `\program files`) || strings.Contains(lower, `\program files (x86)`) {
+		return filepath.Join(os.Getenv("ProgramData"), installFolder, "data")
+	}
+	return filepath.Join(installDir, "data")
+}
+
+func pickInstallDir(defaultDir string) (string, error) {
+	ps := fmt.Sprintf(
+		`Add-Type -AssemblyName System.Windows.Forms
+$dlg = New-Object System.Windows.Forms.FolderBrowserDialog
+$dlg.Description = '选择 %s 的安装目录（文件将安装到此文件夹）'
+$dlg.SelectedPath = '%s'
+$dlg.ShowNewFolderButton = $true
+if ($dlg.ShowDialog() -ne [System.Windows.Forms.DialogResult]::OK) { exit 2 }
+$p = $dlg.SelectedPath.TrimEnd('\')
+if ([string]::IsNullOrWhiteSpace($p)) { exit 3 }
+Write-Output $p`,
+		appName, escapePS(defaultDir),
+	)
+	cmd := exec.Command("powershell.exe", "-NoProfile", "-STA", "-ExecutionPolicy", "Bypass", "-Command", ps)
+	out, err := cmd.CombinedOutput()
+	text := strings.TrimSpace(string(out))
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 2 {
+			return "", errPickCancelled
+		}
+		if text != "" {
+			return "", fmt.Errorf("%w: %s", err, text)
+		}
+		return "", err
+	}
+	if text == "" {
+		return "", fmt.Errorf("未选择目录")
+	}
+	return text, nil
+}
+
+func confirmInstall(installDir, dataDir, version string) bool {
+	text := fmt.Sprintf(
+		"即将安装 %s %s\n\n程序目录：\n%s\n数据目录：\n%s\n\n是否继续？",
+		appName, version, installDir, dataDir,
+	)
+	user32 := syscall.NewLazyDLL("user32.dll")
+	proc := user32.NewProc("MessageBoxW")
+	title, _ := syscall.UTF16PtrFromString(appName)
+	body, _ := syscall.UTF16PtrFromString(text)
+	const mbYesNo = 0x00000004
+	const mbIconQuestion = 0x00000020
+	ret, _, _ := proc.Call(0, uintptr(unsafe.Pointer(body)), uintptr(unsafe.Pointer(title)), uintptr(mbYesNo|mbIconQuestion))
+	const idYes = 6
+	return ret == idYes
 }
 
 func showMsg(text string, isError bool) {

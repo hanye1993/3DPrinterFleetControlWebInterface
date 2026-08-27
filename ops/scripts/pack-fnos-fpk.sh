@@ -99,8 +99,29 @@ build_fpk_arch() {
   (
     cd "$SERVER"
     npm config set registry https://registry.npmmirror.com
-    npm ci --omit=dev --platform="$NPM_PLATFORM" --arch="$NPM_ARCH"
+    # 必须强制目标为 linux，否则在 macOS 上打包会带上 darwin 原生二进制，飞牛上会秒退
+    export npm_config_platform="$NPM_PLATFORM"
+    export npm_config_arch="$NPM_ARCH"
+    export npm_config_target_platform="$NPM_PLATFORM"
+    export npm_config_target_arch="$NPM_ARCH"
+    npm ci --omit=dev --os="$NPM_PLATFORM" --cpu="$NPM_ARCH"
   )
+
+  # 校验关键可选原生包平台（esbuild）；缺失则显式补装
+  local ESBUILD_PKG="@esbuild/${NPM_PLATFORM}-${NPM_ARCH}"
+  if [ ! -d "$SERVER/node_modules/@esbuild/${NPM_PLATFORM}-${NPM_ARCH}" ]; then
+    echo "==> 补装 $ESBUILD_PKG"
+    (
+      cd "$SERVER"
+      export npm_config_platform="$NPM_PLATFORM"
+      export npm_config_arch="$NPM_ARCH"
+      npm install --omit=dev --os="$NPM_PLATFORM" --cpu="$NPM_ARCH" "$ESBUILD_PKG@*"
+    )
+  fi
+  if [ -d "$SERVER/node_modules/@esbuild/darwin-arm64" ] || [ -d "$SERVER/node_modules/@esbuild/darwin-x64" ]; then
+    echo "警告：node_modules 仍含 darwin esbuild，正在清理…" >&2
+    rm -rf "$SERVER/node_modules/@esbuild/darwin-arm64" "$SERVER/node_modules/@esbuild/darwin-x64"
+  fi
 
   if [ ! -f "$SERVER/dist/server/server/nodeServer.js" ]; then
     echo "构建失败：缺少 dist/server/server/nodeServer.js" >&2

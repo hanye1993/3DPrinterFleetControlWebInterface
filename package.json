@@ -35,7 +35,8 @@
     "pack:win": "bash ops/scripts/pack-win-installer.sh",
     "pack:win:staging": "bash ops/scripts/pack-win-installer.sh --staging-only",
     "pack:installer-src": "bash ops/scripts/pack-installer-src.sh",
-    "push:mirrors": "bash ops/scripts/push-all-mirrors.sh"
+    "push:mirrors": "bash ops/scripts/push-all-mirrors.sh",
+    "publish:release": "bash ops/scripts/publish-release-assets.sh"
   },
   "dependencies": {
     "@ant-design/icons": "^5.6.1",
