@@ -44,7 +44,7 @@ LAN_SCAN_SUBNETS=192.168.1    # 改成你的网段，如 192.168.10
 
 ### Windows
 
-**推荐：一键安装包（无需单独装 Node）**
+**推荐：一键安装包（无需单独装 Node）** — 本地 `npm run pack:*` 生成，见 [RELEASE.md](./RELEASE.md)；三端 Release **不托管**一键包。
 
 1. 双击 `packages/windows-4.3.0-amd64.exe`（需管理员权限；Win10/11 64 位）
 2. 选择安装目录（默认 `C:\Program Files\HanyeMonitor`，可改到 D 盘等）
@@ -81,7 +81,7 @@ npm start
 
 ### macOS
 
-**推荐：一键安装包（无需单独装 Node）**
+**推荐：一键安装包（无需单独装 Node）** — 本地 `npm run pack:*` 生成，见 [RELEASE.md](./RELEASE.md)；三端 Release **不托管**一键包。
 
 | 芯片 | 安装包 |
 |------|--------|
@@ -124,7 +124,7 @@ pm2 startup    # 按提示执行一条 sudo 命令
 
 ### Linux（云服务器 / 台式机）
 
-**推荐：一键安装包（无需单独装 Node）**
+**推荐：一键安装包（无需单独装 Node）** — 本地 `npm run pack:*` 生成，见 [RELEASE.md](./RELEASE.md)；三端 Release **不托管**一键包。
 
 | 系统 | 安装包 | 安装命令 |
 |------|--------|----------|

@@ -42,5 +42,5 @@ for r in origin gitee gitcode; do
   fi
 done
 
-echo "完成：成功 $ok，失败 $fail"
-[ "$fail" -eq 0 ]
+echo "完成：成功 ${ok}，失败 ${fail}"
+[ "${fail}" -eq 0 ]

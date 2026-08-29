@@ -1,12 +1,19 @@
 #!/usr/bin/env bash
-# 上传 v4.3.0 一键安装包 + installer-src 到 GitHub / Gitee / GitCode Releases
+# 三端 Release「初始化」：只创建/更新发行说明与标签对应的 Release，不上传一键安装包。
+# 一键包仅本地 `npm run pack:*` 产出，不往 GitHub / Gitee / GitCode Release 挂附件。
+#
+# 发布流程（以后固定）：
+#   1. 改 package.json 版本 + README / INSTALL 等 md
+#   2. 提交源码，打 tag：vX.Y.Z
+#   3. npm run push:mirrors   # 推 main + tags 到三仓库
+#   4. npm run publish:release  # 仅初始化 Release 说明（无附件）
+#
 # 用法：
 #   export GITHUB_TOKEN=... GITEE_TOKEN=... GITCODE_TOKEN=...
 #   bash ops/scripts/publish-release-assets.sh
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-PKG="$ROOT/packages"
 VERSION="$(node -p "require('$ROOT/package.json').version")"
 TAG="v${VERSION}"
 REPO="3DPrinterFleetControlWebInterface"
@@ -17,142 +24,77 @@ need() { command -v "$1" >/dev/null 2>&1 || { echo "缺少: $1" >&2; exit 1; }; 
 need node
 need curl
 
-ASSETS=(
-  "windows-${VERSION}-amd64.exe"
-  "macos-${VERSION}-arm64.dmg"
-  "macos-${VERSION}-amd64.dmg"
-  "ubuntu-${VERSION}-amd64.deb"
-  "ubuntu-${VERSION}-arm64.deb"
-  "debian-${VERSION}-amd64.deb"
-  "debian-${VERSION}-arm64.deb"
-  "centos-${VERSION}-amd64.rpm"
-  "centos-${VERSION}-arm64.rpm"
-  "fnos-${VERSION}-x86.fpk"
-  "fnos-${VERSION}-arm.fpk"
-  "syno-${VERSION}-x86_64.spk"
-  "syno-${VERSION}-aarch64.spk"
-  "installer-src-${VERSION}.zip"
-)
-
-for f in "${ASSETS[@]}"; do
-  [ -f "$PKG/$f" ] || { echo "缺少: $PKG/$f" >&2; exit 1; }
-done
-
 NOTES="hanye 3D 打印机监控台 ${VERSION}
 
-一键安装包：Windows / macOS / Linux / 飞牛 fpk / 群晖 spk
-installer-src-${VERSION}.zip：各平台安装包打包源码
+本 Release 仅作版本标记与源码归档（平台自动附带的源码 zip/tar）。
+一键安装包请本地构建：npm run pack:win / pack:mac / pack:linux / pack:fnos / pack:syno
+产物在仓库 packages/ 目录，不上传到三端 Release。
 
 默认端口 17890，账号 admin / admin123（请立刻改密）。"
 
-curl_json() {
-  curl -fsSL "$@"
-}
-
-github_release_id() {
+ensure_github() {
   local token="$1"
-  curl_json -H "Authorization: Bearer ${token}" \
+  echo "=== GitHub ${TAG}（仅初始化，无附件）==="
+  local exists
+  exists="$(curl -fsSL --connect-timeout 20 --max-time 60 \
+    -H "Authorization: Bearer ${token}" \
     -H "Accept: application/vnd.github+json" \
     "https://api.github.com/repos/hanye1993/${REPO}/releases/tags/${TAG}" \
-    | node -p "try{String(JSON.parse(require('fs').readFileSync(0,'utf8')).id||'')}catch(e){''}"
-}
-
-upload_github() {
-  local token="$1"
-  echo "=== GitHub ${TAG} ==="
-  local rel_id
-  rel_id="$(github_release_id "$token" || true)"
-  if [ -z "$rel_id" ]; then
+    | node -p "try{String(JSON.parse(require('fs').readFileSync(0,'utf8')).id||'')}catch(e){''}" || true)"
+  if [ -n "$exists" ]; then
+    node -e "
+const fs=require('fs');
+fs.writeFileSync('$TMP/gh-patch.json', JSON.stringify({ name:'$TAG', body:process.argv[1] }));
+" "$NOTES"
+    curl -fsSL --connect-timeout 20 --max-time 60 -X PATCH \
+      -H "Authorization: Bearer ${token}" \
+      -H "Accept: application/vnd.github+json" \
+      -H "Content-Type: application/json" \
+      -d @"$TMP/gh-patch.json" \
+      "https://api.github.com/repos/hanye1993/${REPO}/releases/${exists}" >/dev/null
+    echo "updated release id: $exists"
+  else
     node -e "
 const fs=require('fs');
 fs.writeFileSync('$TMP/gh-release.json', JSON.stringify({
   tag_name:'$TAG', name:'$TAG', body:process.argv[1], draft:false, prerelease:false
 }));
 " "$NOTES"
-    rel_id="$(curl_json -X POST \
+    curl -fsSL --connect-timeout 20 --max-time 60 -X POST \
       -H "Authorization: Bearer ${token}" \
       -H "Accept: application/vnd.github+json" \
       -H "Content-Type: application/json" \
       -d @"$TMP/gh-release.json" \
-      "https://api.github.com/repos/hanye1993/${REPO}/releases" \
-      | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).id")"
+      "https://api.github.com/repos/hanye1993/${REPO}/releases" >/dev/null
+    echo "created"
   fi
-  echo "release id: $rel_id"
-  for f in "${ASSETS[@]}"; do
-    echo "  upload $f"
-    # 删除同名旧附件
-    curl_json -H "Authorization: Bearer ${token}" \
-      -H "Accept: application/vnd.github+json" \
-      "https://api.github.com/repos/hanye1993/${REPO}/releases/${rel_id}/assets" \
-      | node -e "
-const fs=require('fs'); const name='$f'; const token='$token'; const id='$rel_id';
-const assets=JSON.parse(fs.readFileSync(0,'utf8'));
-for (const a of assets) { if (a.name===name) console.log(a.id); }
-" | while read -r aid; do
-      [ -n "$aid" ] && curl_json -X DELETE \
-        -H "Authorization: Bearer ${token}" \
-        -H "Accept: application/vnd.github+json" \
-        "https://api.github.com/repos/hanye1993/${REPO}/releases/assets/${aid}" || true
-    done
-    curl_json -X POST \
-      -H "Authorization: Bearer ${token}" \
-      -H "Accept: application/vnd.github+json" \
-      -H "Content-Type: application/octet-stream" \
-      --data-binary @"$PKG/$f" \
-      "https://uploads.github.com/repos/hanye1993/${REPO}/releases/${rel_id}/assets?name=${f}" >/dev/null
-  done
   echo "OK https://github.com/hanye1993/${REPO}/releases/tag/${TAG}"
 }
 
-gitee_release_id() {
-  local base="$1" owner="$2" token="$3"
-  curl_json "${base}/repos/${owner}/${REPO}/releases/tags/${TAG}?access_token=${token}" 2>/dev/null \
-    | node -p "try{String(JSON.parse(require('fs').readFileSync(0,'utf8')).id||'')}catch(e){''}" || true
-}
-
-upload_gitee() {
-  local owner="$1" token="$2"
-  local base="https://gitee.com/api/v5"
-  local web="https://gitee.com/${owner}/${REPO}/releases/tag/${TAG}"
-  echo "=== gitee ${TAG} ==="
-  local rel_id
-  rel_id="$(gitee_release_id "$base" "$owner" "$token")"
-  if [ -z "$rel_id" ]; then
-    rel_id="$(curl -fsSL -X POST "${base}/repos/${owner}/${REPO}/releases?access_token=${token}" \
-      --data-urlencode "tag_name=${TAG}" \
-      --data-urlencode "name=${TAG}" \
-      --data-urlencode "body=${NOTES}" \
-      --data-urlencode "target_commitish=main" \
-      | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).id")"
-  fi
-  echo "release id: $rel_id"
-  for f in "${ASSETS[@]}"; do
-    echo "  upload $f ($(du -h "$PKG/$f" | awk '{print $1}'))"
-    if ! curl -fsSL -X POST "${base}/repos/${owner}/${REPO}/releases/${rel_id}/attach_files?access_token=${token}" \
-      -F "file=@${PKG}/${f}" >/dev/null 2>&1; then
-      echo "  [warn] Gitee 上传失败（单文件可能 >100MB，如 macOS dmg）：$f" >&2
-    fi
-  done
-  echo "OK ${web}"
-}
-
-upload_gitcode() {
-  local owner="$1" token="$2"
-  local web="https://gitcode.com/${owner}/${REPO}/releases/tag/${TAG}"
-  local base="https://gitcode.com/api/v5"
-  echo "=== gitcode ${TAG} ==="
-  if ! curl -fsSL "${base}/repos/${owner}/${REPO}/releases/tags/${TAG}?access_token=${token}" >/dev/null 2>&1; then
-    curl -fsSL -X POST "${base}/repos/${owner}/${REPO}/releases?access_token=${token}" \
+ensure_gitee_like() {
+  local platform="$1" owner="$2" token="$3"
+  local base web
+  case "$platform" in
+    gitee) base="https://gitee.com/api/v5"; web="https://gitee.com/${owner}/${REPO}/releases/tag/${TAG}" ;;
+    gitcode) base="https://gitcode.com/api/v5"; web="https://gitcode.com/${owner}/${REPO}/releases/tag/${TAG}" ;;
+    *) echo "unknown platform $platform" >&2; return 1 ;;
+  esac
+  echo "=== ${platform} ${TAG}（仅初始化，无附件）==="
+  local exists
+  exists="$(curl -fsSL --connect-timeout 20 --max-time 60 \
+    "${base}/repos/${owner}/${REPO}/releases/tags/${TAG}?access_token=${token}" \
+    | node -p "try{String(JSON.parse(require('fs').readFileSync(0,'utf8')).id||'')}catch(e){''}" || true)"
+  if [ -z "$exists" ]; then
+    curl -fsSL --connect-timeout 20 --max-time 60 -X POST \
+      "${base}/repos/${owner}/${REPO}/releases?access_token=${token}" \
       --data-urlencode "tag_name=${TAG}" \
       --data-urlencode "name=${TAG}" \
       --data-urlencode "body=${NOTES}" \
       --data-urlencode "target_commitish=main" >/dev/null
+    echo "created"
+  else
+    echo "already exists id: $exists（跳过附件上传）"
   fi
-  local helper="$ROOT/ops/scripts/upload-gitcode-asset.mjs"
-  for f in "${ASSETS[@]}"; do
-    echo "  upload $f ($(du -h "$PKG/$f" | awk '{print $1}'))"
-    node "$helper" "$owner" "$REPO" "$TAG" "$PKG/$f" "$token"
-  done
   echo "OK ${web}"
 }
 
@@ -160,22 +102,22 @@ ok=0
 fail=0
 
 if [ -n "${GITHUB_TOKEN:-}" ]; then
-  if upload_github "$GITHUB_TOKEN"; then ok=$((ok+1)); else echo "[fail] GitHub" >&2; fail=$((fail+1)); fi
+  if ensure_github "$GITHUB_TOKEN"; then ok=$((ok+1)); else echo "[fail] GitHub" >&2; fail=$((fail+1)); fi
 else
   echo "[skip] GITHUB_TOKEN 未设置"; fail=$((fail+1))
 fi
 
 if [ -n "${GITEE_TOKEN:-}" ]; then
-  if upload_gitee hanye11 "$GITEE_TOKEN"; then ok=$((ok+1)); else echo "[fail] Gitee" >&2; fail=$((fail+1)); fi
+  if ensure_gitee_like gitee hanye11 "$GITEE_TOKEN"; then ok=$((ok+1)); else echo "[fail] Gitee" >&2; fail=$((fail+1)); fi
 else
   echo "[skip] GITEE_TOKEN 未设置"; fail=$((fail+1))
 fi
 
 if [ -n "${GITCODE_TOKEN:-}" ]; then
-  if upload_gitcode hanye6666 "$GITCODE_TOKEN"; then ok=$((ok+1)); else echo "[fail] GitCode" >&2; fail=$((fail+1)); fi
+  if ensure_gitee_like gitcode hanye6666 "$GITCODE_TOKEN"; then ok=$((ok+1)); else echo "[fail] GitCode" >&2; fail=$((fail+1)); fi
 else
   echo "[skip] GITCODE_TOKEN 未设置"; fail=$((fail+1))
 fi
 
-echo "完成：成功 ${ok}，失败/跳过 ${fail}"
+echo "完成：成功 ${ok}，失败/跳过 ${fail}（均未上传一键包）"
 [ "$ok" -gt 0 ]

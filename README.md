@@ -25,11 +25,11 @@
 
 **代码仓库（三端同步）**
 
-| 平台 | 仓库 | v4.3.0 发布页 |
-|------|------|----------------|
-| GitHub | https://github.com/hanye1993/3DPrinterFleetControlWebInterface | [Releases](https://github.com/hanye1993/3DPrinterFleetControlWebInterface/releases/tag/v4.3.0) |
-| Gitee | https://gitee.com/hanye11/3DPrinterFleetControlWebInterface | [Releases](https://gitee.com/hanye11/3DPrinterFleetControlWebInterface/releases/tag/v4.3.0) |
-| GitCode | https://gitcode.com/hanye6666/3DPrinterFleetControlWebInterface | [Releases](https://gitcode.com/hanye6666/3DPrinterFleetControlWebInterface/releases/tag/v4.3.0) |
+| 平台 | 仓库 | v4.3.0 标签 / 源码 |
+|------|------|-------------------|
+| GitHub | https://github.com/hanye1993/3DPrinterFleetControlWebInterface | [Releases](https://github.com/hanye1993/3DPrinterFleetControlWebInterface/releases/tag/v4.3.0)（仅源码归档，无一键包） |
+| Gitee | https://gitee.com/hanye11/3DPrinterFleetControlWebInterface | [Releases](https://gitee.com/hanye11/3DPrinterFleetControlWebInterface/releases/tag/v4.3.0)（同上） |
+| GitCode | https://gitcode.com/hanye6666/3DPrinterFleetControlWebInterface | [Releases](https://gitcode.com/hanye6666/3DPrinterFleetControlWebInterface/releases/tag/v4.3.0)（同上） |
 
 用户在「软件设置 → 关于」里可选上述任一平台检查 / 下载更新（默认 Gitee，国内更稳）。
 
@@ -37,14 +37,16 @@
 
 ## 1. 一键安装包（推荐）
 
-从上面 **Releases / 发行版** 下载对应文件，**无需单独安装 Node.js**（Windows / macOS / Linux 包已内置 Node 20）。
+**一键包不上传到三端 Release**（GitHub / Gitee / GitCode 只保留源码与版本标签）。  
+本地构建：`npm run pack:win` / `pack:mac` / `pack:linux` / `pack:fnos` / `pack:syno`，产物在仓库 `packages/`。  
+Windows / macOS / Linux 包已内置 Node 20，**无需**另装 Node.js。
 
-### 安装包一览（v4.3.0）
+### 安装包一览（v4.3.0 · 本地 `packages/`）
 
 | 平台 | 文件 | 说明 |
 |------|------|------|
 | **Windows** | `windows-4.3.0-amd64.exe` | 双击安装，可选目录；Win10/11 64 位，需管理员 |
-| **macOS Apple Silicon** | `macos-4.3.0-arm64.dmg` | 打开 DMG → 运行 `install.command`（Gitee 单文件 ≤100MB，请从 **GitHub / GitCode** 下载） |
+| **macOS Apple Silicon** | `macos-4.3.0-arm64.dmg` | 打开 DMG → 运行 `install.command` |
 | **macOS Intel** | `macos-4.3.0-amd64.dmg` | 同上 |
 | **Ubuntu / Debian x64** | `ubuntu-4.3.0-amd64.deb` / `debian-4.3.0-amd64.deb` | `sudo dpkg -i xxx.deb` |
 | **Ubuntu / Debian arm64** | `ubuntu-4.3.0-arm64.deb` / `debian-4.3.0-arm64.deb` | 同上 |
@@ -54,7 +56,7 @@
 | **飞牛 fnOS ARM** | `fnos-4.3.0-arm.fpk` | 同上 |
 | **群晖 x86_64** | `syno-4.3.0-x86_64.spk` | 套件中心先装 **Node.js 20/22**，再手动安装 spk |
 | **群晖 aarch64** | `syno-4.3.0-aarch64.spk` | 同上 |
-| **安装包源码** | `installer-src-4.3.0.zip` | 各平台打包骨架（`packages-src/`），供二次打包 |
+| **安装包源码** | `installer-src-4.3.0.zip` | `npm run pack:installer-src`；骨架在 `packages-src/` |
 
 安装后浏览器打开：**http://127.0.0.1:17890/** ，默认 **admin / admin123**。
 
@@ -227,6 +229,7 @@ NAS 上若需扫局域网打印机，优先用 **Node 直装** 或 **一键 fpk/
 | 文档 | 内容 |
 |------|------|
 | [INSTALL.md](ops/docs/INSTALL.md) | 分平台详细安装（一键包 + Node + Docker） |
+| [RELEASE.md](ops/docs/RELEASE.md) | 三仓库发版：只推源码/MD/标签，不传一键包 |
 | [node.js20/README.md](node.js20/README.md) | 飞牛 NAS Node 运维脚本 |
 | [NODE_DEPLOY.md](ops/docs/NODE_DEPLOY.md) | Node 生产部署 |
 | [MYSQL.md](ops/docs/MYSQL.md) | MySQL |
