@@ -46,7 +46,7 @@ LAN_SCAN_SUBNETS=192.168.1    # 改成你的网段，如 192.168.10
 
 **推荐：一键安装包（无需单独装 Node）**
 
-1. 双击 `packages/windows-4.2.0-amd64.exe`（需管理员权限；Win10/11 64 位）
+1. 双击 `packages/windows-4.3.0-amd64.exe`（需管理员权限；Win10/11 64 位）
 2. 选择安装目录（默认 `C:\Program Files\HanyeMonitor`，可改到 D 盘等）
 3. 确认后开始安装；控制面板可启停服务
 4. 访问 http://127.0.0.1:17890/ ，默认 **admin / admin123**
@@ -85,8 +85,8 @@ npm start
 
 | 芯片 | 安装包 |
 |------|--------|
-| Apple Silicon（M 系列） | `packages/macos-4.2.0-arm64.dmg` |
-| Intel | `packages/macos-4.2.0-amd64.dmg` |
+| Apple Silicon（M 系列） | `packages/macos-4.3.0-arm64.dmg` |
+| Intel | `packages/macos-4.3.0-amd64.dmg` |
 
 1. 打开对应 DMG，双击 `install.command`
 2. 浏览器访问 http://127.0.0.1:17890/ ，默认 **admin / admin123**
@@ -128,8 +128,8 @@ pm2 startup    # 按提示执行一条 sudo 命令
 
 | 系统 | 安装包 | 安装命令 |
 |------|--------|----------|
-| Ubuntu / Debian（x86_64） | `ubuntu-4.2.0-amd64.deb` | `sudo dpkg -i ubuntu-*-amd64.deb` |
-| CentOS / RHEL / Rocky（x86_64） | `centos-4.2.0-amd64.rpm` | `sudo yum install ./centos-*-amd64.rpm` |
+| Ubuntu / Debian（x86_64） | `ubuntu-4.3.0-amd64.deb` | `sudo dpkg -i ubuntu-*-amd64.deb` |
+| CentOS / RHEL / Rocky（x86_64） | `centos-4.3.0-amd64.rpm` | `sudo yum install ./centos-*-amd64.rpm` |
 | ARM64 服务器 | 文件名带 `arm64` 的 deb/rpm | 同上 |
 
 安装后访问 http://127.0.0.1:17890/ ，默认 **admin / admin123**。服务名 `hanyemonitor`，配置 `/opt/hanye-printer-monitor/app.env`。
@@ -180,7 +180,7 @@ pm2 startup
 
 1. 套件中心先装 **Node.js 20** 或 **22**
 2. 本机打包：`npm run pack:syno`（ARM 机型：`SPK_ARCH=aarch64 bash ops/scripts/pack-syno-spk.sh`）
-3. DSM → 套件中心 → **手动安装** → 选 `packages/syno-4.2.0-x86_64.spk`（或对应架构）
+3. DSM → 套件中心 → **手动安装** → 选 `packages/syno-4.3.0-x86_64.spk`（或对应架构）
 4. 启动套件后访问 `http://NAS:17890`，默认 **admin / admin123**
 5. 网段等配置：`/var/packages/hanyemonitor/etc/app.env` 里改 `LAN_SCAN_SUBNETS`
 

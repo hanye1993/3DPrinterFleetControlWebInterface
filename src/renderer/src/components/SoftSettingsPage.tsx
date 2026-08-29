@@ -14,11 +14,13 @@ import {
   SettingOutlined,
   ShopOutlined,
   SkinOutlined,
-  TeamOutlined
+  TeamOutlined,
+  DatabaseOutlined
 } from '@ant-design/icons'
 import { SoftSettingsGeneral } from './softSettings/SoftSettingsGeneral'
 import { SoftSettingsBrand } from './softSettings/SoftSettingsBrand'
 import { SoftSettingsNav } from './softSettings/SoftSettingsNav'
+import { SoftSettingsFilamentSync } from './softSettings/SoftSettingsFilamentSync'
 import { SoftSettingsEnterprise } from './softSettings/SoftSettingsEnterprise'
 import { SoftSettingsAi } from './softSettings/SoftSettingsAi'
 import { SoftSettingsAlerts } from './softSettings/SoftSettingsAlerts'
@@ -73,6 +75,7 @@ export function SoftSettingsPage({ initialTab }: { initialTab?: SoftTab } = {}) 
   /** Branding + nav are core Soft Settings tabs — always visible when this page is open */
   const showBrand = true
   const showNav = true
+  const showFilamentSync = adminUi && can('filament.edit')
   const showQuoteHistory = adminUi && can('nav.tools')
   const showUsers = adminUi && can('nav.users')
   const showPrintApprove =
@@ -127,6 +130,7 @@ export function SoftSettingsPage({ initialTab }: { initialTab?: SoftTab } = {}) 
     (tab === 'pluginSettings' && !showPluginSettings) ||
     (tab === 'brand' && !showBrand) ||
     (tab === 'nav' && !showNav) ||
+    (tab === 'filamentSync' && !showFilamentSync) ||
     (tab === 'quoteHistory' && !showQuoteHistory) ||
     (tab === 'users' && !showUsers) ||
     (tab === 'printApprove' && !showPrintApprove)
@@ -134,6 +138,7 @@ export function SoftSettingsPage({ initialTab }: { initialTab?: SoftTab } = {}) 
       : tab === 'general' ||
           tab === 'brand' ||
           tab === 'nav' ||
+          tab === 'filamentSync' ||
           tab === 'quoteHistory' ||
           tab === 'users' ||
           tab === 'printApprove' ||
@@ -210,6 +215,27 @@ export function SoftSettingsPage({ initialTab }: { initialTab?: SoftTab } = {}) 
               <SoftSettingsNav />
             </PluginSlot>
             <PluginSlot name="settings.tab.nav.after" />
+          </div>
+        )
+      })
+    }
+
+    if (showFilamentSync) {
+      entries.push({
+        key: 'filamentSync',
+        sort: SETTINGS_TAB_ORDER.filamentSync,
+        label: (
+          <span>
+            <DatabaseOutlined /> 耗材库同步
+          </span>
+        ),
+        children: (
+          <div className="settings-tab-panel">
+            <PluginSlot name="settings.tab.filamentSync.before" />
+            <PluginSlot name="settings.tab.filamentSync" replace>
+              <SoftSettingsFilamentSync />
+            </PluginSlot>
+            <PluginSlot name="settings.tab.filamentSync.after" />
           </div>
         )
       })
@@ -474,6 +500,7 @@ export function SoftSettingsPage({ initialTab }: { initialTab?: SoftTab } = {}) 
     showPlugins,
     showBrand,
     showNav,
+    showFilamentSync,
     showQuoteHistory,
     showUsers,
     showPrintApprove

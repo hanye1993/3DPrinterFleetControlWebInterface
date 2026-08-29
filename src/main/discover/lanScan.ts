@@ -151,12 +151,12 @@ async function identifyFlashforge(
 
 async function identifySnapmaker(
   host: string,
-  _port: number,
+  port: number,
   timeoutMs: number
 ): Promise<Partial<LanDiscoverHit> | null> {
-  // Avoid false positives on random :8080 — require Snapmaker-ish endpoint
+  // Avoid false positives — require Snapmaker-ish endpoint (:7125)
   try {
-    const { status } = await axios.get(`http://${host}:8080/api/v1/status`, {
+    const { status } = await axios.get(`http://${host}:${port}/api/v1/status`, {
       timeout: timeoutMs,
       validateStatus: () => true
     })
@@ -218,7 +218,7 @@ const PROBES: ProbeDef[] = [
     identify: identifyFlashforge
   },
   {
-    port: 8080,
+    port: 7125,
     brand: 'snapmaker',
     label: 'Snapmaker',
     needsCredentials: true,

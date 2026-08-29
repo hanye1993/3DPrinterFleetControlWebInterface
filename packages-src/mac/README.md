@@ -8,8 +8,8 @@
 
 | 芯片 | 安装包 |
 |------|--------|
-| Apple Silicon（M 系列） | `macos-4.2.0-arm64.dmg` |
-| Intel | `macos-4.2.0-amd64.dmg` |
+| Apple Silicon（M 系列） | `macos-4.3.0-arm64.dmg` |
+| Intel | `macos-4.3.0-amd64.dmg` |
 
 1. 打开对应 DMG，双击 `install.command`
 2. 按提示完成（自动注册后台服务并打开浏览器）

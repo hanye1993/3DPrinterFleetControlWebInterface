@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 上传 v4.2.0 一键安装包 + installer-src 到 GitHub / Gitee / GitCode Releases
+# 上传 v4.3.0 一键安装包 + installer-src 到 GitHub / Gitee / GitCode Releases
 # 用法：
 #   export GITHUB_TOKEN=... GITEE_TOKEN=... GITCODE_TOKEN=...
 #   bash ops/scripts/publish-release-assets.sh

@@ -106,6 +106,14 @@ import {
   type FilamentBackendKind
 } from './filamentBackend'
 import {
+  getFilamentSyncSources,
+  setFilamentSyncSources,
+  syncAllFilamentSources,
+  syncFilamentSource,
+  testFilamentSyncSource,
+  type FilamentSyncSource
+} from './filamentSyncSources'
+import {
   applyGithubSourceUpdate,
   checkGithubUpdate,
   listUpdateMirrors,
@@ -2011,6 +2019,77 @@ export class ApiServer {
         return
       }
 
+      if (method === 'GET' && path === '/api/v1/filament/sync-sources') {
+        sendJson(res, 200, { ok: true, ...getFilamentSyncSources(filamentSyncDeps(this.deps)) })
+        return
+      }
+
+      if (method === 'POST' && path === '/api/v1/filament/sync-sources') {
+        if (auth.kind === 'user' && !hasPerm(effectivePermissions(auth.user), 'filament.edit')) {
+          sendJson(res, 403, { ok: false, message: '缺少权限：filament.edit' })
+          return
+        }
+        const raw = await readBody(req)
+        let body: { sources?: Partial<FilamentSyncSource>[] } = {}
+        try {
+          body = raw ? (JSON.parse(raw) as { sources?: Partial<FilamentSyncSource>[] }) : {}
+        } catch {
+          sendJson(res, 400, { ok: false, message: 'Invalid JSON body' })
+          return
+        }
+        if (!Array.isArray(body.sources)) {
+          sendJson(res, 400, { ok: false, message: '需要 sources 数组（最多 3 个）' })
+          return
+        }
+        const st = setFilamentSyncSources(filamentSyncDeps(this.deps), body.sources)
+        sendJson(res, 200, { ok: true, ...st })
+        return
+      }
+
+      if (method === 'POST' && path === '/api/v1/filament/sync-sources/test') {
+        if (auth.kind === 'user' && !hasPerm(effectivePermissions(auth.user), 'filament.edit')) {
+          sendJson(res, 403, { ok: false, message: '缺少权限：filament.edit' })
+          return
+        }
+        const raw = await readBody(req)
+        let body: { id?: string } = {}
+        try {
+          body = raw ? (JSON.parse(raw) as { id?: string }) : {}
+        } catch {
+          sendJson(res, 400, { ok: false, message: 'Invalid JSON body' })
+          return
+        }
+        const r = await testFilamentSyncSource(filamentSyncDeps(this.deps), String(body.id || ''))
+        sendJson(res, r.ok ? 200 : 400, r)
+        return
+      }
+
+      if (method === 'POST' && path === '/api/v1/filament/sync-sources/sync') {
+        if (auth.kind === 'user' && !hasPerm(effectivePermissions(auth.user), 'filament.edit')) {
+          sendJson(res, 403, { ok: false, message: '缺少权限：filament.edit' })
+          return
+        }
+        const raw = await readBody(req)
+        let body: { id?: string; all?: boolean } = {}
+        try {
+          body = raw ? (JSON.parse(raw) as { id?: string; all?: boolean }) : {}
+        } catch {
+          sendJson(res, 400, { ok: false, message: 'Invalid JSON body' })
+          return
+        }
+        const deps = filamentSyncDeps(this.deps)
+        if (body.all || !body.id) {
+          const r = await syncAllFilamentSources(deps)
+          this.deps.onFilamentChanged?.()
+          sendJson(res, r.ok ? 200 : 400, r)
+          return
+        }
+        const r = await syncFilamentSource(deps, String(body.id))
+        this.deps.onFilamentChanged?.()
+        sendJson(res, r.ok ? 200 : 400, { ok: r.ok, message: r.message, results: [r] })
+        return
+      }
+
       if (method === 'GET' && path === '/api/v1/filament') {
         const tech = url.searchParams.get('tech')
         const archived = url.searchParams.get('archived')
@@ -3024,6 +3103,10 @@ function filamentCloudDeps(deps: ApiServerDeps) {
     setSecret: (key: string, value: string) => deps.setDeviceSecret(key, value),
     deleteSecret: (key: string) => deps.deleteDeviceSecret(key)
   }
+}
+
+function filamentSyncDeps(deps: ApiServerDeps) {
+  return { filamentPath: deps.getFilamentPath() }
 }
 
 function collectSpoolExtras(source: Record<string, unknown>): Record<string, unknown> {

@@ -22,6 +22,10 @@ import {
   runFilamentMutualSync,
   type FilamentBackendState
 } from '../api/filamentBackendApi'
+import {
+  fetchFilamentSyncSources,
+  runFilamentSyncSources
+} from '../api/filamentSyncApi'
 import { useFilamentStore } from '../stores/filamentStore'
 
 type LoginForm = {
@@ -41,6 +45,7 @@ export function FilamentBackendBar() {
   const [loginOpen, setLoginOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [needCode, setNeedCode] = useState(false)
+  const [spoolmanEnabled, setSpoolmanEnabled] = useState(0)
   const [form] = Form.useForm<LoginForm>()
 
   const load = async () => {
@@ -49,6 +54,14 @@ export function FilamentBackendBar() {
       setSt(s)
     } catch {
       /* ignore */
+    }
+    try {
+      const sync = await fetchFilamentSyncSources()
+      setSpoolmanEnabled(
+        (sync.sources || []).filter((x) => x.enabled && x.type === 'spoolman').length
+      )
+    } catch {
+      setSpoolmanEnabled(0)
     }
   }
 
@@ -199,6 +212,21 @@ export function FilamentBackendBar() {
     }
   }
 
+  const syncSpoolman = async () => {
+    setBusy(true)
+    try {
+      const r = await runFilamentSyncSources({ all: true })
+      if (!r.ok) throw new Error(r.message || 'Spoolman 同步失败')
+      await activateLocal()
+      await load()
+      message.success(r.message || 'Spoolman 同步完成')
+    } catch (e) {
+      message.error(e instanceof Error ? e.message : 'Spoolman 同步失败')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const cloud = current === 'bambu_studio'
 
   return (
@@ -219,8 +247,18 @@ export function FilamentBackendBar() {
           disabled={busy}
           onChange={(e) => void onMutualSync(e.target.checked)}
         >
-          互相同步
+          拓竹互相同步
         </Checkbox>
+        {!cloud && spoolmanEnabled > 0 ? (
+          <Button
+            size="small"
+            icon={<CloudSyncOutlined />}
+            loading={busy}
+            onClick={() => void syncSpoolman()}
+          >
+            Spoolman 同步（{spoolmanEnabled}/3）
+          </Button>
+        ) : null}
         {cloud ? (
           <Space size={8} wrap>
             <Typography.Text type="secondary">

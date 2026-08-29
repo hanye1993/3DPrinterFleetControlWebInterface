@@ -41,7 +41,7 @@ function hostOnly(raw: string): string {
 }
 
 function apiBase(host: string): string {
-  return `http://${host}:8080`
+  return `http://${host}:7125`
 }
 
 async function connectToken(

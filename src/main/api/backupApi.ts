@@ -17,6 +17,8 @@ const BACKUP_FILES = [
   'filament-spools.json',
   'filament-backend.json',
   'filament-bambu-overlay.json',
+  'filament-sync-sources.json',
+  'filament-sync-pairs.json',
   'users.json',
   'user-groups.json',
   'nav-config.json',

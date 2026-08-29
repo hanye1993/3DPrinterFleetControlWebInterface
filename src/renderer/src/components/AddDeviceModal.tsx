@@ -878,7 +878,7 @@ export function AddDeviceModal({
         })
     setProbing(false)
     if (!probe?.ok) {
-      message.error(`连接失败: ${probe?.message || '无法连接 Snapmaker (:8080)'}`)
+      message.error(`连接失败: ${probe?.message || '无法连接 Snapmaker (:7125)'}`)
       return
     }
     const secretKey = `snapmaker:${id}:token`
@@ -1661,7 +1661,7 @@ export function AddDeviceModal({
                 showIcon
                 style={{ marginBottom: 16 }}
                 message="Snapmaker 局域网"
-                description="官方云账号暂无可用第三方 API，请用局域网（端口 8080）。首次连接若未填 Token，需在打印机触摸屏确认授权；成功后 Token 会自动保存。"
+                description="官方云账号暂无可用第三方 API，请用局域网（端口 7125）。首次连接若未填 Token，需在打印机触摸屏确认授权；成功后 Token 会自动保存。"
               />
               <Form.Item
                 name="baseUrl"

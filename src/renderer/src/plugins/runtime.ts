@@ -52,6 +52,7 @@ export const SETTINGS_TAB_ORDER: Record<string, number> = {
   general: 100,
   brand: 120,
   nav: 150,
+  filamentSync: 155,
   quoteHistory: 160,
   users: 170,
   printApprove: 180,
