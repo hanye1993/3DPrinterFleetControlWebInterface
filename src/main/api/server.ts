@@ -129,11 +129,9 @@ export { DEVICE_CONTROL_ACTIONS }
 
 export type ApiMode = 'readonly' | 'control'
 
-export type ApiAccessMode = 'local' | 'sunlogin' | 'frpc'
+export type ApiAccessMode = 'local' | 'sunlogin'
 
 export type HskFwType = 1 | 2 | 3
-
-export type FrpcProxyType = 'tcp' | 'http'
 
 export type AppSettings = {
   apiEnabled: boolean
@@ -153,19 +151,6 @@ export type AppSettings = {
   hskExternalPort?: number
   hskFwType?: HskFwType
   hskMemo?: string
-  frpcServerAddr?: string
-  frpcServerPort?: number
-  /** 面板账号 / 多用户 frps 的 user（如 DPFRP 的 user） */
-  frpcUser?: string
-  frpcToken?: string
-  /** 隧道名称，商业面板通常强制与官方配置一致 */
-  frpcProxyName?: string
-  frpcType?: FrpcProxyType
-  frpcRemotePort?: number
-  frpcPublicHost?: string
-  frpcCustomDomain?: string
-  /** 是否启用 frpc→frps TLS；多数面板要求 false */
-  frpcTlsEnable?: boolean
   /** 桌面通知 */
   notifyOnError?: boolean
   notifyOnPrintDone?: boolean
@@ -243,7 +228,6 @@ export type ApiStatus = {
   webUrl: string | null
   domainUrl: string | null
   hskUrl: string | null
-  frpcUrl: string | null
   error?: string
 }
 
@@ -338,11 +322,7 @@ type StatusMap = Record<string, unknown>
 const DEFAULT_PORT = 17890
 
 export function resolveAccessMode(settings: AppSettings): ApiAccessMode {
-  if (
-    settings.apiAccessMode === 'local' ||
-    settings.apiAccessMode === 'sunlogin' ||
-    settings.apiAccessMode === 'frpc'
-  ) {
+  if (settings.apiAccessMode === 'local' || settings.apiAccessMode === 'sunlogin') {
     return settings.apiAccessMode
   }
   return settings.hskEnabled ? 'sunlogin' : 'local'
@@ -366,64 +346,6 @@ export function buildHskUrl(settings: AppSettings): string | null {
   return `http://${host}`
 }
 
-export function buildFrpcUrl(settings: AppSettings): string | null {
-  if (resolveAccessMode(settings) !== 'frpc') return null
-  const type = settings.frpcType === 'http' ? 'http' : 'tcp'
-  if (type === 'http') {
-    const domain = (settings.frpcCustomDomain || settings.frpcPublicHost || '').trim()
-    if (!domain) return null
-    if (domain.includes('://')) return domain.replace(/\/$/, '')
-    return `http://${domain.replace(/\/$/, '')}`
-  }
-  const host = (settings.frpcPublicHost || '').trim().replace(/^https?:\/\//i, '').replace(/\/$/, '')
-  const remote = Number(settings.frpcRemotePort) || 0
-  if (!host || remote < 1) return null
-  return `http://${host}:${remote}`
-}
-
-/** 生成 frpc.toml（v0.52+ / 面板兼容写法），本地端口绑定本软件 API */
-export function buildFrpcToml(settings: AppSettings): string {
-  const serverAddr = (settings.frpcServerAddr || '').trim() || '127.0.0.1'
-  const serverPort = Number(settings.frpcServerPort) || 7000
-  const user = (settings.frpcUser || '').trim()
-  const token = (settings.frpcToken || '').trim()
-  const proxyName = (settings.frpcProxyName || '').trim() || 'printer-monitor-api'
-  const localPort = settings.apiPort || DEFAULT_PORT
-  const type = settings.frpcType === 'http' ? 'http' : 'tcp'
-  const remotePort = Number(settings.frpcRemotePort) || 0
-  const customDomain = (settings.frpcCustomDomain || '').trim()
-  const tlsEnable = settings.frpcTlsEnable === true
-
-  const q = (s: string) => s.replace(/"/g, '')
-  const lines = [
-    '# hanye-3D打印机监控台 — frpc 配置',
-    '# 用法: frpc -c frpc.toml',
-    '# 兼容自建 frps 与 DPFRP 等面板下发的配置格式',
-    '',
-    'serverAddr = "' + q(serverAddr) + '"',
-    'serverPort = ' + serverPort
-  ]
-  if (user) lines.push('user = "' + q(user) + '"')
-  if (token) lines.push('auth.token = "' + q(token) + '"')
-  lines.push(
-    'transport.tls.enable = ' + (tlsEnable ? 'true' : 'false'),
-    'transport.tls.disableCustomTLSFirstByte = false',
-    '',
-    '[[proxies]]',
-    'name = "' + q(proxyName) + '"',
-    'type = "' + type + '"',
-    'localIP = "127.0.0.1"',
-    'localPort = ' + localPort
-  )
-  if (type === 'tcp') {
-    lines.push('remotePort = ' + (remotePort || localPort))
-  } else if (customDomain) {
-    lines.push('customDomains = ["' + q(customDomain) + '"]')
-  }
-  lines.push('')
-  return lines.join('\n')
-}
-
 export function defaultSettings(): AppSettings {
   return {
     apiEnabled: false,
@@ -441,16 +363,6 @@ export function defaultSettings(): AppSettings {
     hskExternalPort: 0,
     hskFwType: 2,
     hskMemo: HSK_DEFAULT_MEMO,
-    frpcServerAddr: '',
-    frpcServerPort: 7000,
-    frpcUser: '',
-    frpcToken: '',
-    frpcProxyName: '',
-    frpcType: 'tcp',
-    frpcRemotePort: 17890,
-    frpcPublicHost: '',
-    frpcCustomDomain: '',
-    frpcTlsEnable: false,
     notifyOnError: true,
     notifyOnPrintDone: true,
     notifyOnIdle: false,
@@ -486,11 +398,8 @@ function normalizeHskFwType(v: unknown): HskFwType {
 }
 
 function normalizeAccessMode(o: Record<string, unknown>): ApiAccessMode {
-  if (
-    o.apiAccessMode === 'sunlogin' ||
-    o.apiAccessMode === 'local' ||
-    o.apiAccessMode === 'frpc'
-  ) {
+  // 旧版 apiAccessMode=frpc 归一为 local（主程序不再内置 frpc）
+  if (o.apiAccessMode === 'sunlogin' || o.apiAccessMode === 'local') {
     return o.apiAccessMode
   }
   return o.hskEnabled ? 'sunlogin' : 'local'
@@ -502,8 +411,6 @@ export function normalizeSettings(raw: unknown): AppSettings {
   const o = raw as Record<string, unknown>
   const port = Number(o.apiPort)
   const ext = Number(o.hskExternalPort)
-  const frpcServerPort = Number(o.frpcServerPort)
-  const frpcRemotePort = Number(o.frpcRemotePort)
   const apiAccessMode = normalizeAccessMode(o)
   return {
     apiEnabled: Boolean(o.apiEnabled),
@@ -523,22 +430,6 @@ export function normalizeSettings(raw: unknown): AppSettings {
     hskFwType: normalizeHskFwType(o.hskFwType),
     hskMemo:
       typeof o.hskMemo === 'string' && o.hskMemo.trim() ? o.hskMemo.trim() : HSK_DEFAULT_MEMO,
-    frpcServerAddr: typeof o.frpcServerAddr === 'string' ? o.frpcServerAddr.trim() : '',
-    frpcServerPort:
-      Number.isFinite(frpcServerPort) && frpcServerPort > 0 && frpcServerPort < 65536
-        ? Math.floor(frpcServerPort)
-        : 7000,
-    frpcUser: typeof o.frpcUser === 'string' ? o.frpcUser.trim() : '',
-    frpcToken: typeof o.frpcToken === 'string' ? o.frpcToken.trim() : '',
-    frpcProxyName: typeof o.frpcProxyName === 'string' ? o.frpcProxyName.trim() : '',
-    frpcType: o.frpcType === 'http' ? 'http' : 'tcp',
-    frpcRemotePort:
-      Number.isFinite(frpcRemotePort) && frpcRemotePort > 0 && frpcRemotePort < 65536
-        ? Math.floor(frpcRemotePort)
-        : DEFAULT_PORT,
-    frpcPublicHost: typeof o.frpcPublicHost === 'string' ? o.frpcPublicHost.trim() : '',
-    frpcCustomDomain: typeof o.frpcCustomDomain === 'string' ? o.frpcCustomDomain.trim() : '',
-    frpcTlsEnable: o.frpcTlsEnable === true,
     notifyOnError: o.notifyOnError !== false,
     notifyOnPrintDone: o.notifyOnPrintDone !== false,
     notifyOnIdle: Boolean(o.notifyOnIdle),
@@ -883,7 +774,6 @@ export class ApiServer {
       webUrl,
       domainUrl,
       hskUrl: buildHskUrl(s),
-      frpcUrl: buildFrpcUrl(s),
       error: this.lastError
     }
   }

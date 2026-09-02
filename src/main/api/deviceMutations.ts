@@ -361,7 +361,6 @@ export function maskApiKey(key: string | undefined): string {
 export function publicSettings(settings: Record<string, unknown>): Record<string, unknown> {
   const apiKey = typeof settings.apiKey === 'string' ? settings.apiKey : ''
   const {
-    frpcToken: _t,
     hskApiKey: _h,
     apiKey: _k,
     uiBgImage: _img,
@@ -374,7 +373,6 @@ export function publicSettings(settings: Record<string, unknown>): Record<string
     ...rest,
     apiKeySet: !!apiKey,
     apiKeyMasked: maskApiKey(apiKey),
-    frpcTokenSet: !!(typeof settings.frpcToken === 'string' && settings.frpcToken),
     hskApiKeySet: !!(typeof settings.hskApiKey === 'string' && settings.hskApiKey),
     sso: publicSsoSettings(normalizeSsoSettings(rawSso)),
     aiVision: publicAiVision(normalizeAiVisionSettings(rawAi)),

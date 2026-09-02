@@ -256,7 +256,7 @@ module.exports = class {
 | 维保寿命 | `hooks` print 事件 + 自存计数 | 无需新协议 |
 | 延时摄影 | `camera.snapshot` + `media.write` + cron | 定时拉帧归档 |
 | 多租户/车间 | `users.pluginData` + `filter:devices.list` | 标签写在用户 pluginData |
-| 远程入口页 | `settings.publicUrl` | 读 `publicBaseUrl`；隧道仍用外部 frpc 等 |
+| 远程入口页 | `settings.publicUrl` | 读 `publicBaseUrl`（可由外部隧道/插件写入） |
 | Klipper 宏/深控 | `devices.gcode` | 仅 Moonraker 类 |
 | Moonraker 全量 API | `devices.moonraker` | `moonrakerRequest` / `POST …/moonraker`（宿主 ≥ 1.3.1） |
 | 光固化 / 品牌差异 UI | `devices.capabilities` | 按 caps 显隐按钮 |
@@ -565,12 +565,14 @@ async permissions_catalog(api, list) {
 
 | 钩子 | 时机 | 说明 |
 |------|------|------|
-| `devices_list` | `GET /api/v1/devices` | 改名称、过滤、附加字段 |
+| `devices_list` | `GET /api/v1/devices` | 改名称、过滤、附加字段、**重排顺序** |
 | `device_create` / `device_update` / `device_delete` | 设备增改删前 | `{ proceed, device/patch/deviceId }` |
 | `devices_save` | 整表保存滤镜（`api.saveDevices` / `ctx.devices.save`） | devices[] |
 | `statuses_publish` | SSE/Webhook 广播前 | 改状态 map |
 | `control_before` | 控制指令前 | 可拦截 `proceed:false` |
 | `control_after` | 控制结果后 | 可改返回结果 |
+
+`plugin.json` 可选 **`hookPriority`**（默认 100，越大越晚执行）。强制排序类插件用更高值（如 900）可覆盖状态置顶等排序结果。其它插件若自建设备列表，应调用 **`api.runHook('devices_list', devices)`** 以跟随统一顺序（见 `fdm_fleet_cards` 1.0.4）。
 
 ### 5.3.1 耗材
 

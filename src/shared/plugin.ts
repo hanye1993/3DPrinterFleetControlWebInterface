@@ -62,6 +62,11 @@ export type PluginManifest = {
   modules: PluginModuleDef[]
   vars: PluginVarDef[]
   hooks: string[]
+  /**
+   * HookBus 优先级（默认 100）。数值越大越晚执行，可覆盖其它插件对同一钩子的结果。
+   * 例：强制排序插件用 900，保证排在「状态置顶」之后生效。
+   */
+  hookPriority?: number
   installFile: string
   uninstallFile: string
   upgradeFile: string
@@ -789,6 +794,10 @@ export function parsePluginJson(raw: unknown, fallbackId?: string): PluginManife
     modules,
     vars,
     hooks: Array.isArray(o.hooks) ? o.hooks.map(String) : [],
+    hookPriority:
+      o.hookPriority != null && Number.isFinite(Number(o.hookPriority))
+        ? Math.max(0, Math.min(10000, Math.floor(Number(o.hookPriority))))
+        : undefined,
     installFile: String(o.installFile || 'install.js'),
     uninstallFile: String(o.uninstallFile || 'uninstall.js'),
     upgradeFile: String(o.upgradeFile || 'upgrade.js'),

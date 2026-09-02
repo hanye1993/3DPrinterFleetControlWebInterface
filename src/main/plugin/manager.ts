@@ -197,6 +197,10 @@ export type PluginApi = {
   getDevices: () => unknown[]
   saveDevices: (devices: unknown[]) => void
   getStatuses: () => Record<string, unknown>
+  /**
+   * 运行宿主钩子链（如 devices_list）。其它插件可借此统一设备顺序。
+   */
+  runHook: <T = unknown>(name: string, value: T, ctx?: unknown) => Promise<T>
   /** Discuz-like usergroups (in-memory + disk) */
   listUserGroups: () => Array<{
     id: string
@@ -634,6 +638,7 @@ export class PluginManager {
         this.deps.saveDevices(Array.isArray(next) ? next : devices)
       },
       getStatuses: () => this.deps.getStatuses(),
+      runHook: (name, value, ctx) => self.runHook(String(name || ''), value, ctx),
       controlDevice: (deviceId, payload) => this.deps.controlDevice(deviceId, payload),
       listFiles: async (deviceId) => {
         if (!self.deps.deviceOp) return { ok: false, message: 'files 不可用' }
@@ -1346,7 +1351,8 @@ export class PluginManager {
           this.hookBus,
           identifier,
           hooks as unknown as Record<string, import('./kernel/CompatAdapter').LegacyHookFn>,
-          () => api
+          () => api,
+          typeof manifest.hookPriority === 'number' ? manifest.hookPriority : 100
         )
         if (typeof hooks.register === 'function') {
           await Promise.resolve(hooks.register(api, null))

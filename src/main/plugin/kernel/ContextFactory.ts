@@ -29,14 +29,6 @@ export function resolvePublicBaseUrl(s: Record<string, unknown>): string {
     if (/^https?:\/\//i.test(domain)) return domain.replace(/\/$/, '')
     return `https://${domain}`.replace(/\/$/, '')
   }
-  const frpcHost = String(s.frpcPublicHost || s.frpcCustomDomain || '').trim()
-  const frpcPort = Number(s.frpcRemotePort) || 0
-  if (frpcHost) {
-    if (/^https?:\/\//i.test(frpcHost)) return frpcHost.replace(/\/$/, '')
-    return frpcPort && frpcPort !== 80 && frpcPort !== 443
-      ? `http://${frpcHost}:${frpcPort}`
-      : `http://${frpcHost}`
-  }
   const ip = String(s.publicIp || '').trim()
   const port = Number(s.apiPort) || 17890
   if (ip) return `http://${ip}:${port}`

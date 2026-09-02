@@ -27,9 +27,8 @@ import {
 } from '@shared/siteBranding'
 
 export type ApiMode = 'readonly' | 'control'
-export type ApiAccessMode = 'local' | 'sunlogin' | 'frpc'
+export type ApiAccessMode = 'local' | 'sunlogin'
 export type HskFwType = 1 | 2 | 3
-export type FrpcProxyType = 'tcp' | 'http'
 export type UiThemeId = string
 export type UiBgMode = 'default' | 'color' | 'image'
 
@@ -50,16 +49,6 @@ export type AppSettings = {
   hskExternalPort: number
   hskFwType: HskFwType
   hskMemo: string
-  frpcServerAddr: string
-  frpcServerPort: number
-  frpcUser: string
-  frpcToken: string
-  frpcProxyName: string
-  frpcType: FrpcProxyType
-  frpcRemotePort: number
-  frpcPublicHost: string
-  frpcCustomDomain: string
-  frpcTlsEnable: boolean
   notifyOnError: boolean
   notifyOnPrintDone: boolean
   notifyOnIdle: boolean
@@ -113,7 +102,6 @@ export type ApiStatus = {
   webUrl?: string | null
   domainUrl: string | null
   hskUrl: string | null
-  frpcUrl: string | null
   error?: string
 }
 
@@ -155,16 +143,6 @@ const defaults: AppSettings = {
   hskExternalPort: 0,
   hskFwType: 2,
   hskMemo: HSK_DEFAULT_MEMO,
-  frpcServerAddr: '',
-  frpcServerPort: 7000,
-  frpcUser: '',
-  frpcToken: '',
-  frpcProxyName: '',
-  frpcType: 'tcp',
-  frpcRemotePort: 17890,
-  frpcPublicHost: '',
-  frpcCustomDomain: '',
-  frpcTlsEnable: false,
   notifyOnError: true,
   notifyOnPrintDone: true,
   notifyOnIdle: false,
@@ -327,9 +305,7 @@ function mapSettings(raw: Record<string, unknown> | Partial<AppSettings> | null 
   const r = (raw || {}) as Partial<AppSettings> & Record<string, unknown>
   const fw = Number(r.hskFwType)
   const apiAccessMode: ApiAccessMode =
-    r.apiAccessMode === 'sunlogin' ||
-    r.apiAccessMode === 'local' ||
-    r.apiAccessMode === 'frpc'
+    r.apiAccessMode === 'sunlogin' || r.apiAccessMode === 'local'
       ? r.apiAccessMode
       : r.hskEnabled
         ? 'sunlogin'
@@ -350,16 +326,6 @@ function mapSettings(raw: Record<string, unknown> | Partial<AppSettings> | null 
     hskExternalPort: Number(r.hskExternalPort) || 0,
     hskFwType: fw === 1 || fw === 3 ? fw : 2,
     hskMemo: (typeof r.hskMemo === 'string' && r.hskMemo) || HSK_DEFAULT_MEMO,
-    frpcServerAddr: (typeof r.frpcServerAddr === 'string' && r.frpcServerAddr) || '',
-    frpcServerPort: Number(r.frpcServerPort) || 7000,
-    frpcUser: (typeof r.frpcUser === 'string' && r.frpcUser) || '',
-    frpcToken: (typeof r.frpcToken === 'string' && r.frpcToken) || '',
-    frpcProxyName: (typeof r.frpcProxyName === 'string' && r.frpcProxyName) || '',
-    frpcType: r.frpcType === 'http' ? 'http' : 'tcp',
-    frpcRemotePort: Number(r.frpcRemotePort) || 17890,
-    frpcPublicHost: (typeof r.frpcPublicHost === 'string' && r.frpcPublicHost) || '',
-    frpcCustomDomain: (typeof r.frpcCustomDomain === 'string' && r.frpcCustomDomain) || '',
-    frpcTlsEnable: r.frpcTlsEnable === true,
     notifyOnError: r.notifyOnError !== false,
     notifyOnPrintDone: r.notifyOnPrintDone !== false,
     notifyOnIdle: Boolean(r.notifyOnIdle),

@@ -1200,65 +1200,6 @@ html.nav-rail-collapsed .app-shell-layout-workspace .app-rail {
   font-size: 13px;
 }
 
-.settings-endpoints {
-  margin: 8px 0 0;
-  padding-left: 18px;
-  color: rgba(255, 255, 255, 0.72);
-  line-height: 1.7;
-}
-
-.settings-api-docs {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.settings-api-doc-block {
-  padding: 12px 14px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.settings-api-doc-block ol {
-  margin: 8px 0 0;
-  padding-left: 18px;
-  color: rgba(255, 255, 255, 0.72);
-  line-height: 1.75;
-}
-
-.settings-api-doc-desc {
-  margin-top: 4px;
-  margin-bottom: 8px;
-  color: rgba(255, 255, 255, 0.58);
-  font-size: 13px;
-  line-height: 1.65;
-}
-
-.settings-endpoints-actions {
-  margin-top: 6px;
-}
-
-.settings-hsk-steps {
-  font-size: 13px;
-  line-height: 1.7;
-}
-
-.settings-hsk-example {
-  margin-top: 8px;
-}
-
-.settings-hsk-example .ant-typography {
-  margin-bottom: 0 !important;
-  word-break: break-all;
-}
-
-.settings-endpoints code,
-.settings-api-doc-block code {
-  color: #9ec5fe;
-  font-size: 12px;
-}
-
 .tools-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
