@@ -146,9 +146,11 @@ export async function flashforgeProbe(host: string, serial: string, checkCode: s
 }
 
 export async function snapmakerProbe(host: string, token?: string) {
-  return serverSend<{ ok: boolean; message?: string; token?: string }>(
-    '/api/v1/onboard/snapmaker/probe',
-    'POST',
-    { host, token }
-  )
+  return serverSend<{
+    ok: boolean
+    message?: string
+    token?: string
+    protocol?: 'moonraker' | 'luban'
+    baseUrl?: string
+  }>('/api/v1/onboard/snapmaker/probe', 'POST', { host, token })
 }

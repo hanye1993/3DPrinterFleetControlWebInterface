@@ -125,6 +125,14 @@ export function AddDeviceModal({
   const connectionMode = Form.useWatch('connectionMode', form) as string | undefined
   const loginMethod = Form.useWatch('bambuLoginMethod', form) as 'sms' | 'password' | undefined
   const [probing, setProbing] = useState(false)
+  const withProbing = async <T,>(fn: () => Promise<T>): Promise<T> => {
+    setProbing(true)
+    try {
+      return await fn()
+    } finally {
+      setProbing(false)
+    }
+  }
   const [cloudConfirmOpen, setCloudConfirmOpen] = useState(false)
   const [pluginTick, setPluginTick] = useState(0)
 
@@ -292,6 +300,10 @@ export function AddDeviceModal({
     setLanHits([])
     setScanProgress(null)
     setScanning(false)
+    setProbing(false)
+    setLoggingIn(false)
+    setSendingCode(false)
+    setCloudConfirmOpen(false)
     void (isClientMode() ? cancelLanDiscover() : window.electronAPI?.discover?.cancelLan())
   }
 
@@ -333,98 +345,98 @@ export function AddDeviceModal({
       createdAt: new Date().toISOString()
     }
 
-    if (values.baseUrl) {
-      setProbing(true)
-      const result = isClientMode()
-        ? await onboard.probeMoonraker(values.baseUrl.trim(), values.apiKey)
-        : await probeMoonraker(values.baseUrl.trim(), values.apiKey)
-      setProbing(false)
-      if (!result.ok) {
-        message.error(`连接失败: ${result.message}`)
-        return
+    await withProbing(async () => {
+      if (values.baseUrl) {
+        const result = isClientMode()
+          ? await onboard.probeMoonraker(values.baseUrl.trim(), values.apiKey)
+          : await probeMoonraker(values.baseUrl.trim(), values.apiKey)
+        if (!result.ok) {
+          message.error(`连接失败: ${result.message}`)
+          return
+        }
+        message.success(result.message)
       }
-      message.success(result.message)
-    }
 
-    await addDevice(device, values.apiKey)
-    message.success('设备已添加')
-    reset()
-    onClose()
+      await addDevice(device, values.apiKey)
+      message.success('设备已添加')
+      reset()
+      onClose()
+    })
   }
 
   const saveCreality = async (values: FormValues) => {
     const id = newId()
     const secretKey = `creality:${id}`
-    setProbing(true)
-    const result = isClientMode()
-      ? await onboard.probeCreality(values.baseUrl!.trim(), {
-          apiKey: values.apiKey,
-          username: values.crealityUser,
-          password: values.crealityPassword
-        })
-      : await probeCreality(values.baseUrl!.trim(), {
-          apiKey: values.apiKey,
-          username: values.crealityUser,
-          password: values.crealityPassword
-        })
-    setProbing(false)
-    if (!result.ok || !result.baseUrl) {
-      message.error(`连接失败: ${result.message}`)
-      return
-    }
-    message.success(result.message)
+    await withProbing(async () => {
+      const result = isClientMode()
+        ? await onboard.probeCreality(values.baseUrl!.trim(), {
+            apiKey: values.apiKey,
+            username: values.crealityUser,
+            password: values.crealityPassword
+          })
+        : await probeCreality(values.baseUrl!.trim(), {
+            apiKey: values.apiKey,
+            username: values.crealityUser,
+            password: values.crealityPassword
+          })
+      if (!result.ok || !result.baseUrl) {
+        message.error(`连接失败: ${result.message}`)
+        return
+      }
+      message.success(result.message)
 
-    const device: DeviceConfig = {
-      id,
-      name: values.name.trim(),
-      brand: 'creality',
-      model: modelOf(values),
-      group: values.group?.trim() || undefined,
-      tags: parseTags(values.tags),
-      baseUrl: result.baseUrl,
-      secretKey,
-      connectionMode: 'lan',
-      createdAt: new Date().toISOString()
-    }
-    await addDevice(device, result.token || values.apiKey)
-    message.success('创想三维设备已添加')
-    reset()
-    onClose()
+      const device: DeviceConfig = {
+        id,
+        name: values.name.trim(),
+        brand: 'creality',
+        model: modelOf(values),
+        group: values.group?.trim() || undefined,
+        tags: parseTags(values.tags),
+        baseUrl: result.baseUrl,
+        secretKey,
+        connectionMode: 'lan',
+        createdAt: new Date().toISOString()
+      }
+      await addDevice(device, result.token || values.apiKey)
+      message.success('创想三维设备已添加')
+      reset()
+      onClose()
+    })
   }
 
   const saveAnycubic = async (values: FormValues) => {
     const id = newId()
     const host = values.baseUrl!.trim().replace(/^https?:\/\//, '').split('/')[0].split(':')[0]
-    setProbing(true)
-    const probeId = `probe-anycubic-${id}`
-    const res = isClientMode()
-      ? await onboard.anycubicProbeLan(host)
-      : await (async () => {
-          const r = await window.electronAPI?.anycubic?.lan.connect({ connectionId: probeId, host })
-          await window.electronAPI?.anycubic?.lan.disconnect(probeId)
-          return r
-        })()
-    setProbing(false)
-    if (!res?.ok) {
-      message.error(`连接失败: ${res?.message || '局域网握手失败，请确认已开启 LAN Mode'}`)
-      return
-    }
-    message.success('纵维立方局域网连接成功')
-    const device: DeviceConfig = {
-      id,
-      name: values.name.trim(),
-      brand: 'anycubic',
-      model: modelOf(values),
-      group: values.group?.trim() || undefined,
-      tags: parseTags(values.tags),
-      baseUrl: `http://${host}`,
-      connectionMode: 'lan',
-      createdAt: new Date().toISOString()
-    }
-    await addDevice(device)
-    message.success('纵维立方设备已添加')
-    reset()
-    onClose()
+    await withProbing(async () => {
+      const probeId = `probe-anycubic-${id}`
+      const res = isClientMode()
+        ? await onboard.anycubicProbeLan(host)
+        : await (async () => {
+            const r = await window.electronAPI?.anycubic?.lan.connect({ connectionId: probeId, host })
+            await window.electronAPI?.anycubic?.lan.disconnect(probeId)
+            return r
+          })()
+      if (!res?.ok) {
+        message.error(`连接失败: ${res?.message || '局域网握手失败，请确认已开启 LAN Mode'}`)
+        return
+      }
+      message.success('纵维立方局域网连接成功')
+      const device: DeviceConfig = {
+        id,
+        name: values.name.trim(),
+        brand: 'anycubic',
+        model: modelOf(values),
+        group: values.group?.trim() || undefined,
+        tags: parseTags(values.tags),
+        baseUrl: `http://${host}`,
+        connectionMode: 'lan',
+        createdAt: new Date().toISOString()
+      }
+      await addDevice(device)
+      message.success('纵维立方设备已添加')
+      reset()
+      onClose()
+    })
   }
 
   const saveBambuLan = async (values: FormValues) => {
@@ -444,31 +456,35 @@ export function AddDeviceModal({
       createdAt: new Date().toISOString()
     }
 
-    setProbing(true)
-    const probe = isClientMode()
-      ? await onboard.bambuProbeLan(device.bambuDeviceId!, device.bambuHost!, values.bambuAccessCode!.trim())
-      : await (async () => {
-          const r = await window.electronAPI?.bambu.mqtt.connect({
-            connectionId: `probe-${id}`,
-            serial: device.bambuDeviceId!,
-            mode: 'lan',
-            host: device.bambuHost,
-            password: values.bambuAccessCode!.trim()
-          })
-          await window.electronAPI?.bambu.mqtt.disconnect(`probe-${id}`)
-          return r
-        })()
-    setProbing(false)
+    await withProbing(async () => {
+      const probe = isClientMode()
+        ? await onboard.bambuProbeLan(
+            device.bambuDeviceId!,
+            device.bambuHost!,
+            values.bambuAccessCode!.trim()
+          )
+        : await (async () => {
+            const r = await window.electronAPI?.bambu.mqtt.connect({
+              connectionId: `probe-${id}`,
+              serial: device.bambuDeviceId!,
+              mode: 'lan',
+              host: device.bambuHost,
+              password: values.bambuAccessCode!.trim()
+            })
+            await window.electronAPI?.bambu.mqtt.disconnect(`probe-${id}`)
+            return r
+          })()
 
-    if (!probe?.ok) {
-      message.error(`局域网连接失败: ${probe?.message || '未知错误'}`)
-      return
-    }
+      if (!probe?.ok) {
+        message.error(`局域网连接失败: ${probe?.message || '未知错误'}`)
+        return
+      }
 
-    await addDevice(device, values.bambuAccessCode!.trim())
-    message.success('Bambu 局域网设备已添加')
-    reset()
-    onClose()
+      await addDevice(device, values.bambuAccessCode!.trim())
+      message.success('Bambu 局域网设备已添加')
+      reset()
+      onClose()
+    })
   }
 
   const doSendCode = async () => {
@@ -796,36 +812,36 @@ export function AddDeviceModal({
   const saveElegoo = async (values: FormValues) => {
     const id = newId()
     const host = values.baseUrl!.trim().replace(/^https?:\/\//, '').split('/')[0].split(':')[0]
-    setProbing(true)
-    const probeId = `probe-elegoo-${id}`
-    const res = isClientMode()
-      ? await onboard.elegooProbe(host)
-      : await (async () => {
-          const r = await window.electronAPI?.elegoo?.sdcp.connect({ connectionId: probeId, host })
-          await window.electronAPI?.elegoo?.sdcp.disconnect(probeId)
-          return r
-        })()
-    setProbing(false)
-    if (!res?.ok) {
-      message.error(`连接失败: ${res?.message || '无法连接爱乐酷 SDCP (:3030)'}`)
-      return
-    }
-    message.success('爱乐酷局域网连接成功')
-    const device: DeviceConfig = {
-      id,
-      name: values.name.trim(),
-      brand: 'elegoo',
-      model: modelOf(values),
-      group: values.group?.trim() || undefined,
-      tags: parseTags(values.tags),
-      baseUrl: `http://${host}`,
-      connectionMode: 'lan',
-      createdAt: new Date().toISOString()
-    }
-    await addDevice(device)
-    message.success('爱乐酷设备已添加')
-    reset()
-    onClose()
+    await withProbing(async () => {
+      const probeId = `probe-elegoo-${id}`
+      const res = isClientMode()
+        ? await onboard.elegooProbe(host)
+        : await (async () => {
+            const r = await window.electronAPI?.elegoo?.sdcp.connect({ connectionId: probeId, host })
+            await window.electronAPI?.elegoo?.sdcp.disconnect(probeId)
+            return r
+          })()
+      if (!res?.ok) {
+        message.error(`连接失败: ${res?.message || '无法连接爱乐酷 SDCP (:3030)'}`)
+        return
+      }
+      message.success('爱乐酷局域网连接成功')
+      const device: DeviceConfig = {
+        id,
+        name: values.name.trim(),
+        brand: 'elegoo',
+        model: modelOf(values),
+        group: values.group?.trim() || undefined,
+        tags: parseTags(values.tags),
+        baseUrl: `http://${host}`,
+        connectionMode: 'lan',
+        createdAt: new Date().toISOString()
+      }
+      await addDevice(device)
+      message.success('爱乐酷设备已添加')
+      reset()
+      onClose()
+    })
   }
 
   const saveFlashforge = async (values: FormValues) => {
@@ -833,113 +849,121 @@ export function AddDeviceModal({
     const host = values.baseUrl!.trim().replace(/^https?:\/\//, '').split('/')[0].split(':')[0]
     const serial = values.flashforgeSerial!.trim()
     const checkCode = values.flashforgeCheckCode!.trim()
-    setProbing(true)
-    const probe = isClientMode()
-      ? await onboard.flashforgeProbe(host, serial, checkCode)
-      : await window.electronAPI?.flashforge?.lan.probe({ host, serial, checkCode })
-    setProbing(false)
-    if (!probe?.ok) {
-      message.error(`连接失败: ${probe?.message || '无法连接闪铸 (:8898)'}`)
-      return
-    }
-    const secretKey = `flashforge:${id}:checkCode`
-    if (!isClientMode()) {
-      await window.electronAPI?.secrets.set(secretKey, checkCode)
-    }
-    const device: DeviceConfig = {
-      id,
-      name: values.name.trim() || probe.name || '闪铸打印机',
-      brand: 'flashforge',
-      model: modelOf(values) || probe.name || undefined,
-      group: values.group?.trim() || undefined,
-      tags: parseTags(values.tags),
-      baseUrl: `http://${host}`,
-      secretKey,
-      flashforgeSerial: serial,
-      connectionMode: 'lan',
-      createdAt: new Date().toISOString()
-    }
-    await addDevice(device, checkCode)
-    message.success('闪铸设备已添加')
-    reset()
-    onClose()
+    await withProbing(async () => {
+      const probe = isClientMode()
+        ? await onboard.flashforgeProbe(host, serial, checkCode)
+        : await window.electronAPI?.flashforge?.lan.probe({ host, serial, checkCode })
+      if (!probe?.ok) {
+        message.error(`连接失败: ${probe?.message || '无法连接闪铸 (:8898)'}`)
+        return
+      }
+      const secretKey = `flashforge:${id}:checkCode`
+      if (!isClientMode()) {
+        await window.electronAPI?.secrets.set(secretKey, checkCode)
+      }
+      const device: DeviceConfig = {
+        id,
+        name: values.name.trim() || probe.name || '闪铸打印机',
+        brand: 'flashforge',
+        model: modelOf(values) || probe.name || undefined,
+        group: values.group?.trim() || undefined,
+        tags: parseTags(values.tags),
+        baseUrl: `http://${host}`,
+        secretKey,
+        flashforgeSerial: serial,
+        connectionMode: 'lan',
+        createdAt: new Date().toISOString()
+      }
+      await addDevice(device, checkCode)
+      message.success('闪铸设备已添加')
+      reset()
+      onClose()
+    })
   }
 
   const saveSnapmaker = async (values: FormValues) => {
     const id = newId()
     const host = values.baseUrl!.trim().replace(/^https?:\/\//, '').split('/')[0].split(':')[0]
     const token = values.snapmakerToken?.trim() || ''
-    setProbing(true)
-    const probe = isClientMode()
-      ? await onboard.snapmakerProbe(host, token || undefined)
-      : await window.electronAPI?.snapmaker?.lan.probe({
-          host,
-          token: token || undefined
-        })
-    setProbing(false)
-    if (!probe?.ok) {
-      message.error(`连接失败: ${probe?.message || '无法连接 Snapmaker (:7125)'}`)
-      return
-    }
-    const secretKey = `snapmaker:${id}:token`
-    if (probe.token && !isClientMode()) {
-      await window.electronAPI?.secrets.set(secretKey, probe.token)
-    }
-    const device: DeviceConfig = {
-      id,
-      name: values.name.trim(),
-      brand: 'snapmaker',
-      model: modelOf(values),
-      group: values.group?.trim() || undefined,
-      tags: parseTags(values.tags),
-      baseUrl: `http://${host}`,
-      secretKey,
-      connectionMode: 'lan',
-      createdAt: new Date().toISOString()
-    }
-    await addDevice(device, probe.token || token)
-    message.success('Snapmaker 设备已添加')
-    reset()
-    onClose()
+    await withProbing(async () => {
+      const probe = isClientMode()
+        ? await onboard.snapmakerProbe(host, token || undefined)
+        : await window.electronAPI?.snapmaker?.lan.probe({
+            host,
+            token: token || undefined
+          })
+      if (!probe?.ok) {
+        message.error(`连接失败: ${probe?.message || '无法连接 Snapmaker (:7125)'}`)
+        return
+      }
+      const protocol =
+        (probe as { protocol?: string }).protocol === 'moonraker' ? 'moonraker' : 'luban'
+      const baseUrl =
+        (probe as { baseUrl?: string }).baseUrl ||
+        (protocol === 'moonraker' ? `http://${host}:7125` : `http://${host}`)
+      const secretKey = `snapmaker:${id}:token`
+      if (probe.token && !isClientMode()) {
+        await window.electronAPI?.secrets.set(secretKey, probe.token)
+      }
+      const device: DeviceConfig = {
+        id,
+        name: values.name.trim(),
+        brand: 'snapmaker',
+        model: modelOf(values),
+        group: values.group?.trim() || undefined,
+        tags: parseTags(values.tags),
+        baseUrl,
+        secretKey: protocol === 'moonraker' && !probe.token ? undefined : secretKey,
+        connectionMode: 'lan',
+        snapmakerApi: protocol,
+        createdAt: new Date().toISOString()
+      }
+      await addDevice(device, probe.token || token || undefined)
+      message.success(
+        protocol === 'moonraker' ? 'Snapmaker U1（Moonraker）已添加' : 'Snapmaker 设备已添加'
+      )
+      reset()
+      onClose()
+    })
   }
 
   const saveQidi = async (values: FormValues) => {
     const id = newId()
     const secretKey = `qidi:${id}`
-    setProbing(true)
-    const result = isClientMode()
-      ? await onboard.probeQidi(values.baseUrl!.trim(), {
-          apiKey: values.apiKey,
-          username: values.qidiUser,
-          password: values.qidiPassword
-        })
-      : await probeQidi(values.baseUrl!.trim(), {
-          apiKey: values.apiKey,
-          username: values.qidiUser,
-          password: values.qidiPassword
-        })
-    setProbing(false)
-    if (!result.ok || !result.baseUrl) {
-      message.error(`连接失败: ${result.message}`)
-      return
-    }
-    message.success(result.message)
-    const device: DeviceConfig = {
-      id,
-      name: values.name.trim(),
-      brand: 'qidi',
-      model: modelOf(values),
-      group: values.group?.trim() || undefined,
-      tags: parseTags(values.tags),
-      baseUrl: result.baseUrl,
-      secretKey,
-      connectionMode: 'lan',
-      createdAt: new Date().toISOString()
-    }
-    await addDevice(device, result.token || values.apiKey)
-    message.success('启迪设备已添加')
-    reset()
-    onClose()
+    await withProbing(async () => {
+      const result = isClientMode()
+        ? await onboard.probeQidi(values.baseUrl!.trim(), {
+            apiKey: values.apiKey,
+            username: values.qidiUser,
+            password: values.qidiPassword
+          })
+        : await probeQidi(values.baseUrl!.trim(), {
+            apiKey: values.apiKey,
+            username: values.qidiUser,
+            password: values.qidiPassword
+          })
+      if (!result.ok || !result.baseUrl) {
+        message.error(`连接失败: ${result.message}`)
+        return
+      }
+      message.success(result.message)
+      const device: DeviceConfig = {
+        id,
+        name: values.name.trim(),
+        brand: 'qidi',
+        model: modelOf(values),
+        group: values.group?.trim() || undefined,
+        tags: parseTags(values.tags),
+        baseUrl: result.baseUrl,
+        secretKey,
+        connectionMode: 'lan',
+        createdAt: new Date().toISOString()
+      }
+      await addDevice(device, result.token || values.apiKey)
+      message.success('启迪设备已添加')
+      reset()
+      onClose()
+    })
   }
 
   const onOk = async () => {
@@ -950,8 +974,7 @@ export function AddDeviceModal({
       // Plugin-registered brand: custom submit
       const pBrand = getHanyePlugin().getAddDeviceBrand(brandId)
       if (pBrand && typeof pBrand.submit === 'function') {
-        setProbing(true)
-        try {
+        await withProbing(async () => {
           const ctx = buildAddDeviceFormCtx(form, tech, brandId, String(values.connectionMode || ''))
           const result = await pBrand.submit(ctx)
           if (!result?.device) {
@@ -980,9 +1003,7 @@ export function AddDeviceModal({
           message.success(`已添加：${pBrand.label}`)
           reset()
           onClose()
-        } finally {
-          setProbing(false)
-        }
+        })
         return
       }
 
@@ -1057,6 +1078,8 @@ export function AddDeviceModal({
     } catch (e) {
       if (e && typeof e === 'object' && 'errorFields' in e) return
       message.error(e instanceof Error ? e.message : '添加失败')
+    } finally {
+      setProbing(false)
     }
   }
 
@@ -1098,9 +1121,14 @@ export function AddDeviceModal({
           reset()
           onClose()
         }}
-        onOk={() => void onOk()}
+        onOk={() => {
+          if (probing || loggingIn) return
+          void onOk()
+        }}
         confirmLoading={probing || loggingIn}
         destroyOnHidden
+        maskClosable={!probing && !loggingIn}
+        keyboard={!probing && !loggingIn}
         okText={
           (brand === 'bambu' || brand === 'creality' || brand === 'anycubic') &&
           connectionMode === 'cloud'
@@ -1661,7 +1689,7 @@ export function AddDeviceModal({
                 showIcon
                 style={{ marginBottom: 16 }}
                 message="Snapmaker 局域网"
-                description="官方云账号暂无可用第三方 API，请用局域网（端口 7125）。首次连接若未填 Token，需在打印机触摸屏确认授权；成功后 Token 会自动保存。"
+                description="U1 等 Klipper 机：端口 7125 为 Moonraker，添加时会自动识别（无需屏幕 Token）。旧 Artisan 等 Luban 机：留空 Token 需在触摸屏确认授权。也可用「Klipper」品牌直接添加 U1。"
               />
               <Form.Item
                 name="baseUrl"
@@ -1672,8 +1700,8 @@ export function AddDeviceModal({
               </Form.Item>
               <Form.Item
                 name="snapmakerToken"
-                label="Token（可选）"
-                extra="已有授权 Token 可直接填写；留空则发起连接并在屏幕确认"
+                label="Token / API Key（可选）"
+                extra="U1 一般可留空；旧机填已授权 Token；若 Moonraker 开了鉴权可填 API Key"
               >
                 <Input.Password placeholder="可选" />
               </Form.Item>

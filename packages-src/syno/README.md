@@ -19,7 +19,7 @@ SPK_ARCH=aarch64 bash ops/scripts/pack-syno-spk.sh
 
 产物在 `packages/`：
 
-- `packages/syno-4.3.0-x86_64.spk`
+- `packages/syno-4.3.1-x86_64.spk`
 
 ## 安装
 

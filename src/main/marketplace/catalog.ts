@@ -56,7 +56,7 @@ export function getMarketBaseUrl(): string {
   if (resolvedBase && Date.now() - resolvedBase.at < RESOLVE_TTL_MS * 5) {
     return resolvedBase.url
   }
-  return listMarketBaseCandidates()[0] || 'http://127.0.0.1:3001'
+  return listMarketBaseCandidates()[0] || 'http://124.221.92.32:3001'
 }
 
 function rememberMarketBase(url: string): string {
@@ -95,7 +95,7 @@ export async function resolveMarketBaseUrl(force = false): Promise<string> {
     return resolvedBase.url
   }
   const candidates = listMarketBaseCandidates()
-  const fallback = candidates[0] || 'http://127.0.0.1:3001'
+  const fallback = candidates[0] || 'http://124.221.92.32:3001'
   const preferred = normalizeBase(String(process.env.MARKET_BASE_URL || ''))
 
   if (preferred && (await probeMarketBase(preferred, 3_000))) {

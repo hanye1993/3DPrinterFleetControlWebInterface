@@ -50,6 +50,7 @@ const RESERVED_DEVICE_KEYS = new Set([
   'crealityDeviceId',
   'crealityRegion',
   'flashforgeSerial',
+  'snapmakerApi',
   'aiVisionEnabled',
   'model',
   'createdAt',
@@ -155,6 +156,10 @@ export function createDeviceFromBody(
         ? String(body.crealityRegion)
         : undefined,
     flashforgeSerial: str(body.flashforgeSerial),
+    snapmakerApi:
+      body.snapmakerApi === 'moonraker' || body.snapmakerApi === 'luban'
+        ? String(body.snapmakerApi)
+        : undefined,
     aiVisionEnabled:
       body.aiVisionEnabled === false ? false : body.aiVisionEnabled === true ? true : undefined
   }
@@ -264,6 +269,14 @@ export function mergeDeviceFromBody(
           ? String(body.crealityRegion)
           : prev.crealityRegion,
     flashforgeSerial: pick('flashforgeSerial', body.flashforgeSerial, prev.flashforgeSerial),
+    snapmakerApi:
+      body.snapmakerApi === null
+        ? undefined
+        : body.snapmakerApi === 'moonraker' || body.snapmakerApi === 'luban'
+          ? String(body.snapmakerApi)
+          : prev.snapmakerApi === 'moonraker' || prev.snapmakerApi === 'luban'
+            ? String(prev.snapmakerApi)
+            : undefined,
     aiVisionEnabled:
       body.aiVisionEnabled === false
         ? false

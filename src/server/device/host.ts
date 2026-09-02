@@ -84,6 +84,8 @@ function isMoonrakerDevice(d: DeviceRow): boolean {
   const brand = String(d.brand || '')
   if (brand === 'klipper' || brand === 'qidi') return true
   if (brand === 'creality' && d.connectionMode !== 'cloud') return true
+  // Snapmaker U1 ships Moonraker on :7125（非旧版 Luban /api/v1）
+  if (brand === 'snapmaker' && String(d.snapmakerApi || '') === 'moonraker') return true
   return false
 }
 
@@ -133,7 +135,8 @@ function canBatchPrint(d: DeviceRow): boolean {
     return Boolean(host)
   }
   if (d.connectionMode === 'cloud') return false
-  return brand === 'klipper' || brand === 'creality' || brand === 'qidi'
+  return brand === 'klipper' || brand === 'creality' || brand === 'qidi' ||
+    (brand === 'snapmaker' && String(d.snapmakerApi || '') === 'moonraker')
 }
 
 export class DeviceHost {
@@ -359,9 +362,27 @@ export class DeviceHost {
       }
 
       if (brand === 'snapmaker') {
+        // Legacy devices without snapmakerApi: U1 Moonraker returns 404 on Luban paths
+        const host = deviceHost(d)
+        if (host && String(d.snapmakerApi || '') !== 'luban') {
+          try {
+            const baseUrl = `http://${host}:7125`
+            const http = createMoonrakerClient(baseUrl, secret || undefined)
+            await http.get('/server/info')
+            this.startMoonrakerPoll(id, http)
+            void this.moonrakerWs.connect({
+              connectionId: id,
+              baseUrl,
+              apiKey: secret || undefined
+            })
+            return
+          } catch {
+            // not Moonraker — fall through to Luban
+          }
+        }
         const res = await this.snapmakerLan.connect({
           connectionId: id,
-          host: deviceHost(d),
+          host,
           token: secret || undefined
         })
         if (!res.ok) throw new Error(res.message || 'Snapmaker 连接失败')
@@ -435,7 +456,7 @@ export class DeviceHost {
         return { ok: true }
       }
 
-      if (isMoonrakerDevice(d)) {
+      if (isMoonrakerDevice(d) || this.moonrakerHttp.has(deviceId)) {
         const http = this.moonrakerHttp.get(deviceId)
         if (!http) return { ok: false, message: '设备未连接' }
         await moonrakerControl(http, body)
@@ -491,7 +512,7 @@ export class DeviceHost {
     try {
       const d = this.findDevice(deviceId)
       if (!d) return { ok: false, message: '设备不存在' }
-      if (!isMoonrakerDevice(d)) {
+      if (!isMoonrakerDevice(d) && !this.moonrakerHttp.has(deviceId)) {
         return { ok: false, message: '仅 Moonraker 类设备支持任意 G-code' }
       }
       const http = this.moonrakerHttp.get(deviceId)
@@ -512,7 +533,7 @@ export class DeviceHost {
     try {
       const d = this.findDevice(deviceId)
       if (!d) return { ok: false, status: 404, message: '设备不存在' }
-      if (!isMoonrakerDevice(d)) {
+      if (!isMoonrakerDevice(d) && !this.moonrakerHttp.has(deviceId)) {
         return { ok: false, status: 400, message: '仅 Moonraker 类设备支持透传' }
       }
       const http = this.moonrakerHttp.get(deviceId)
@@ -543,7 +564,7 @@ export class DeviceHost {
       if (!d) return { ok: false, message: '设备不存在' }
       const brand = String(d.brand || '').toLowerCase()
 
-      if (isMoonrakerDevice(d)) {
+      if (isMoonrakerDevice(d) || this.moonrakerHttp.has(req.deviceId)) {
         const http = this.moonrakerHttp.get(req.deviceId)
         if (!http) return { ok: false, message: '设备未连接' }
 

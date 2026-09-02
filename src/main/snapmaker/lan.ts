@@ -163,17 +163,67 @@ function mapStatus(connectionId: string, raw: Record<string, unknown>): Snapmake
   }
 }
 
+/**
+ * Snapmaker LAN probe.
+ * - U1（及同类 Klipper 机）：Moonraker 在 :7125，无 Luban `/api/v1/connect`
+ * - 旧 Artisan / Luban 协议机：触摸屏 Token 授权
+ */
 export async function snapmakerProbe(
   host: string,
   token?: string
-): Promise<{ ok: boolean; message: string; token?: string }> {
+): Promise<{
+  ok: boolean
+  message: string
+  token?: string
+  /** moonraker = U1；luban = 旧屏授权协议 */
+  protocol?: 'moonraker' | 'luban'
+  baseUrl?: string
+}> {
   const h = hostOnly(host)
   if (!h) return { ok: false, message: '缺少 IP' }
+
+  // Prefer Moonraker (Snapmaker U1). Luban `/api/v1/*` returns 404 on U1.
+  try {
+    const { data, status } = await axios.get(`http://${h}:7125/server/info`, {
+      timeout: 6000,
+      validateStatus: () => true,
+      headers: token?.trim()
+        ? token.includes('.')
+          ? { Authorization: `Bearer ${token.trim()}` }
+          : { 'X-Api-Key': token.trim() }
+        : undefined
+    })
+    if (status === 200 && data && typeof data === 'object' && (data as { result?: unknown }).result) {
+      const klippy = (data as { result?: { klippy_state?: string } }).result?.klippy_state
+      return {
+        ok: true,
+        message: `Snapmaker U1（Moonraker）连接成功${klippy ? `，Klippy: ${klippy}` : ''}`,
+        protocol: 'moonraker',
+        baseUrl: `http://${h}:7125`,
+        token: token?.trim() || undefined
+      }
+    }
+  } catch {
+    // fall through to Luban
+  }
+
   const c = await connectToken(h, token?.trim() || undefined)
-  if (!c.ok || !c.token) return { ok: false, message: c.message || '连接失败' }
+  if (!c.ok || !c.token) {
+    const hint =
+      c.message && /HTTP 404/.test(c.message)
+        ? '（本机 :7125 更像 Moonraker/U1，请确认打印机在线；或改用「Klipper」品牌添加）'
+        : ''
+    return { ok: false, message: `${c.message || '连接失败'}${hint}` }
+  }
   try {
     await fetchStatus(h, c.token)
-    return { ok: true, message: 'Snapmaker 局域网连接成功', token: c.token }
+    return {
+      ok: true,
+      message: 'Snapmaker 局域网（Luban）连接成功',
+      token: c.token,
+      protocol: 'luban',
+      baseUrl: `http://${h}`
+    }
   } catch (err) {
     return {
       ok: false,
@@ -251,6 +301,22 @@ export function createSnapmakerBridge(getMainWindow: () => BridgeWindow | null) 
     })
 
     const probe = await snapmakerProbe(host, opts.token)
+    if (probe.protocol === 'moonraker' && probe.ok) {
+      emit({
+        connectionId: opts.connectionId,
+        health: 'error',
+        state: 'error',
+        progress: 0,
+        message:
+          '检测到 Snapmaker U1（Moonraker）。请重新添加并选 Snapmaker（会自动走 Moonraker），或直接用「Klipper」品牌。',
+        updatedAt: new Date().toISOString()
+      })
+      return {
+        ok: false,
+        message:
+          'Snapmaker U1 请使用 Moonraker 通道（重新添加设备，或选 Klipper 品牌）'
+      }
+    }
     if (!probe.ok || !probe.token) {
       emit({
         connectionId: opts.connectionId,

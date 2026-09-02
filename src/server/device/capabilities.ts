@@ -41,9 +41,10 @@ export type DeviceCapabilities = {
 
 type DeviceRow = Record<string, unknown>
 
-function moonrakerLike(brand: string, mode: string): boolean {
+function moonrakerLike(brand: string, mode: string, d?: DeviceRow): boolean {
   if (brand === 'klipper' || brand === 'qidi') return true
   if (brand === 'creality' && mode !== 'cloud') return true
+  if (brand === 'snapmaker' && String(d?.snapmakerApi || '') === 'moonraker') return true
   return false
 }
 
@@ -130,7 +131,7 @@ export function computeDeviceCapabilities(d: DeviceRow | null | undefined): Devi
   let gcode = false
   let moonrakerProxy = false
 
-  if (moonrakerLike(brand, mode)) {
+  if (moonrakerLike(brand, mode, d)) {
     control = {
       pause: true,
       resume: true,
@@ -157,6 +158,9 @@ export function computeDeviceCapabilities(d: DeviceRow | null | undefined): Devi
     camera = true
     gcode = true
     moonrakerProxy = true
+    if (brand === 'snapmaker') {
+      notes.push('Snapmaker U1：Moonraker 全能力（与 Klipper 通道相同）')
+    }
   } else if (brand === 'bambu') {
     const lan = bambuLanCapable(d, mode)
     control = {
@@ -227,7 +231,7 @@ export function computeDeviceCapabilities(d: DeviceRow | null | undefined): Devi
   } else if (brand === 'snapmaker') {
     control = { ...none, pause: true, resume: true, cancel: true }
     camera = true
-    notes.push('Snapmaker：任务控制与摄像头；传文件未接入')
+    notes.push('Snapmaker（旧 Luban）：任务控制与摄像头；传文件未接入。U1 请重新添加以启用 Moonraker')
   } else if (brand === 'creality' && mode === 'cloud') {
     notes.push('创想云：仅状态与有限控制；传文件/深控请改用局域网（Moonraker / 本机 IP）添加')
   } else {

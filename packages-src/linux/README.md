@@ -7,7 +7,7 @@
 ### Ubuntu / Debian（amd64）
 
 ```bash
-sudo dpkg -i ubuntu-4.3.0-amd64.deb
+sudo dpkg -i ubuntu-4.3.1-amd64.deb
 # 若提示依赖问题：
 sudo apt-get install -f
 ```
@@ -15,14 +15,14 @@ sudo apt-get install -f
 ### CentOS / RHEL / Rocky / Alma（amd64）
 
 ```bash
-sudo yum install ./centos-4.3.0-amd64.rpm
+sudo yum install ./centos-4.3.1-amd64.rpm
 # 或 Fedora / 新版：
-sudo dnf install ./centos-4.3.0-amd64.rpm
+sudo dnf install ./centos-4.3.1-amd64.rpm
 ```
 
 ### ARM64 服务器
 
-使用文件名带 `arm64` 的 deb/rpm（如 `ubuntu-4.3.0-arm64.deb`）。
+使用文件名带 `arm64` 的 deb/rpm（如 `ubuntu-4.3.1-arm64.deb`）。
 
 安装后访问 http://127.0.0.1:17890/ ，默认 **admin / admin123**。
 

@@ -37,6 +37,10 @@ export function createAdapter(config: DeviceConfig, apiKey?: string | null): Pri
     return new FlashforgeAdapter(config, apiKey ?? '')
   }
   if (config.brand === 'snapmaker') {
+    // U1 = Moonraker；旧机 = Luban Token
+    if (String((config as { snapmakerApi?: string }).snapmakerApi || '') === 'moonraker') {
+      return new MoonrakerAdapter(config, apiKey ?? '')
+    }
     return new SnapmakerAdapter(config, apiKey ?? '')
   }
   // klipper / creality LAN / qidi — Moonraker / Fluidd

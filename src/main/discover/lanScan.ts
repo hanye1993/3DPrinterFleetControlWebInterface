@@ -154,13 +154,35 @@ async function identifySnapmaker(
   port: number,
   timeoutMs: number
 ): Promise<Partial<LanDiscoverHit> | null> {
-  // Avoid false positives — require Snapmaker-ish endpoint (:7125)
+  // U1 Moonraker exposes Snapmaker-specific objects (avoid labeling plain Klipper as Snapmaker)
+  try {
+    const { data, status } = await axios.get(
+      `http://${host}:${port}/printer/objects/query?print_task_config&filament_detect`,
+      {
+        timeout: timeoutMs,
+        validateStatus: () => true
+      }
+    )
+    const statusObj =
+      status === 200 && data && typeof data === 'object'
+        ? (data as { result?: { status?: Record<string, unknown> } }).result?.status
+        : undefined
+    if (statusObj && (statusObj.print_task_config || statusObj.filament_detect)) {
+      return {
+        detail: 'Snapmaker U1 / Moonraker',
+        needsCredentials: false,
+        baseUrl: `http://${host}:${port}`
+      }
+    }
+  } catch {
+    // ignore
+  }
+  // Legacy Luban API (Artisan 等)
   try {
     const { status } = await axios.get(`http://${host}:${port}/api/v1/status`, {
       timeout: timeoutMs,
       validateStatus: () => true
     })
-    // 200/401/403/204 all suggest the Snapmaker API exists
     if (status === 200 || status === 401 || status === 403 || status === 204) {
       return {
         detail: '可能需要屏幕授权或 Token',
@@ -220,7 +242,7 @@ const PROBES: ProbeDef[] = [
   {
     port: 7125,
     brand: 'snapmaker',
-    label: 'Snapmaker',
+    label: 'Snapmaker / U1',
     needsCredentials: true,
     identify: identifySnapmaker
   },

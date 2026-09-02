@@ -1,5 +1,5 @@
 package="hanyemonitor"
-version="4.3.0"
+version="4.3.1"
 displayname="hanye Printer Monitor"
 os_min_ver="7.0-40000"
 maintainer="hanye"
