@@ -24,8 +24,7 @@
 2. [Node 源码直装](#2-node-源码直装)
 3. [Docker 安装](#3-docker-安装)
 4. [功能与品牌](#4-功能与品牌)
-5. [项目结构](#5-项目结构)
-6. [文档](#6-文档)
+5. [文档](#5-文档)
 
 **代码仓库（开源归档 · 截止 v4.3.3）**
 
@@ -92,7 +91,7 @@ sudo yum install ./centos-4.3.3-amd64.rpm
 2. 套件中心 → 手动安装 → 选 `.spk`
 3. 访问 `http://NAS的IP:17890/`
 
-更细的说明见 [主程序/ops/docs/INSTALL.md](主程序/ops/docs/INSTALL.md) 与各平台 [主程序/packages-src/](主程序/packages-src/) 下 README。
+更细的说明见 [主程序/ops/docs/INSTALL.md](主程序/ops/docs/INSTALL.md) 与各平台 [一键包源码/](一键包源码/) 下 README。
 
 ---
 
@@ -207,32 +206,7 @@ NAS 上若需扫局域网打印机，优先用 **Node 直装** 或 **一键 fpk/
 
 ---
 
-## 5. 项目结构
-
-```
-├── README.md / 更新日记.md / 全部功能.md / 竞品对照.md   # 文档（三仓库同步）
-├── 主程序/              # 监控台工程（npm / 一键包 / Docker）
-│   ├── src/             # 源码（web React + Node 服务）
-│   ├── assets/          # 内置主题槽 / 主题示例 / yolo
-│   ├── packages-src/    # 各平台一键安装包源码
-│   ├── ops/             # sql · scripts · docs
-│   ├── config/          # Vite / TypeScript
-│   ├── data/            # 运行时数据（勿提交）
-│   ├── dist/            # 构建产物
-│   ├── docker/          # Docker 一键脚本 / compose / Dockerfile
-│   ├── node.js20/       # 飞牛 NAS Node 启停 / 更新脚本
-│   └── package.json
-├── 插件源码/            # 全部插件开发源码（plugin-*）
-├── 插件/                # 插件发布包（中文名目录：zip + 说明 + 封面）
-├── 一键包/              # pack:* 安装包产物（勿提交）
-├── 官方网站/            # 3dmn.cn
-├── 官方验证系统/        # 席位授权（:3100）
-└── 应用市场/            # 插件主题集市（:3001）
-```
-
----
-
-## 6. 文档
+## 5. 文档
 
 | 文档 | 内容 |
 |------|------|
