@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # 同步推送到三个更新镜像：GitHub / Gitee / GitCode
+# 开源已截止：最后开源版 4.3.3；其后版本不开源，勿推新版源码。一键包走 3dmn.cn（见 .cursor/rules/release-mirrors.mdc）。
 # 用法：./ops/scripts/push-all-mirrors.sh [branch]
 # 默认推送当前分支；加 --tags 时一并推送标签。
 set -euo pipefail
@@ -42,5 +43,5 @@ for r in origin gitee gitcode; do
   fi
 done
 
-echo "完成：成功 $ok，失败 $fail"
-[ "$fail" -eq 0 ]
+echo "完成：成功 ${ok}，失败 ${fail}"
+[ "${fail}" -eq 0 ]

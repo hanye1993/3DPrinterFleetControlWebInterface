@@ -4,10 +4,13 @@
 
 | 项目 | 说明 |
 |------|------|
-| 版本 | **4.3.3** |
-| 许可 | MIT |
+| 开源截止版本 | **4.3.3**（本仓库最后开源版；其后版本不开源） |
+| 最新安装包 | 官网 **[https://3dmn.cn](https://3dmn.cn)** 一键包（始终最新） |
+| 许可（≤4.3.3 源码） | MIT |
 | 默认端口 | **17890** |
 | 默认管理员 | **admin** / **admin123**（登录后请立刻改密） |
+
+> **重要说明：** GitHub / Gitee / GitCode **仅保留至 v4.3.3 源码**。**4.3.3 之后的新版本不再开源**，请到官方网站 [https://3dmn.cn](https://3dmn.cn) 下载一键安装包。仓库内不再提供新版本源码与安装包。
 
 - **管理员** → 管理台全功能（用户、设备、设置、主题、插件等）
 - **普通用户** → 按权限的工作台
@@ -23,23 +26,23 @@
 5. [项目结构](#5-项目结构)
 6. [文档](#6-文档)
 
-**代码仓库（三端同步）**
+**代码仓库（开源归档 · 截止 v4.3.3）**
 
-| 平台 | 仓库 | v4.3.3 发布页 |
-|------|------|----------------|
-| GitHub | https://github.com/hanye1993/3DPrinterFleetControlWebInterface | [Releases](https://github.com/hanye1993/3DPrinterFleetControlWebInterface/releases/tag/v4.3.3) |
-| Gitee | https://gitee.com/hanye11/3DPrinterFleetControlWebInterface | [Releases](https://gitee.com/hanye11/3DPrinterFleetControlWebInterface/releases/tag/v4.3.3) |
-| GitCode | https://gitcode.com/hanye6666/3DPrinterFleetControlWebInterface | [Releases](https://gitcode.com/hanye6666/3DPrinterFleetControlWebInterface/releases/tag/v4.3.3) |
-
-用户在「软件设置 → 关于」里可选上述任一平台检查 / 下载更新（默认 Gitee，国内更稳）。
+| 平台 | 仓库 | v4.3.3 标签 |
+|------|------|-------------|
+| GitHub | https://github.com/hanye1993/3DPrinterFleetControlWebInterface | [v4.3.3](https://github.com/hanye1993/3DPrinterFleetControlWebInterface/releases/tag/v4.3.3) |
+| Gitee | https://gitee.com/hanye11/3DPrinterFleetControlWebInterface | [v4.3.3](https://gitee.com/hanye11/3DPrinterFleetControlWebInterface/releases/tag/v4.3.3) |
+| GitCode | https://gitcode.com/hanye6666/3DPrinterFleetControlWebInterface | [v4.3.3](https://gitcode.com/hanye6666/3DPrinterFleetControlWebInterface/releases/tag/v4.3.3) |
 
 ---
 
 ## 1. 一键安装包（推荐）
 
-从上面 **Releases / 发行版** 下载对应文件，**无需单独安装 Node.js**（Windows / macOS / Linux 包已内置 Node 20）。
+**请到官网下载最新版：** [https://3dmn.cn](https://3dmn.cn)  
+（Windows / macOS / 飞牛 / 群晖等；多数包已内置 Node，无需单独安装。）  
+三端仓库**不提供**新版本安装包，也不再开源新版本源码。
 
-### 安装包一览（v4.3.3）
+### 安装包一览（官网最新；下表文件名以 4.3.3 为例）
 
 | 平台 | 文件 | 说明 |
 |------|------|------|
@@ -99,16 +102,18 @@ sudo yum install ./centos-4.3.3-amd64.rpm
 
 ## 2. Node 源码直装
 
-适合开发调试、NAS 上扫局域网打印机、或需要自行改代码的场景。环境：**Node.js 20+**。
+适合开发调试、NAS 上扫局域网打印机、或需要自行改代码的场景。环境：**Node.js 20+**。  
+**注意：** 仓库源码为开源归档 **≤4.3.3**；要最新功能请用 [官网一键包](https://3dmn.cn)。
 
 ### 获取源码
 
 ```bash
 git clone https://gitee.com/hanye11/3DPrinterFleetControlWebInterface.git
 cd 3DPrinterFleetControlWebInterface
+git checkout v4.3.3   # 最后开源标签
 ```
 
-也可从 Releases 下载源码 zip，或解压仓库根目录打包的源码包。
+也可从 Releases 下载 **v4.3.3** 源码 zip。
 
 ### 安装与启动
 

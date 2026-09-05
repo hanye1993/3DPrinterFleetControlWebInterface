@@ -2,11 +2,10 @@
 # 三端 Release「初始化」：只创建/更新发行说明与标签对应的 Release，不上传一键安装包。
 # 一键包仅本地 `npm run pack:*` 产出，不往 GitHub / Gitee / GitCode Release 挂附件。
 #
-# 发布流程（以后固定）：
-#   1. 改 package.json 版本 + README / INSTALL 等 md
-#   2. 提交源码，打 tag：vX.Y.Z
-#   3. npm run push:mirrors   # 推 main + tags 到三仓库
-#   4. npm run publish:release  # 仅初始化 Release 说明（无附件）
+# 发布流程：
+#   - 开源已截止于 v4.3.3；其后版本不要 push:mirrors / publish:release
+#   - 新版本：改版本号 + 日记/功能文档 → 本地 commit/tag → pack:* → 上传 3dmn.cn
+#   - 本脚本仅用于维护 ≤4.3.3 已有 Release 说明（无附件）
 #
 # 用法：
 #   export GITHUB_TOKEN=... GITEE_TOKEN=... GITCODE_TOKEN=...

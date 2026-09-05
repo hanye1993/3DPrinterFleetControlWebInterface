@@ -1,11 +1,14 @@
 # 安装指南（Windows / macOS / Linux / NAS）
 
-hanye 3D 打印机监控台支持 **两种安装方式**。默认端口 **17890**，登录 **admin / admin123**（请立刻改密）。
+hanye 3D 打印机监控台。默认端口 **17890**，登录 **admin / admin123**（请立刻改密）。
+
+> **开源说明：** 三端仓库最后开源版本为 **v4.3.3**；其后版本**不再开源**。请到官网 **[https://3dmn.cn](https://3dmn.cn)** 下载最新一键安装包。源码直装 / Docker 仅适用于仓库内已开源的 ≤4.3.3。
 
 | 方式 | 说明 | 推荐场景 |
 |------|------|----------|
-| **方式一：Node 直装（推荐）** | 本机装 Node.js 20+，数据默认在 `./data`（JSON） | 家里电脑、飞牛/群晖 NAS、Linux 服务器；**扫局域网打印机更省事** |
-| **方式二：Docker** | `docker/` 一键脚本，MySQL + 应用容器 | 不想装 Node、或习惯容器运维的环境 |
+| **官网一键包（推荐）** | [3dmn.cn](https://3dmn.cn) 下载 exe / dmg / fpk / spk 等 | 日常使用、要最新版 |
+| **方式一：Node 直装** | 本机装 Node.js 20+，数据默认在 `./data`（JSON）；源码截止 **4.3.3** | 家里电脑、飞牛/群晖 NAS、Linux 服务器；**扫局域网打印机更省事** |
+| **方式二：Docker** | `docker/` 一键脚本，MySQL + 应用容器；源码截止 **4.3.3** | 不想装 Node、或习惯容器运维的环境 |
 
 ---
 
@@ -46,12 +49,12 @@ LAN_SCAN_SUBNETS=192.168.1    # 改成你的网段，如 192.168.10
 
 **推荐：一键安装包（无需单独装 Node）**
 
-1. 双击 `packages/windows-4.3.3-amd64.exe`（需管理员权限；Win10/11 64 位）
-2. 选择安装目录（默认 `C:\Program Files\HanyeMonitor`，可改到 D 盘等）
+1. 打开 [https://3dmn.cn](https://3dmn.cn)，下载 Windows 一键包（如 `windows-*-amd64.exe`）
+2. 以管理员身份运行；选择安装目录（默认 `C:\Program Files\HanyeMonitor`，可改到 D 盘等）
 3. 确认后开始安装；控制面板可启停服务
 4. 访问 http://127.0.0.1:17890/ ，默认 **admin / admin123**
 
-开发者打包：`npm run pack:win`（产物在 `packages/`）。详见 [packages-src/win/README.md](../packages-src/win/README.md)。
+开发者打包：`npm run pack:win`（产物在 `packages/`，上传官网）。详见 [packages-src/win/README.md](../packages-src/win/README.md)。
 
 ---
 
