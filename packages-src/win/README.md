@@ -1,10 +1,10 @@
 # Windows 一键安装包（exe）
 
-双击 **`packages/windows-4.3.2-amd64.exe`** 安装，**无需**另装 Node.js。
+双击 **`packages/windows-4.3.3-amd64.exe`** 安装，**无需**另装 Node.js。
 
 ## 用户怎么用
 
-1. 双击 `windows-4.3.2-amd64.exe`（需管理员权限）完成安装  
+1. 双击 `windows-4.3.3-amd64.exe`（需管理员权限）完成安装  
 2. **选择安装目录**（默认 `C:\Program Files\HanyeMonitor`，可改到其他盘）  
 3. 桌面会出现 **hanye Printer Monitor** 图标  
 3. 打开后是控制面板，三个按钮：

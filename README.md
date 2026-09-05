@@ -4,7 +4,7 @@
 
 | 项目 | 说明 |
 |------|------|
-| 版本 | **4.3.2** |
+| 版本 | **4.3.3** |
 | 许可 | MIT |
 | 默认端口 | **17890** |
 | 默认管理员 | **admin** / **admin123**（登录后请立刻改密） |
@@ -25,11 +25,11 @@
 
 **代码仓库（三端同步）**
 
-| 平台 | 仓库 | v4.3.2 发布页 |
+| 平台 | 仓库 | v4.3.3 发布页 |
 |------|------|----------------|
-| GitHub | https://github.com/hanye1993/3DPrinterFleetControlWebInterface | [Releases](https://github.com/hanye1993/3DPrinterFleetControlWebInterface/releases/tag/v4.3.2) |
-| Gitee | https://gitee.com/hanye11/3DPrinterFleetControlWebInterface | [Releases](https://gitee.com/hanye11/3DPrinterFleetControlWebInterface/releases/tag/v4.3.2) |
-| GitCode | https://gitcode.com/hanye6666/3DPrinterFleetControlWebInterface | [Releases](https://gitcode.com/hanye6666/3DPrinterFleetControlWebInterface/releases/tag/v4.3.2) |
+| GitHub | https://github.com/hanye1993/3DPrinterFleetControlWebInterface | [Releases](https://github.com/hanye1993/3DPrinterFleetControlWebInterface/releases/tag/v4.3.3) |
+| Gitee | https://gitee.com/hanye11/3DPrinterFleetControlWebInterface | [Releases](https://gitee.com/hanye11/3DPrinterFleetControlWebInterface/releases/tag/v4.3.3) |
+| GitCode | https://gitcode.com/hanye6666/3DPrinterFleetControlWebInterface | [Releases](https://gitcode.com/hanye6666/3DPrinterFleetControlWebInterface/releases/tag/v4.3.3) |
 
 用户在「软件设置 → 关于」里可选上述任一平台检查 / 下载更新（默认 Gitee，国内更稳）。
 
@@ -39,22 +39,22 @@
 
 从上面 **Releases / 发行版** 下载对应文件，**无需单独安装 Node.js**（Windows / macOS / Linux 包已内置 Node 20）。
 
-### 安装包一览（v4.3.2）
+### 安装包一览（v4.3.3）
 
 | 平台 | 文件 | 说明 |
 |------|------|------|
-| **Windows** | `windows-4.3.2-amd64.exe` | 双击安装，可选目录；Win10/11 64 位，需管理员 |
-| **macOS Apple Silicon** | `macos-4.3.2-arm64.dmg` | 打开 DMG → 运行 `install.command`（Gitee 单文件 ≤100MB，请从 **GitHub / GitCode** 下载） |
-| **macOS Intel** | `macos-4.3.2-amd64.dmg` | 同上 |
-| **Ubuntu / Debian x64** | `ubuntu-4.3.2-amd64.deb` / `debian-4.3.2-amd64.deb` | `sudo dpkg -i xxx.deb` |
-| **Ubuntu / Debian arm64** | `ubuntu-4.3.2-arm64.deb` / `debian-4.3.2-arm64.deb` | 同上 |
-| **CentOS / RHEL x64** | `centos-4.3.2-amd64.rpm` | `sudo yum install ./centos-4.3.2-amd64.rpm` |
-| **CentOS / RHEL arm64** | `centos-4.3.2-arm64.rpm` | 同上 |
-| **飞牛 fnOS x86** | `fnos-4.3.2-x86.fpk` | 应用中心先装 **Node.js 20/22**，再手动安装 fpk |
-| **飞牛 fnOS ARM** | `fnos-4.3.2-arm.fpk` | 同上 |
-| **群晖 x86_64** | `syno-4.3.2-x86_64.spk` | 套件中心先装 **Node.js 20/22**，再手动安装 spk |
-| **群晖 aarch64** | `syno-4.3.2-aarch64.spk` | 同上 |
-| **安装包源码** | `installer-src-4.3.2.zip` | 各平台打包骨架（`packages-src/`），供二次打包 |
+| **Windows** | `windows-4.3.3-amd64.exe` | 双击安装，可选目录；Win10/11 64 位，需管理员 |
+| **macOS Apple Silicon** | `macos-4.3.3-arm64.dmg` | 打开 DMG → 运行 `install.command`（Gitee 单文件 ≤100MB，请从 **GitHub / GitCode** 下载） |
+| **macOS Intel** | `macos-4.3.3-amd64.dmg` | 同上 |
+| **Ubuntu / Debian x64** | `ubuntu-4.3.3-amd64.deb` / `debian-4.3.3-amd64.deb` | `sudo dpkg -i xxx.deb` |
+| **Ubuntu / Debian arm64** | `ubuntu-4.3.3-arm64.deb` / `debian-4.3.3-arm64.deb` | 同上 |
+| **CentOS / RHEL x64** | `centos-4.3.3-amd64.rpm` | `sudo yum install ./centos-4.3.3-amd64.rpm` |
+| **CentOS / RHEL arm64** | `centos-4.3.3-arm64.rpm` | 同上 |
+| **飞牛 fnOS x86** | `fnos-4.3.3-x86.fpk` | 应用中心先装 **Node.js 20/22**，再手动安装 fpk |
+| **飞牛 fnOS ARM** | `fnos-4.3.3-arm.fpk` | 同上 |
+| **群晖 x86_64** | `syno-4.3.3-x86_64.spk` | 套件中心先装 **Node.js 20/22**，再手动安装 spk |
+| **群晖 aarch64** | `syno-4.3.3-aarch64.spk` | 同上 |
+| **安装包源码** | `installer-src-4.3.3.zip` | 各平台打包骨架（`packages-src/`），供二次打包 |
 
 安装后浏览器打开：**http://127.0.0.1:17890/** ，默认 **admin / admin123**。
 
@@ -62,7 +62,7 @@
 
 **Windows**
 
-1. 右键 `windows-4.3.2-amd64.exe` → **以管理员身份运行**
+1. 右键 `windows-4.3.3-amd64.exe` → **以管理员身份运行**
 2. 选择安装目录（默认 `C:\Program Files\HanyeMonitor`）
 3. 桌面打开 **hanye Printer Monitor** 控制面板 → 点「启动」
 
@@ -75,10 +75,10 @@
 
 ```bash
 # Debian / Ubuntu
-sudo dpkg -i ubuntu-4.3.2-amd64.deb && sudo apt-get install -f
+sudo dpkg -i ubuntu-4.3.3-amd64.deb && sudo apt-get install -f
 
 # CentOS / RHEL / Rocky
-sudo yum install ./centos-4.3.2-amd64.rpm
+sudo yum install ./centos-4.3.3-amd64.rpm
 ```
 
 **飞牛 NAS**

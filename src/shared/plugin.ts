@@ -33,6 +33,11 @@ export type PluginModuleDef = {
   method?: string
   /** type=api: allow unauthenticated access */
   public?: boolean
+  /**
+   * 页面打开方式。默认 embed（侧栏内 iframe 镶嵌）。
+   * standalone：整页跳转（仅切片等需要系统文件选择器的模块）。
+   */
+  openMode?: 'embed' | 'standalone'
 }
 
 /** Extra permission codes plugins contribute to the user admin UI */
@@ -747,6 +752,11 @@ export function parsePluginJson(raw: unknown, fallbackId?: string): PluginManife
   const modulesIn = Array.isArray(o.modules) ? o.modules : []
   const modules: PluginModuleDef[] = modulesIn.map((m) => {
     const row = m && typeof m === 'object' ? (m as Record<string, unknown>) : {}
+    const openRaw = String(row.openMode || row.open_mode || '')
+      .trim()
+      .toLowerCase()
+    const openMode: PluginModuleDef['openMode'] =
+      openRaw === 'standalone' || openRaw === 'fullscreen' || openRaw === 'new' ? 'standalone' : 'embed'
     return {
       name: String(row.name || 'main'),
       menu: String(row.menu || row.name || '模块'),
@@ -757,7 +767,8 @@ export function parsePluginJson(raw: unknown, fallbackId?: string): PluginManife
       perm: typeof row.perm === 'string' && row.perm.trim() ? row.perm.trim() : undefined,
       schedule: typeof row.schedule === 'string' && row.schedule.trim() ? row.schedule.trim() : undefined,
       method: typeof row.method === 'string' && row.method.trim() ? row.method.trim() : undefined,
-      public: row.public === true
+      public: row.public === true,
+      openMode
     }
   })
   const varsIn = Array.isArray(o.vars) ? o.vars : []
