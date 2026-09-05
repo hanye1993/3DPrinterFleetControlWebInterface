@@ -5,12 +5,13 @@
 | 项目 | 说明 |
 |------|------|
 | 开源截止版本 | **4.3.3**（本仓库最后开源版；其后版本不开源） |
+| 最新产品版本 | **5.0.0**（仅官网一键包） |
 | 最新安装包 | 官网 **[https://3dmn.cn](https://3dmn.cn)** 一键包（始终最新） |
 | 许可（≤4.3.3 源码） | MIT |
 | 默认端口 | **17890** |
 | 默认管理员 | **admin** / **admin123**（登录后请立刻改密） |
 
-> **重要说明：** GitHub / Gitee / GitCode **仅保留至 v4.3.3 源码**。**4.3.3 之后的新版本不再开源**，请到官方网站 [https://3dmn.cn](https://3dmn.cn) 下载一键安装包。仓库内不再提供新版本源码与安装包。
+> **重要说明：** GitHub / Gitee / GitCode **源码仅保留至 v4.3.3**。**4.3.3 之后的新版本不再开源**，请到 [https://3dmn.cn](https://3dmn.cn) 下载一键安装包。三仓库仍会同步更新 **README / 更新日记 / 全部功能 / 竞品对照** 与版本说明，**不提供**新版源码与安装包。
 
 - **管理员** → 管理台全功能（用户、设备、设置、主题、插件等）
 - **普通用户** → 按权限的工作台
@@ -42,22 +43,17 @@
 （Windows / macOS / 飞牛 / 群晖等；多数包已内置 Node，无需单独安装。）  
 三端仓库**不提供**新版本安装包，也不再开源新版本源码。
 
-### 安装包一览（官网最新；下表文件名以 4.3.3 为例）
+### 安装包一览（官网最新；下表文件名以 5.0.0 为例）
 
 | 平台 | 文件 | 说明 |
 |------|------|------|
-| **Windows** | `windows-4.3.3-amd64.exe` | 双击安装，可选目录；Win10/11 64 位，需管理员 |
-| **macOS Apple Silicon** | `macos-4.3.3-arm64.dmg` | 打开 DMG → 运行 `install.command`（Gitee 单文件 ≤100MB，请从 **GitHub / GitCode** 下载） |
-| **macOS Intel** | `macos-4.3.3-amd64.dmg` | 同上 |
-| **Ubuntu / Debian x64** | `ubuntu-4.3.3-amd64.deb` / `debian-4.3.3-amd64.deb` | `sudo dpkg -i xxx.deb` |
-| **Ubuntu / Debian arm64** | `ubuntu-4.3.3-arm64.deb` / `debian-4.3.3-arm64.deb` | 同上 |
-| **CentOS / RHEL x64** | `centos-4.3.3-amd64.rpm` | `sudo yum install ./centos-4.3.3-amd64.rpm` |
-| **CentOS / RHEL arm64** | `centos-4.3.3-arm64.rpm` | 同上 |
-| **飞牛 fnOS x86** | `fnos-4.3.3-x86.fpk` | 应用中心先装 **Node.js 20/22**，再手动安装 fpk |
-| **飞牛 fnOS ARM** | `fnos-4.3.3-arm.fpk` | 同上 |
-| **群晖 x86_64** | `syno-4.3.3-x86_64.spk` | 套件中心先装 **Node.js 20/22**，再手动安装 spk |
-| **群晖 aarch64** | `syno-4.3.3-aarch64.spk` | 同上 |
-| **安装包源码** | `installer-src-4.3.3.zip` | 各平台打包骨架（`packages-src/`），供二次打包 |
+| **Windows** | `windows-5.0.0-amd64.exe` | 双击安装，可选目录；Win10/11 64 位，需管理员 |
+| **macOS Apple Silicon** | `macos-5.0.0-arm64.dmg` | 打开 DMG → 运行 `install.command` |
+| **macOS Intel** | `macos-5.0.0-amd64.dmg` | 同上 |
+| **飞牛 fnOS x86** | `fnos-5.0.0-x86.fpk` | 应用中心先装 **Node.js 20/22**，再手动安装 fpk |
+| **飞牛 fnOS ARM** | `fnos-5.0.0-arm.fpk` | 同上 |
+| **群晖 x86_64** | `syno-5.0.0-x86_64.spk` | 套件中心先装 **Node.js 20/22**，再手动安装 spk |
+| **群晖 aarch64** | `syno-5.0.0-aarch64.spk` | 同上 |
 
 安装后浏览器打开：**http://127.0.0.1:17890/** ，默认 **admin / admin123**。
 
@@ -65,7 +61,7 @@
 
 **Windows**
 
-1. 右键 `windows-4.3.3-amd64.exe` → **以管理员身份运行**
+1. 右键 `windows-5.0.0-amd64.exe` → **以管理员身份运行**
 2. 选择安装目录（默认 `C:\Program Files\HanyeMonitor`）
 3. 桌面打开 **hanye Printer Monitor** 控制面板 → 点「启动」
 
@@ -96,7 +92,7 @@ sudo yum install ./centos-4.3.3-amd64.rpm
 2. 套件中心 → 手动安装 → 选 `.spk`
 3. 访问 `http://NAS的IP:17890/`
 
-更细的说明见 [ops/docs/INSTALL.md](ops/docs/INSTALL.md) 与各平台 [packages-src/](packages-src/) 下 README。
+更细的说明见 [主程序/ops/docs/INSTALL.md](主程序/ops/docs/INSTALL.md) 与各平台 [主程序/packages-src/](主程序/packages-src/) 下 README。
 
 ---
 
@@ -111,6 +107,7 @@ sudo yum install ./centos-4.3.3-amd64.rpm
 git clone https://gitee.com/hanye11/3DPrinterFleetControlWebInterface.git
 cd 3DPrinterFleetControlWebInterface
 git checkout v4.3.3   # 最后开源标签
+cd 主程序             # 监控台工程目录（新布局；旧归档若无此目录则在仓库根执行）
 ```
 
 也可从 Releases 下载 **v4.3.3** 源码 zip。
@@ -118,6 +115,7 @@ git checkout v4.3.3   # 最后开源标签
 ### 安装与启动
 
 ```bash
+cd 主程序
 npm install
 npm run build
 mkdir -p data
@@ -147,7 +145,7 @@ export SECRETS_MASTER_KEY=长随机串
 npm start
 ```
 
-详见 [ops/docs/NODE_DEPLOY.md](ops/docs/NODE_DEPLOY.md)、[ops/docs/MYSQL.md](ops/docs/MYSQL.md)。
+详见 [主程序/ops/docs/NODE_DEPLOY.md](主程序/ops/docs/NODE_DEPLOY.md)、[主程序/ops/docs/MYSQL.md](主程序/ops/docs/MYSQL.md)。
 
 ### NAS（飞牛 / 群晖）SSH 直装
 
@@ -156,36 +154,36 @@ npm start
 ```bash
 export PATH=/var/apps/nodejs_v20/target/bin:$PATH   # 飞牛
 # 群晖常见：/var/packages/Node.js_v20/target/usr/local/bin
-cd /你的解压目录
+cd /你的解压目录/主程序
 npm install && npm run build && npm start
 ```
 
-飞牛日常启停 / 更新脚本见 [node.js20/README.md](node.js20/README.md)。
+飞牛日常启停 / 更新脚本见 [主程序/node.js20/README.md](主程序/node.js20/README.md)。
 
 ---
 
 ## 3. Docker 安装
 
-适合已熟悉 Docker、希望 **MySQL + 应用** 一起容器化部署的环境。文件均在 [`docker/`](docker/) 目录。
+适合已熟悉 Docker、希望 **MySQL + 应用** 一起容器化部署的环境。文件均在 [`主程序/docker/`](主程序/docker/) 目录。
 
 ### Windows
 
 1. 安装并启动 [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-2. 进入仓库 **`docker`** 文件夹，双击 **`install.bat`**
+2. 进入 **`主程序/docker`** 文件夹，双击 **`install.bat`**
 3. 浏览器：http://127.0.0.1:17890/
 4. 清空重装：双击 **`reset.bat`**，输入 `YES`
 
 ### macOS / Linux
 
 ```bash
-cd docker
+cd 主程序/docker
 chmod +x install.sh reset.sh import.sh gen-env.sh
 ./install.sh
 ```
 
 Linux 未装 Docker 时可先执行：`curl -fsSL https://get.docker.com | sh`
 
-### 常用 Docker 命令（仓库根目录）
+### 常用 Docker 命令（在 `主程序/` 目录）
 
 ```bash
 npm run docker:up       # 构建并启动
@@ -194,7 +192,7 @@ npm run docker:logs     # 查看日志
 npm run docker:import   # 导入 ./data 到 MySQL
 ```
 
-NAS 上若需扫局域网打印机，优先用 **Node 直装** 或 **一键 fpk/spk**；Docker 网络配置见 [docker/README.md](docker/README.md)、[ops/docs/INSTALL.md](ops/docs/INSTALL.md)。
+NAS 上若需扫局域网打印机，优先用 **Node 直装** 或 **一键 fpk/spk**；Docker 网络配置见 [主程序/docker/README.md](主程序/docker/README.md)、[主程序/ops/docs/INSTALL.md](主程序/ops/docs/INSTALL.md)。
 
 ---
 
@@ -212,17 +210,24 @@ NAS 上若需扫局域网打印机，优先用 **Node 直装** 或 **一键 fpk/
 ## 5. 项目结构
 
 ```
-├── src/                 # 源码（web React + Node 服务）
-├── assets/              # 内置主题 / 插件 / 示例 / yolo
-├── packages-src/        # 各平台一键安装包源码（mac/linux/win/fnos/syno）
-├── ops/                 # sql · scripts · docs
-├── config/              # Vite / TypeScript
-├── data/                # 运行时数据（勿提交）
-├── dist/                # 构建产物
-├── docker/              # Docker 一键脚本 / compose / Dockerfile
-├── node.js20/           # 飞牛 NAS Node 20 启停 / 更新脚本
-├── package.json
-└── README.md
+├── README.md / 更新日记.md / 全部功能.md / 竞品对照.md   # 文档（三仓库同步）
+├── 主程序/              # 监控台工程（npm / 一键包 / Docker）
+│   ├── src/             # 源码（web React + Node 服务）
+│   ├── assets/          # 内置主题槽 / 主题示例 / yolo
+│   ├── packages-src/    # 各平台一键安装包源码
+│   ├── ops/             # sql · scripts · docs
+│   ├── config/          # Vite / TypeScript
+│   ├── data/            # 运行时数据（勿提交）
+│   ├── dist/            # 构建产物
+│   ├── docker/          # Docker 一键脚本 / compose / Dockerfile
+│   ├── node.js20/       # 飞牛 NAS Node 启停 / 更新脚本
+│   └── package.json
+├── 插件源码/            # 全部插件开发源码（plugin-*）
+├── 插件/                # 插件发布包（中文名目录：zip + 说明 + 封面）
+├── 一键包/              # pack:* 安装包产物（勿提交）
+├── 官方网站/            # 3dmn.cn
+├── 官方验证系统/        # 席位授权（:3100）
+└── 应用市场/            # 插件主题集市（:3001）
 ```
 
 ---
@@ -231,11 +236,11 @@ NAS 上若需扫局域网打印机，优先用 **Node 直装** 或 **一键 fpk/
 
 | 文档 | 内容 |
 |------|------|
-| [INSTALL.md](ops/docs/INSTALL.md) | 分平台详细安装（一键包 + Node + Docker） |
-| [node.js20/README.md](node.js20/README.md) | 飞牛 NAS Node 运维脚本 |
-| [NODE_DEPLOY.md](ops/docs/NODE_DEPLOY.md) | Node 生产部署 |
-| [MYSQL.md](ops/docs/MYSQL.md) | MySQL |
-| [BAOTA.md](ops/docs/BAOTA.md) | 宝塔面板 |
+| [INSTALL.md](主程序/ops/docs/INSTALL.md) | 分平台详细安装（一键包 + Node + Docker） |
+| [node.js20/README.md](主程序/node.js20/README.md) | 飞牛 NAS Node 运维脚本 |
+| [NODE_DEPLOY.md](主程序/ops/docs/NODE_DEPLOY.md) | Node 生产部署 |
+| [MYSQL.md](主程序/ops/docs/MYSQL.md) | MySQL |
+| [BAOTA.md](主程序/ops/docs/BAOTA.md) | 宝塔面板 |
 
 ---
 
