@@ -866,15 +866,13 @@ function UserEditor(props: {
         </Typography.Paragraph>
         <div
           style={{
-            maxHeight: 220,
-            overflow: 'auto',
             margin: '8px 0 16px',
             border: '1px solid #333',
             padding: 8
           }}
         >
           <Checkbox.Group
-            style={{ display: 'flex', flexDirection: 'column', gap: 4 }}
+            style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px' }}
             value={perms.filter((p) => ALL_GLOBAL.includes(p as (typeof ALL_GLOBAL)[number]))}
             onChange={(v) => {
               const pluginKept = perms.filter(
@@ -899,15 +897,13 @@ function UserEditor(props: {
             </Typography.Paragraph>
             <div
               style={{
-                maxHeight: 180,
-                overflow: 'auto',
                 margin: '8px 0 16px',
                 border: '1px solid #333',
                 padding: 8
               }}
             >
               <Checkbox.Group
-                style={{ display: 'flex', flexDirection: 'column', gap: 4 }}
+                style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px' }}
                 value={perms.filter((p) => pluginCodes.has(p))}
                 onChange={(v) => {
                   const coreKept = perms.filter((p) => !pluginCodes.has(p))
@@ -939,15 +935,13 @@ function UserEditor(props: {
               )}
               <div
                 style={{
-                  maxHeight: 160,
-                  overflow: 'auto',
                   margin: '0 0 16px',
                   border: '1px solid #333',
                   padding: 8
                 }}
               >
                 <Checkbox.Group
-                  style={{ display: 'flex', flexDirection: 'column', gap: 4 }}
+                  style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px' }}
                   value={perms.filter((p) => codes.has(p))}
                   onChange={(v) => {
                     const other = perms.filter((p) => !codes.has(p))

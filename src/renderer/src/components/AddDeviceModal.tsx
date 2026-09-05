@@ -60,6 +60,13 @@ type FormValues = {
   name: string
   brand: string
   model?: string
+  /** 自定义品牌显示名（仅 Klipper，添加时） */
+  brandName?: string
+  /** 品牌角标背景色（仅 Klipper，添加时） */
+  brandChipBg?: string
+  /** 品牌角标字体色（仅 Klipper，添加时） */
+  brandChipColor?: string
+  useCustomBrandChip?: boolean
   baseUrl?: string
   apiKey?: string
   group?: string
@@ -118,7 +125,30 @@ export function AddDeviceModal({
       mode,
       { ...(device as unknown as Record<string, unknown>) }
     ) as unknown as DeviceConfig
-    await storeAdd({ ...merged, tech }, apiKey)
+    const isKlipper = brandId === 'klipper' || String(merged.brand || '') === 'klipper'
+    const brandName = isKlipper
+      ? String(form.getFieldValue('brandName') || merged.brandName || '').trim() || undefined
+      : undefined
+    const useChip = isKlipper && !!form.getFieldValue('useCustomBrandChip')
+    const hexOk = (v: string) => /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(v)
+    const rawBg = useChip
+      ? String(form.getFieldValue('brandChipBg') || merged.brandChipBg || '').trim()
+      : ''
+    const rawFg = useChip
+      ? String(form.getFieldValue('brandChipColor') || merged.brandChipColor || '').trim()
+      : ''
+    const brandChipBg = hexOk(rawBg) ? rawBg : undefined
+    const brandChipColor = hexOk(rawFg) ? rawFg : undefined
+    await storeAdd(
+      {
+        ...merged,
+        tech,
+        brandName,
+        brandChipBg,
+        brandChipColor
+      },
+      apiKey
+    )
   }
   const [form] = Form.useForm<FormValues>()
   const brand = Form.useWatch('brand', form) as string | undefined
@@ -1281,6 +1311,14 @@ export function AddDeviceModal({
                   def?.connections?.[0]?.id ||
                   'lan'
                 form.setFieldValue('connectionMode', defaultConn)
+                if (nextBrand !== 'klipper') {
+                  form.setFieldsValue({
+                    brandName: undefined,
+                    brandChipBg: undefined,
+                    brandChipColor: undefined,
+                    useCustomBrandChip: false
+                  })
+                }
               }}
             >
               {tech === 'fdm' ? <Radio.Button value="klipper">Klipper</Radio.Button> : null}
@@ -1298,6 +1336,68 @@ export function AddDeviceModal({
               ))}
             </Radio.Group>
           </Form.Item>
+          {brand === 'klipper' ? (
+            <>
+              <Form.Item
+                name="brandName"
+                label="自定义品牌名"
+                extra="仅 Klipper；只改卡片角标显示，添加后不可修改。留空则显示「Klipper」。"
+              >
+                <Input placeholder="例如：Voron / 三轮车 / 车间A" maxLength={32} allowClear />
+              </Form.Item>
+              <Form.Item
+                name="useCustomBrandChip"
+                label="自定义品牌角标颜色"
+                valuePropName="checked"
+                extra="对应卡片右上角品牌标签的背景色与字体色；关闭则用默认样式。添加后不可修改。"
+              >
+                <Checkbox
+                  onChange={(e) => {
+                    if (!e.target.checked) {
+                      form.setFieldsValue({ brandChipBg: undefined, brandChipColor: undefined })
+                    }
+                  }}
+                >
+                  启用自定义角标颜色
+                </Checkbox>
+              </Form.Item>
+              <Form.Item
+                noStyle
+                shouldUpdate={(prev, cur) => prev.useCustomBrandChip !== cur.useCustomBrandChip}
+              >
+                {() =>
+                  form.getFieldValue('useCustomBrandChip') ? (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'flex-start' }}>
+                      <Form.Item
+                        name="brandChipBg"
+                        label="角标背景色"
+                        initialValue="#52c41a"
+                        rules={[{ required: true, message: '请选择背景色' }]}
+                        style={{ marginBottom: 0 }}
+                      >
+                        <Input
+                          type="color"
+                          style={{ width: 72, padding: 2, height: 36, cursor: 'pointer' }}
+                        />
+                      </Form.Item>
+                      <Form.Item
+                        name="brandChipColor"
+                        label="角标字体色"
+                        initialValue="#b7eb8f"
+                        rules={[{ required: true, message: '请选择字体色' }]}
+                        style={{ marginBottom: 0 }}
+                      >
+                        <Input
+                          type="color"
+                          style={{ width: 72, padding: 2, height: 36, cursor: 'pointer' }}
+                        />
+                      </Form.Item>
+                    </div>
+                  ) : null
+                }
+              </Form.Item>
+            </>
+          ) : null}
           <PluginSlot name="device.add.brand.after" />
 
           {isPluginBrand && pluginBrandDef?.connections?.length ? (

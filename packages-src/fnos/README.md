@@ -15,8 +15,8 @@
 
 | NAS 芯片 | 安装包（在 `packages/`） |
 |----------|--------|
-| Intel / x86 | `fnos-4.3.1-x86.fpk` |
-| ARM（R 系列等） | `fnos-4.3.1-arm.fpk` |
+| Intel / x86 | `fnos-4.3.2-x86.fpk` |
+| ARM（R 系列等） | `fnos-4.3.2-arm.fpk` |
 
 ## 安装
 

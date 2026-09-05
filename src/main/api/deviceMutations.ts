@@ -53,6 +53,9 @@ const RESERVED_DEVICE_KEYS = new Set([
   'snapmakerApi',
   'aiVisionEnabled',
   'model',
+  'brandName',
+  'brandChipBg',
+  'brandChipColor',
   'createdAt',
   'pluginData',
   'clearSecret'
@@ -75,6 +78,13 @@ export type DeviceRow = {
   name: string
   brand: string
   tech?: string
+  model?: string
+  /** Klipper：添加时自定义品牌显示名（不可再改） */
+  brandName?: string
+  /** Klipper：品牌角标背景色（不可再改） */
+  brandChipBg?: string
+  /** Klipper：品牌角标字体色（不可再改） */
+  brandChipColor?: string
   group?: string
   tags?: string[]
   connectionMode?: string
@@ -112,6 +122,14 @@ function str(v: unknown): string | undefined {
   return s || undefined
 }
 
+/** 仅接受 #RGB / #RRGGBB / #RRGGBBAA */
+function normalizeHexColor(v: unknown): string | undefined {
+  const s = str(v)
+  if (!s) return undefined
+  if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(s)) return s
+  return undefined
+}
+
 export function createDeviceFromBody(
   body: Record<string, unknown>
 ): { device: DeviceRow; secret?: string } | { error: string } {
@@ -137,6 +155,10 @@ export function createDeviceFromBody(
     group: str(body.group),
     tags: Array.isArray(body.tags) ? body.tags.map((t) => String(t)).filter(Boolean) : undefined,
     model: str(body.model),
+    // 仅 Klipper 允许在添加时写入自定义品牌名 / 角标颜色
+    brandName: brand === 'klipper' ? str(body.brandName) : undefined,
+    brandChipBg: brand === 'klipper' ? normalizeHexColor(body.brandChipBg) : undefined,
+    brandChipColor: brand === 'klipper' ? normalizeHexColor(body.brandChipColor) : undefined,
     baseUrl: str(body.baseUrl),
     secretKey,
     bambuDeviceId: str(body.bambuDeviceId),
@@ -241,6 +263,10 @@ export function mergeDeviceFromBody(
           ? body.tags.map((t) => String(t)).filter(Boolean)
           : prev.tags,
     model: pick('model', body.model, prev.model),
+    // 添加后锁定：忽略客户端对 brandName / 角标颜色的修改
+    brandName: prev.brandName != null ? str(prev.brandName) : undefined,
+    brandChipBg: prev.brandChipBg != null ? normalizeHexColor(prev.brandChipBg) : undefined,
+    brandChipColor: prev.brandChipColor != null ? normalizeHexColor(prev.brandChipColor) : undefined,
     baseUrl: pick('baseUrl', body.baseUrl, prev.baseUrl),
     secretKey,
     bambuDeviceId: pick('bambuDeviceId', body.bambuDeviceId, prev.bambuDeviceId),

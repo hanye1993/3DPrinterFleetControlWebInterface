@@ -22,6 +22,19 @@ export interface DeviceConfig {
   tech?: PrinterTech
   /** Printer model / product name — required for same-model batch print grouping */
   model?: string
+  /**
+   * Klipper 专用：添加时自定义品牌显示名（仅展示；添加后不可改）。
+   */
+  brandName?: string
+  /**
+   * Klipper 专用：品牌角标背景色（#RGB/#RRGGBB/#RRGGBBAA；添加后不可改）。
+   * 未设置则沿用默认 `.brand-chip` 样式。
+   */
+  brandChipBg?: string
+  /**
+   * Klipper 专用：品牌角标字体色（#RGB/#RRGGBB/#RRGGBBAA；添加后不可改）。
+   */
+  brandChipColor?: string
   group?: string
   tags?: string[]
   /** Moonraker / Fluidd / Creality base URL, e.g. http://192.168.1.178:4408 */

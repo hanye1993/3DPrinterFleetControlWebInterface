@@ -621,7 +621,7 @@ export function DeviceDetailDrawer({
     }
   }
 
-  const brandName =
+  const protocolBrandLabel =
     device.brand === 'klipper'
       ? 'Klipper'
       : device.brand === 'creality'
@@ -636,7 +636,14 @@ export function DeviceDetailDrawer({
                 ? '闪铸'
                 : device.brand === 'qidi'
                   ? '启迪'
-                  : 'Bambu Lab'
+                  : device.brand === 'bambu'
+                    ? 'Bambu Lab'
+                    : String(device.brand || '未知')
+
+  const displayBrandLabel =
+    device.brand === 'klipper' && String(device.brandName || '').trim()
+      ? String(device.brandName).trim()
+      : protocolBrandLabel
 
   const isMultiColor = Boolean(st?.amsSlots?.length)
   const isResin = deviceTech(device) === 'resin'
@@ -891,7 +898,7 @@ export function DeviceDetailDrawer({
         <Space wrap size={16} style={{ width: '100%', justifyContent: 'space-between' }}>
           <Space direction="vertical" size={0}>
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              {brandName} · {isResin ? '光固化' : 'FDM'} · {st?.state || '--'} ·{' '}
+              {displayBrandLabel} · {isResin ? '光固化' : 'FDM'} · {st?.state || '--'} ·{' '}
               {device.connectionMode || 'lan'}
             </Typography.Text>
             <Typography.Text ellipsis style={{ maxWidth: 360 }}>

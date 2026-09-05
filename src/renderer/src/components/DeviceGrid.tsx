@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Button, Checkbox, Dropdown, Empty, Pagination, Select, Space, Spin, Typography, message } from 'antd'
 import type { MenuProps } from 'antd'
 import type { DeviceConfig, PrinterLiveStatus, PrinterTech } from '../types/printer'
@@ -139,6 +139,43 @@ function brandLabel(brand: DeviceConfig['brand']): string {
       if (p?.label) return p.label
       return String(brand || '未知')
     }
+  }
+}
+
+/** 卡片品牌角标：仅 Klipper 可用添加时的自定义 brandName */
+function deviceBrandDisplay(device: DeviceConfig): string {
+  if (device.brand === 'klipper') {
+    const custom = String(device.brandName || '').trim()
+    if (custom) return custom
+  }
+  return brandLabel(device.brand)
+}
+
+function normalizeChipHex(v: unknown): string | undefined {
+  let s = String(v || '').trim()
+  if (!s) return undefined
+  if (/^#[0-9a-fA-F]{3}$/.test(s)) {
+    s =
+      '#' +
+      s
+        .slice(1)
+        .split('')
+        .map((c) => c + c)
+        .join('')
+  }
+  if (/^#[0-9a-fA-F]{6}$/.test(s) || /^#[0-9a-fA-F]{8}$/.test(s)) return s
+  return undefined
+}
+
+/** 品牌角标自定义颜色（覆盖 `.brand-chip` 默认色） */
+function brandChipStyle(device: DeviceConfig): CSSProperties | undefined {
+  if (device.brand !== 'klipper') return undefined
+  const background = normalizeChipHex(device.brandChipBg)
+  const color = normalizeChipHex(device.brandChipColor)
+  if (!background && !color) return undefined
+  return {
+    ...(background ? { background } : {}),
+    ...(color ? { color } : {})
   }
 }
 
@@ -284,6 +321,7 @@ const DeviceCard = memo(function DeviceCard({
     }
   }
 
+  const chipStyle = brandChipStyle(device)
   return (
     <PluginSlot
       name="device.card"
@@ -309,7 +347,15 @@ const DeviceCard = memo(function DeviceCard({
         onSelect(device.id)
       }}
     >
-      <PluginSlot name="device.card.before" context={{ deviceId: device.id, deviceName: device.name }} />
+      <PluginSlot
+        name="device.card.before"
+        context={{
+          deviceId: device.id,
+          deviceName: device.name,
+          brand: device.brand,
+          brandName: device.brandName || ''
+        }}
+      />
       <div className="device-card-head">
         <PluginSlot name="device.card.head.before" context={{ deviceId: device.id }} />
         <div className="device-card-title">
@@ -324,6 +370,7 @@ const DeviceCard = memo(function DeviceCard({
               deviceId: device.id,
               deviceName: device.name,
               brand: device.brand,
+              brandName: device.brandName || '',
               chamberTemp: st?.chamberTemp ?? null,
               health
             }}
@@ -331,8 +378,11 @@ const DeviceCard = memo(function DeviceCard({
           <span className={`tech-chip ${resin ? 'resin' : 'fdm'}`}>{resin ? '光固化' : 'FDM'}</span>
         </div>
         <div className="device-card-head-end">
-          <span className={`brand-chip ${BRAND_CLASS[device.brand] || 'brand-bambu'}`}>
-            {brandLabel(device.brand)}
+          <span
+            className={`brand-chip ${BRAND_CLASS[device.brand] || 'brand-bambu'}`}
+            style={chipStyle}
+          >
+            {deviceBrandDisplay(device)}
           </span>
         </div>
         <PluginSlot name="device.card.head.after" context={{ deviceId: device.id }} />
