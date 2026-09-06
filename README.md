@@ -5,7 +5,7 @@
 | 项目 | 说明 |
 |------|------|
 | 开源截止版本 | **4.3.3**（本仓库最后开源版；其后版本不开源） |
-| 最新产品版本 | **5.0.0**（仅官网一键包） |
+| 最新产品版本 | **5.0.1**（仅官网一键包） |
 | 最新安装包 | 官网 **[https://3dmn.cn](https://3dmn.cn)** 一键包（始终最新） |
 | 许可（≤4.3.3 源码） | MIT |
 | 默认端口 | **17890** |
@@ -42,17 +42,17 @@
 （Windows / macOS / 飞牛 / 群晖等；多数包已内置 Node，无需单独安装。）  
 三端仓库**不提供**新版本安装包，也不再开源新版本源码。
 
-### 安装包一览（官网最新；下表文件名以 5.0.0 为例）
+### 安装包一览（官网最新；下表文件名以 5.0.1 为例）
 
 | 平台 | 文件 | 说明 |
 |------|------|------|
-| **Windows** | `windows-5.0.0-amd64.exe` | 双击安装，可选目录；Win10/11 64 位，需管理员 |
-| **macOS Apple Silicon** | `macos-5.0.0-arm64.dmg` | 打开 DMG → 运行 `install.command` |
-| **macOS Intel** | `macos-5.0.0-amd64.dmg` | 同上 |
-| **飞牛 fnOS x86** | `fnos-5.0.0-x86.fpk` | 应用中心先装 **Node.js 20/22**，再手动安装 fpk |
-| **飞牛 fnOS ARM** | `fnos-5.0.0-arm.fpk` | 同上 |
-| **群晖 x86_64** | `syno-5.0.0-x86_64.spk` | 套件中心先装 **Node.js 20/22**，再手动安装 spk |
-| **群晖 aarch64** | `syno-5.0.0-aarch64.spk` | 同上 |
+| **Windows** | `windows-5.0.1-amd64.exe` | 双击安装，可选目录；Win10/11 64 位，需管理员 |
+| **macOS Apple Silicon** | `macos-5.0.1-arm64.dmg` | 打开 DMG → 运行 `install.command` |
+| **macOS Intel** | `macos-5.0.1-amd64.dmg` | 同上 |
+| **飞牛 fnOS x86** | `fnos-5.0.1-x86.fpk` | 应用中心先装 **Node.js 20/22**，再手动安装 fpk |
+| **飞牛 fnOS ARM** | `fnos-5.0.1-arm.fpk` | 同上 |
+| **群晖 x86_64** | `syno-5.0.1-x86_64.spk` | 套件中心先装 **Node.js 20/22**，再手动安装 spk |
+| **群晖 aarch64** | `syno-5.0.1-aarch64.spk` | 同上 |
 
 安装后浏览器打开：**http://127.0.0.1:17890/** ，默认 **admin / admin123**。
 
@@ -60,7 +60,7 @@
 
 **Windows**
 
-1. 右键 `windows-5.0.0-amd64.exe` → **以管理员身份运行**
+1. 右键 `windows-5.0.1-amd64.exe` → **以管理员身份运行**
 2. 选择安装目录（默认 `C:\Program Files\HanyeMonitor`）
 3. 桌面打开 **hanye Printer Monitor** 控制面板 → 点「启动」
 
